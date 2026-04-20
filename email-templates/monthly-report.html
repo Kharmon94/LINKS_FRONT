@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Your Monthly Report - Blackcollar.io</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { margin: 0 auto !important; padding: 0 !important; height: 100% !important; width: 100% !important; background: #ffffff; }
+        * { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
+        div[style*="margin: 16px 0"] { margin: 0 !important; }
+        table, td { mso-table-lspace: 0pt !important; mso-table-rspace: 0pt !important; }
+        table { border-spacing: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; margin: 0 auto !important; }
+        img { -ms-interpolation-mode:bicubic; }
+        a[x-apple-data-detectors], .unstyle-auto-detected-links a, .aBn { border-bottom: 0 !important; cursor: default !important; color: inherit !important; text-decoration: none !important; font-size: inherit !important; font-family: inherit !important; font-weight: inherit !important; line-height: inherit !important; }
+        .a6S { display: none !important; opacity: 0.01 !important; }
+        .im { color: inherit !important; }
+        @media only screen and (max-width: 600px) {
+            .email-container { width: 100% !important; margin: auto !important; }
+            .stack-column, .stack-column-center { display: block !important; width: 100% !important; max-width: 100% !important; direction: ltr !important; }
+            .center-on-narrow { text-align: center !important; display: block !important; margin-left: auto !important; margin-right: auto !important; float: none !important; }
+            table.center-on-narrow { display: inline-block !important; }
+        }
+    </style>
+</head>
+<body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #f5f5f5; font-family: 'Montserrat', Arial, sans-serif;">
+    <center style="width: 100%; background-color: #f5f5f5;">
+        <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: auto;" class="email-container">
+            
+            <!-- HEADER -->
+            <tr>
+                <td style="padding: 40px 20px 20px 20px; text-align: center; background-color: #ffffff;">
+                    <img src="{{LOGO_URL}}" width="180" height="auto" alt="Blackcollar.io" border="0" style="height: auto; font-family: 'Montserrat', sans-serif; font-size: 24px; line-height: 24px; color: #000000; font-weight: 700;">
+                </td>
+            </tr>
+            
+            <!-- HERO -->
+            <tr>
+                <td style="padding: 40px 40px 20px 40px; background-color: #ffffff;">
+                    <h1 style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 28px; line-height: 36px; color: #000000; font-weight: 300; text-align: center;">Your {{MONTH}} Performance</h1>
+                    <p style="margin: 10px 0 0 0; text-align: center; font-family: 'Montserrat', Arial, sans-serif; font-size: 14px; color: #666666;">Monthly Report</p>
+                </td>
+            </tr>
+            
+            <!-- INTRO -->
+            <tr>
+                <td style="padding: 0 40px 30px 40px; background-color: #ffffff;">
+                    <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; line-height: 24px; color: #333333; text-align: center;">Hi {{USER_NAME}}, here's how your links performed in {{MONTH}}.</p>
+                </td>
+            </tr>
+            
+            <!-- KEY METRICS GRID -->
+            <tr>
+                <td style="padding: 0 40px 30px 40px; background-color: #ffffff;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                            <!-- Total Clicks -->
+                            <td width="50%" style="padding-right: 10px; padding-bottom: 20px; vertical-align: top;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #000000; color: #ffffff;">
+                                    <tr>
+                                        <td style="padding: 25px; text-align: center;">
+                                            <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #ffffff; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; opacity: 0.8;">Total Clicks</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 36px; line-height: 36px; color: #ffffff; font-weight: 700;">{{TOTAL_CLICKS}}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <!-- Change vs Last Month -->
+                            <td width="50%" style="padding-left: 10px; padding-bottom: 20px; vertical-align: top;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #e5e5e5;">
+                                    <tr>
+                                        <td style="padding: 25px; text-align: center;">
+                                            <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">vs Last Month</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 36px; line-height: 36px; color: {{CHANGE_COLOR}}; font-weight: 700;">{{CHANGE_ICON}}{{CHANGE_PERCENT}}%</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <!-- Links Created -->
+                            <td style="padding-right: 10px; vertical-align: top;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #e5e5e5;">
+                                    <tr>
+                                        <td style="padding: 25px; text-align: center;">
+                                            <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Links Created</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 36px; line-height: 36px; color: #000000; font-weight: 700;">{{LINKS_CREATED}}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                            <!-- Campaigns Launched -->
+                            <td style="padding-left: 10px; vertical-align: top;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #e5e5e5;">
+                                    <tr>
+                                        <td style="padding: 25px; text-align: center;">
+                                            <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Campaigns</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 36px; line-height: 36px; color: #000000; font-weight: 700;">{{CAMPAIGNS_COUNT}}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            
+            <!-- HIGHLIGHTS -->
+            <tr>
+                <td style="padding: 0 40px 30px 40px; background-color: #ffffff;">
+                    <h2 style="margin: 0 0 20px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 20px; line-height: 28px; color: #000000; font-weight: 600;">Month Highlights</h2>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #e5e5e5; margin-bottom: 15px;">
+                        <tr>
+                            <td style="padding: 20px;">
+                                <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 14px; color: #666666;">🏆 Best Performing Link</p>
+                                <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; color: #000000; font-weight: 600;">{{BEST_LINK_NAME}}</p>
+                                <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 24px; color: #000000; font-weight: 700;">{{BEST_LINK_CLICKS}} <span style="font-size: 14px; color: #666666; font-weight: 400;">clicks</span></p>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #e5e5e5; margin-bottom: 15px;">
+                        <tr>
+                            <td style="padding: 20px;">
+                                <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 14px; color: #666666;">🌍 Top Geographic Market</p>
+                                <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 20px; color: #000000; font-weight: 600;">{{TOP_COUNTRY}} <span style="font-size: 14px; color: #666666; font-weight: 400;">({{TOP_COUNTRY_PERCENT}}% of clicks)</span></p>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9f9f9; border: 1px solid #e5e5e5;">
+                        <tr>
+                            <td style="padding: 20px;">
+                                <p style="margin: 0 0 5px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 14px; color: #666666;">📱 Device Breakdown</p>
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 10px;">
+                                    <tr>
+                                        <td width="33%" style="text-align: center;">
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 24px; color: #000000; font-weight: 700;">{{MOBILE_PERCENT}}%</p>
+                                            <p style="margin: 5px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">Mobile</p>
+                                        </td>
+                                        <td width="33%" style="text-align: center;">
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 24px; color: #000000; font-weight: 700;">{{DESKTOP_PERCENT}}%</p>
+                                            <p style="margin: 5px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">Desktop</p>
+                                        </td>
+                                        <td width="33%" style="text-align: center;">
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 24px; color: #000000; font-weight: 700;">{{TABLET_PERCENT}}%</p>
+                                            <p style="margin: 5px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">Tablet</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            
+            <!-- TOP CAMPAIGNS -->
+            <tr>
+                <td style="padding: 0 40px 30px 40px; background-color: #ffffff;">
+                    <h2 style="margin: 0 0 20px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 20px; line-height: 28px; color: #000000; font-weight: 600;">Top 3 Campaigns</h2>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 1px solid #e5e5e5; margin-bottom: 10px;">
+                        <tr>
+                            <td style="padding: 15px 20px; border-left: 4px solid #000000;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                        <td width="70%">
+                                            <p style="margin: 0 0 3px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">1st</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; color: #000000; font-weight: 600;">{{CAMPAIGN_1_NAME}}</p>
+                                        </td>
+                                        <td width="30%" style="text-align: right;">
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 20px; color: #000000; font-weight: 700;">{{CAMPAIGN_1_CLICKS}}</p>
+                                            <p style="margin: 3px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">clicks</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 1px solid #e5e5e5; margin-bottom: 10px;">
+                        <tr>
+                            <td style="padding: 15px 20px; border-left: 4px solid #666666;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                        <td width="70%">
+                                            <p style="margin: 0 0 3px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">2nd</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; color: #000000; font-weight: 600;">{{CAMPAIGN_2_NAME}}</p>
+                                        </td>
+                                        <td width="30%" style="text-align: right;">
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 20px; color: #000000; font-weight: 700;">{{CAMPAIGN_2_CLICKS}}</p>
+                                            <p style="margin: 3px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">clicks</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border: 1px solid #e5e5e5;">
+                        <tr>
+                            <td style="padding: 15px 20px; border-left: 4px solid #cccccc;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                        <td width="70%">
+                                            <p style="margin: 0 0 3px 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">3rd</p>
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; color: #000000; font-weight: 600;">{{CAMPAIGN_3_NAME}}</p>
+                                        </td>
+                                        <td width="30%" style="text-align: right;">
+                                            <p style="margin: 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 20px; color: #000000; font-weight: 700;">{{CAMPAIGN_3_CLICKS}}</p>
+                                            <p style="margin: 3px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; color: #666666;">clicks</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            
+            <!-- CTA -->
+            <tr>
+                <td style="padding: 0 40px 40px 40px; background-color: #ffffff; text-align: center;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                        <tr>
+                            <td style="background-color: #000000; text-align: center;">
+                                <a href="{{ANALYTICS_URL}}" style="background-color: #000000; border: 1px solid #000000; font-family: 'Montserrat', Arial, sans-serif; font-size: 16px; line-height: 16px; text-decoration: none; padding: 16px 40px; color: #ffffff; display: block; font-weight: 600;">View Detailed Report</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <p style="margin: 20px 0 0 0; font-family: 'Montserrat', Arial, sans-serif; font-size: 14px; color: #666666;">Keep up the great work in {{NEXT_MONTH}}!</p>
+                </td>
+            </tr>
+            
+            <!-- FOOTER -->
+            <tr>
+                <td style="padding: 40px 20px; background-color: #ffffff; border-top: 1px solid #e5e5e5;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                            <td style="padding: 0; text-align: center; font-family: 'Montserrat', Arial, sans-serif; font-size: 12px; line-height: 18px; color: #666666;">
+                                <p style="margin: 0 0 10px 0;">© 2026 Blackcollar.io. All rights reserved.</p>
+                                <p style="margin: 0 0 10px 0;">
+                                    <a href="{{DASHBOARD_URL}}" style="color: #000000; text-decoration: underline;">Dashboard</a> • 
+                                    <a href="{{HELP_URL}}" style="color: #000000; text-decoration: underline;">Help Center</a> • 
+                                    <a href="{{PRIVACY_URL}}" style="color: #000000; text-decoration: underline;">Privacy</a>
+                                </p>
+                                <p style="margin: 0; color: #999999; font-size: 11px;">
+                                    You're receiving this monthly summary because you have an account with Blackcollar.io.<br>
+                                    <a href="{{EMAIL_PREFERENCES_URL}}" style="color: #999999; text-decoration: underline;">Update email preferences</a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            
+        </table>
+    </center>
+</body>
+</html>
