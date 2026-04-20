@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet } from "react-router";
 import { AuthProvider } from "./contexts/auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import { ProtectedRoute } from "./components/protected-route";
+import { AdminRoute } from "./components/admin-route";
 import { LandingPage } from "./pages/landing-page";
 import { AuthPage } from "./pages/auth-page";
 import { VerifyPage } from "./pages/verify-page";
@@ -24,6 +25,9 @@ import { UseCasesPage } from "./pages/use-cases-page";
 import { BookACallPage } from "./pages/book-a-call-page";
 import { PricingPage } from "./pages/pricing-page";
 import { OAuthCompletePage } from "./pages/oauth-complete-page";
+import { AdminLoginPage } from "./pages/admin-login-page";
+import { AdminPage } from "./pages/admin-page";
+import { NotFoundPage } from "./pages/not-found-page";
 
 function RootLayout() {
   return (
@@ -54,6 +58,14 @@ export const router = createBrowserRouter([
       {
         path: "/auth/oauth-complete",
         Component: OAuthCompletePage,
+      },
+      {
+        path: "/admin/login",
+        Component: AdminLoginPage,
+      },
+      {
+        path: "/admin",
+        element: <AdminRoute><AdminPage /></AdminRoute>,
       },
       {
         path: "/dashboard",
@@ -130,6 +142,10 @@ export const router = createBrowserRouter([
       {
         path: "/pricing",
         Component: PricingPage,
+      },
+      {
+        path: "*",
+        Component: NotFoundPage,
       },
     ],
   },
