@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '../contexts/theme-context';
 import { WorkspaceSwitcher } from './workspace-switcher';
 import { 
@@ -10,6 +11,7 @@ import {
   Users, 
   Briefcase,
   Settings,
+  Shield,
   X,
   Moon,
   Sun,
@@ -28,23 +30,25 @@ interface SidebarProps {
 
 export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopToggle }: SidebarProps) {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { permissions, limits, platformAdmin } = usePermissions();
 
   const handleSignOut = () => {
-    // TODO: Replace with actual sign out logic (clear auth tokens, etc.)
+    void logout();
     window.location.href = '/';
   };
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/links', label: 'Links', icon: LinkIcon },
-    { path: '/campaigns', label: 'Campaigns', icon: FolderKanban },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/team', label: 'Team', icon: Users },
-    { path: '/workspaces', label: 'Workspaces', icon: Briefcase },
-    { path: '/settings', label: 'Settings', icon: Settings },
-  ];
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, show: permissions.links.read },
+    { path: '/links', label: 'Links', icon: LinkIcon, show: permissions.links.read },
+    { path: '/campaigns', label: 'Campaigns', icon: FolderKanban, show: permissions.campaigns.read },
+    { path: '/analytics', label: 'Analytics', icon: BarChart3, show: permissions.analytics.read },
+    { path: '/team', label: 'Team', icon: Users, show: permissions.team.read },
+    { path: '/workspaces', label: 'Workspaces', icon: Briefcase, show: permissions.workspaces.read },
+    { path: '/settings', label: 'Settings', icon: Settings, show: true },
+    { path: '/admin/overview', label: 'Admin', icon: Shield, show: platformAdmin },
+  ].filter((item) => item.show);
 
   if (!isAuthenticated) return null;
 
@@ -137,9 +141,9 @@ export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopTogg
 
                 {/* Plan Info */}
                 <div className="px-4 py-3 bg-muted/50 rounded-sm">
-                  <p className="text-sm font-medium">Free Plan</p>
+                  <p className="text-sm font-medium capitalize">{user?.subscriptionTier ?? 'free'} plan</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    3/100 links used
+                    {limits.links.used}/{limits.links.max ?? '∞'} links used
                   </p>
                   <Link 
                     to="/settings"
@@ -228,9 +232,9 @@ export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopTogg
             {/* Plan Info */}
             {!isDesktopCollapsed && (
               <div className="px-4 py-3 bg-muted/50 rounded-sm">
-                <p className="text-sm font-medium">Free Plan</p>
+                <p className="text-sm font-medium capitalize">{user?.subscriptionTier ?? 'free'} plan</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  3/100 links used
+                  {limits.links.used}/{limits.links.max ?? '∞'} links used
                 </p>
                 <Link 
                   to="/settings"

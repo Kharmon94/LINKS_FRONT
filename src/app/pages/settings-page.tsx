@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../contexts/auth-context';
+import { usePermissions } from '@/hooks/use-permissions';
 import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle } from 'lucide-react';
 import { apiRequest } from '@/services/api';
 
@@ -20,6 +21,7 @@ async function urlBase64ToUint8Array(base64String: string) {
 
 export function SettingsPage() {
   const { isAuthenticated, user, logout } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   
   const [name, setName] = useState(user?.name || '');
@@ -202,10 +204,12 @@ export function SettingsPage() {
                 <User className="w-4 h-4" />
                 <span className="text-[10px] md:text-sm">Profile</span>
               </TabsTrigger>
+              {can.domains && (
               <TabsTrigger value="domains" className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 px-1 md:px-2 md:py-3 rounded-full data-[state=active]:bg-black dark:data-[state=active]:bg-white data-[state=active]:text-white dark:data-[state=active]:text-black">
                 <Globe className="w-4 h-4" />
                 <span className="text-[10px] md:text-sm">Domains</span>
               </TabsTrigger>
+              )}
               <TabsTrigger value="security" className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 px-1 md:px-2 md:py-3 rounded-full data-[state=active]:bg-black dark:data-[state=active]:bg-white data-[state=active]:text-white dark:data-[state=active]:text-black">
                 <Key className="w-4 h-4" />
                 <span className="text-[10px] md:text-sm">Security</span>
@@ -214,10 +218,12 @@ export function SettingsPage() {
                 <Bell className="w-4 h-4" />
                 <span className="text-[10px] md:text-sm">Notifications</span>
               </TabsTrigger>
+              {can.billing && (
               <TabsTrigger value="billing" className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 px-1 md:px-2 md:py-3 rounded-full data-[state=active]:bg-black dark:data-[state=active]:bg-white data-[state=active]:text-white dark:data-[state=active]:text-black">
                 <CreditCard className="w-4 h-4" />
                 <span className="text-[10px] md:text-sm">Billing</span>
               </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Profile Tab */}
@@ -264,6 +270,7 @@ export function SettingsPage() {
             </TabsContent>
 
             {/* Domains Tab */}
+            {can.domains && (
             <TabsContent value="domains">
               <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Custom Domains</h2>
@@ -419,6 +426,7 @@ export function SettingsPage() {
                 </div>
               </div>
             </TabsContent>
+            )}
 
             {/* Security Tab */}
             <TabsContent value="security">
@@ -540,6 +548,7 @@ export function SettingsPage() {
             </TabsContent>
 
             {/* Billing Tab */}
+            {can.billing && (
             <TabsContent value="billing">
               <div className="bg-card rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Billing & Subscription</h2>
@@ -570,6 +579,7 @@ export function SettingsPage() {
                 </div>
               </div>
             </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>

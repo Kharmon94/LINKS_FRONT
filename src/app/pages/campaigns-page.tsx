@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { FolderKanban, Plus, BarChart3 } from 'lucide-react';
 
@@ -15,6 +17,7 @@ interface Campaign {
 
 export function CampaignsPage() {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   
   // Mock data - replace with API call to Rails backend
   const [campaigns] = useState<Campaign[]>([
@@ -37,6 +40,7 @@ export function CampaignsPage() {
   ]);
 
   return (
+    <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">
     <AppLayout>
       <div className="min-h-screen bg-background relative mx-[0px] mt-[20px] mb-[0px]">
         {/* Subtle background pattern for glass effect */}
@@ -115,5 +119,6 @@ export function CampaignsPage() {
         </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -8,6 +10,7 @@ import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 
 export function CampaignFormPage() {
   const { campaignId } = useParams();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
   const isNew = location.pathname === '/campaigns/new';
@@ -43,6 +46,7 @@ export function CampaignFormPage() {
   };
 
   return (
+    <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">
     <AppLayout>
       <div className="min-h-screen bg-background relative">
         {/* Subtle background pattern for glass effect */}
@@ -128,5 +132,6 @@ export function CampaignFormPage() {
         </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }

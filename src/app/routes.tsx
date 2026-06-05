@@ -1,8 +1,9 @@
-import { createBrowserRouter, Outlet } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { AuthProvider } from "./contexts/auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import { ProtectedRoute } from "./components/protected-route";
 import { AdminRoute } from "./components/admin-route";
+import { AdminLayout } from "./components/admin/admin-layout";
 import { LandingPage } from "./pages/landing-page";
 import { AuthPage } from "./pages/auth-page";
 import { VerifyPage } from "./pages/verify-page";
@@ -26,7 +27,15 @@ import { BookACallPage } from "./pages/book-a-call-page";
 import { PricingPage } from "./pages/pricing-page";
 import { OAuthCompletePage } from "./pages/oauth-complete-page";
 import { AdminLoginPage } from "./pages/admin-login-page";
-import { AdminPage } from "./pages/admin-page";
+import { AdminOverviewPage } from "./pages/admin/admin-overview-page";
+import { AdminUsersPage } from "./pages/admin/admin-users-page";
+import { AdminUserDetailPage } from "./pages/admin/admin-user-detail-page";
+import { AdminLinksPage } from "./pages/admin/admin-links-page";
+import { AdminLinkDetailPage } from "./pages/admin/admin-link-detail-page";
+import { AdminHealthPage } from "./pages/admin/admin-health-page";
+import { AdminFeatureFlagsPage } from "./pages/admin/admin-feature-flags-page";
+import { AdminTeamsPage } from "./pages/admin/admin-teams-page";
+import { AdminBillingPage } from "./pages/admin/admin-billing-page";
 import { NotFoundPage } from "./pages/not-found-page";
 
 function RootLayout() {
@@ -65,7 +74,23 @@ export const router = createBrowserRouter([
       },
       {
         path: "/admin",
-        element: <AdminRoute><AdminPage /></AdminRoute>,
+        element: (
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        ),
+        children: [
+          { index: true, element: <Navigate to="overview" replace /> },
+          { path: "overview", Component: AdminOverviewPage },
+          { path: "users", Component: AdminUsersPage },
+          { path: "users/:userId", Component: AdminUserDetailPage },
+          { path: "links", Component: AdminLinksPage },
+          { path: "links/:linkId", Component: AdminLinkDetailPage },
+          { path: "health", Component: AdminHealthPage },
+          { path: "feature-flags", Component: AdminFeatureFlagsPage },
+          { path: "teams", Component: AdminTeamsPage },
+          { path: "billing", Component: AdminBillingPage },
+        ],
       },
       {
         path: "/dashboard",

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -33,6 +35,7 @@ interface RecentClick {
 export function TeamMemberDetailPage() {
   const { memberId } = useParams();
   const navigate = useNavigate();
+  const { can } = usePermissions();
 
   const [formData, setFormData] = useState<TeamMember>({
     id: '',
@@ -216,6 +219,7 @@ export function TeamMemberDetailPage() {
   const isOwner = formData.role === 'owner';
 
   return (
+    <FeatureGate allowed={can.readTeam} featureName="Team">
     <AppLayout>
       <div className="min-h-screen bg-background relative">
         {/* Subtle background pattern for glass effect */}
@@ -436,5 +440,6 @@ export function TeamMemberDetailPage() {
         </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }

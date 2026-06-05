@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Briefcase, Plus, Users, Link as LinkIcon, Lock } from 'lucide-react';
@@ -26,6 +28,7 @@ interface Workspace {
 export function WorkspacesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
@@ -170,6 +173,7 @@ export function WorkspacesPage() {
   const totalCampaigns = userWorkspaces.reduce((sum, ws) => sum + ws.campaignsCount, 0);
 
   return (
+    <FeatureGate allowed={can.readWorkspaces} featureName="Workspaces">
     <AppLayout>
       <div className="min-h-screen bg-background relative">
         {/* Subtle background pattern for glass effect */}
@@ -347,5 +351,6 @@ export function WorkspacesPage() {
         </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }

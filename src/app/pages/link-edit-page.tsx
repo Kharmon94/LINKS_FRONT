@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -25,6 +27,7 @@ interface PoolEntry {
 export function LinkEditPage() {
   const { linkId } = useParams();
   const navigate = useNavigate();
+  const { can } = usePermissions();
 
   // Mock data - replace with API call to Rails backend
   const [linkData] = useState({
@@ -121,6 +124,7 @@ export function LinkEditPage() {
   const totalWeight = poolEntries.reduce((sum, entry) => sum + entry.weight, 0);
 
   return (
+    <FeatureGate allowed={can.updateLinks} featureName="Link editing">
     <AppLayout>
       <div className="min-h-screen bg-background relative">
         {/* Subtle background pattern for glass effect */}
@@ -472,5 +476,6 @@ export function LinkEditPage() {
       </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }

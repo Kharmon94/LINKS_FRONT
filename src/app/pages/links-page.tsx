@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Plus, Search, Filter } from 'lucide-react';
@@ -20,6 +22,7 @@ interface Link {
 
 export function LinksPage() {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [links, setLinks] = useState<Link[]>([]);
@@ -64,6 +67,7 @@ export function LinksPage() {
   };
 
   return (
+    <FeatureGate allowed={can.readLinks} featureName="Links">
     <AppLayout>
       <div className="min-h-screen bg-background relative">
         {/* Subtle background pattern for glass effect */}
@@ -252,5 +256,6 @@ export function LinksPage() {
         </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }

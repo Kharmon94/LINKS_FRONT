@@ -1,9 +1,11 @@
 import { type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export function AdminRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  const { platformAdmin } = usePermissions();
   const location = useLocation();
 
   if (loading) return null;
@@ -13,7 +15,7 @@ export function AdminRoute({ children }: { children: ReactNode }) {
     return <Navigate to={`/admin/login?returnTo=${returnTo}`} replace />;
   }
 
-  if (!user?.admin) {
+  if (!platformAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 

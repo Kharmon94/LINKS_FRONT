@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { apiRequest, ApiError } from '@/services/api';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -30,6 +32,7 @@ interface ShortenedLink {
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { can } = usePermissions();
   const [longUrl, setLongUrl] = useState('');
   const [customSlug, setCustomSlug] = useState('');
   const [showCustomSlug, setShowCustomSlug] = useState(false);
@@ -196,6 +199,7 @@ export function DashboardPage() {
   };
 
   return (
+    <FeatureGate allowed={can.readLinks} featureName="Dashboard">
     <AppLayout>
       <UserGuide />
       <div className="w-full overflow-x-hidden min-h-screen bg-background relative">
@@ -596,5 +600,6 @@ export function DashboardPage() {
         </div>
       </div>
     </AppLayout>
+    </FeatureGate>
   );
 }
