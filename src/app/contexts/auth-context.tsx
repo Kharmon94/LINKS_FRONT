@@ -7,7 +7,14 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   sendMagicLink: (email: string) => Promise<{ success: boolean; message?: string }>;
-  verifyMagicLink: (token: string) => Promise<{ success: boolean; user?: User; error?: string }>;
+  checkMagicLinkToken: (
+    token: string
+  ) => Promise<{ success: boolean; email?: string; name?: string; error?: string }>;
+  completeMagicLink: (
+    token: string,
+    password: string,
+    passwordConfirmation: string
+  ) => Promise<{ success: boolean; user?: User; error?: string }>;
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -62,13 +69,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyMagicLink = async (
+  const checkMagicLinkToken = async (
     token: string
+  ): Promise<{ success: boolean; email?: string; name?: string; error?: string }> => {
+    try {
+      const data = await apiRequest<{
+        requiresPassword?: boolean;
+        email?: string;
+        name?: string;
+      }>('/api/auth/verify', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      });
+      if (data.requiresPassword && data.email) {
+        return { success: true, email: data.email, name: data.name };
+      }
+      return { success: false, error: 'Invalid link response.' };
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
+      return { success: false, error: msg };
+    }
+  };
+
+  const completeMagicLink = async (
+    token: string,
+    password: string,
+    passwordConfirmation: string
   ): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       const data = await apiRequest<{ user: User; token: string }>('/api/auth/verify', {
         method: 'POST',
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, password, password_confirmation: passwordConfirmation }),
       });
       if (data.token) setStoredToken(data.token);
       setUser(data.user);
@@ -111,7 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         sendMagicLink,
-        verifyMagicLink,
+        checkMagicLinkToken,
+        completeMagicLink,
         loginWithGoogle,
         logout,
         checkAuth,
