@@ -9,11 +9,17 @@ interface AuthContextType {
   sendMagicLink: (email: string) => Promise<{ success: boolean; message?: string }>;
   checkMagicLinkToken: (
     token: string
-  ) => Promise<{ success: boolean; email?: string; name?: string; error?: string }>;
+  ) => Promise<{
+    success: boolean;
+    email?: string;
+    name?: string;
+    mode?: 'sign_in' | 'set_password';
+    error?: string;
+  }>;
   completeMagicLink: (
     token: string,
     password: string,
-    passwordConfirmation: string
+    passwordConfirmation?: string
   ) => Promise<{ success: boolean; user?: User; error?: string }>;
   loginWithGoogle: () => void;
   logout: () => Promise<void>;
@@ -69,47 +75,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkMagicLinkToken = async (
-    token: string
-  ): Promise<{ success: boolean; email?: string; name?: string; error?: string }> => {
-    try {
-      const data = await apiRequest<{
-        requiresPassword?: boolean;
-        email?: string;
-        name?: string;
-      }>('/api/auth/verify', {
-        method: 'POST',
-        body: JSON.stringify({ token }),
-      });
-      if (data.requiresPassword && data.email) {
-        return { success: true, email: data.email, name: data.name };
+  const checkMagicLinkToken = useCallback(
+    async (
+      token: string
+    ): Promise<{
+      success: boolean;
+      email?: string;
+      name?: string;
+      mode?: 'sign_in' | 'set_password';
+      error?: string;
+    }> => {
+      try {
+        const data = await apiRequest<{
+          requiresPassword?: boolean;
+          email?: string;
+          name?: string;
+          mode?: 'sign_in' | 'set_password';
+        }>('/api/auth/verify', {
+          method: 'POST',
+          body: JSON.stringify({ token }),
+        });
+        if (data.requiresPassword && data.email) {
+          return {
+            success: true,
+            email: data.email,
+            name: data.name,
+            mode: data.mode === 'sign_in' ? 'sign_in' : 'set_password',
+          };
+        }
+        return { success: false, error: 'Invalid link response.' };
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
+        return { success: false, error: msg };
       }
-      return { success: false, error: 'Invalid link response.' };
-    } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
-      return { success: false, error: msg };
-    }
-  };
+    },
+    []
+  );
 
-  const completeMagicLink = async (
-    token: string,
-    password: string,
-    passwordConfirmation: string
-  ): Promise<{ success: boolean; user?: User; error?: string }> => {
-    try {
-      const data = await apiRequest<{ user: User; token: string }>('/api/auth/verify', {
-        method: 'POST',
-        body: JSON.stringify({ token, password, password_confirmation: passwordConfirmation }),
-      });
-      if (data.token) setStoredToken(data.token);
-      setUser(data.user);
-      setIsAuthenticated(true);
-      return { success: true, user: data.user };
-    } catch (e) {
-      const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
-      return { success: false, error: msg };
-    }
-  };
+  const completeMagicLink = useCallback(
+    async (
+      token: string,
+      password: string,
+      passwordConfirmation?: string
+    ): Promise<{ success: boolean; user?: User; error?: string }> => {
+      try {
+        const body: Record<string, string> = { token, password };
+        if (passwordConfirmation !== undefined) {
+          body.password_confirmation = passwordConfirmation;
+        }
+        const data = await apiRequest<{ user: User; token: string }>('/api/auth/verify', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        if (data.token) setStoredToken(data.token);
+        setUser(data.user);
+        setIsAuthenticated(true);
+        return { success: true, user: data.user };
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
+        return { success: false, error: msg };
+      }
+    },
+    []
+  );
 
   const loginWithGoogle = () => {
     const fromProtected = sessionStorage.getItem('post_auth_redirect');

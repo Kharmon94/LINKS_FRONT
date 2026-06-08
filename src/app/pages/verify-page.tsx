@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react';
@@ -6,16 +6,20 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 
+type VerifyMode = 'sign_in' | 'set_password';
+
 export function VerifyPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { checkMagicLinkToken, completeMagicLink } = useAuth();
   const [status, setStatus] = useState<'loading' | 'password' | 'success' | 'error'>('loading');
+  const [mode, setMode] = useState<VerifyMode>('set_password');
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const tokenChecked = useRef(false);
   const token = searchParams.get('token');
 
   useEffect(() => {
@@ -25,12 +29,18 @@ export function VerifyPage() {
       return;
     }
 
+    if (tokenChecked.current) return;
+    if (status === 'password' || status === 'success' || submitting) return;
+
+    tokenChecked.current = true;
     let cancelled = false;
+
     (async () => {
       const result = await checkMagicLinkToken(token);
       if (cancelled) return;
       if (result.success && result.email) {
         setEmail(result.email);
+        setMode(result.mode === 'sign_in' ? 'sign_in' : 'set_password');
         setStatus('password');
       } else {
         setStatus('error');
@@ -41,7 +51,7 @@ export function VerifyPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, checkMagicLinkToken]);
+  }, [token, checkMagicLinkToken, status, submitting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,14 +62,17 @@ export function VerifyPage() {
       setError('Password must be at least 8 characters.');
       return;
     }
-    if (password !== passwordConfirmation) {
+    if (mode === 'set_password' && password !== passwordConfirmation) {
       setError('Passwords do not match.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const result = await completeMagicLink(token, password, passwordConfirmation);
+      const result =
+        mode === 'sign_in'
+          ? await completeMagicLink(token, password)
+          : await completeMagicLink(token, password, passwordConfirmation);
       if (result.success) {
         setStatus('success');
         const dest =
@@ -74,7 +87,10 @@ export function VerifyPage() {
           navigate(dest, { replace: true });
         }, 1200);
       } else {
-        setError(result.error || 'Could not set password. Please try again.');
+        setError(
+          result.error ||
+            (mode === 'sign_in' ? 'Incorrect password. Please try again.' : 'Could not set password. Please try again.')
+        );
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -82,6 +98,8 @@ export function VerifyPage() {
       setSubmitting(false);
     }
   };
+
+  const isSignIn = mode === 'sign_in';
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
@@ -100,13 +118,21 @@ export function VerifyPage() {
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                 <Lock className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h1 className="text-3xl mb-2">Set your password</h1>
+              <h1 className="text-3xl mb-2">{isSignIn ? 'Enter your password' : 'Set your password'}</h1>
               <p className="text-muted-foreground text-sm">
                 {email ? (
-                  <>
-                    Create a password for <span className="font-medium text-foreground">{email}</span> to
-                    finish signing in.
-                  </>
+                  isSignIn ? (
+                    <>
+                      Sign in as <span className="font-medium text-foreground">{email}</span> to continue.
+                    </>
+                  ) : (
+                    <>
+                      Create a password for <span className="font-medium text-foreground">{email}</span> to finish
+                      signing in.
+                    </>
+                  )
+                ) : isSignIn ? (
+                  'Enter your password to finish signing in.'
                 ) : (
                   'Create a password to finish signing in.'
                 )}
@@ -119,7 +145,7 @@ export function VerifyPage() {
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="new-password"
+                  autoComplete={isSignIn ? 'current-password' : 'new-password'}
                   required
                   minLength={8}
                   value={password}
@@ -128,20 +154,22 @@ export function VerifyPage() {
                   className="rounded-full"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="passwordConfirmation">Confirm password</Label>
-                <Input
-                  id="passwordConfirmation"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={passwordConfirmation}
-                  onChange={(e) => setPasswordConfirmation(e.target.value)}
-                  placeholder="Repeat your password"
-                  className="rounded-full"
-                />
-              </div>
+              {!isSignIn && (
+                <div className="space-y-2">
+                  <Label htmlFor="passwordConfirmation">Confirm password</Label>
+                  <Input
+                    id="passwordConfirmation"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
+                    value={passwordConfirmation}
+                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                    placeholder="Repeat your password"
+                    className="rounded-full"
+                  />
+                </div>
+              )}
 
               {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
@@ -150,7 +178,7 @@ export function VerifyPage() {
                 disabled={submitting}
                 className="w-full rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
               >
-                {submitting ? 'Saving…' : 'Continue to dashboard'}
+                {submitting ? (isSignIn ? 'Signing in…' : 'Saving…') : 'Continue to dashboard'}
               </Button>
             </form>
           </div>
@@ -162,7 +190,9 @@ export function VerifyPage() {
               <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
             <h1 className="text-3xl mb-2">You&apos;re in</h1>
-            <p className="text-muted-foreground mb-4">Password saved. Redirecting…</p>
+            <p className="text-muted-foreground mb-4">
+              {isSignIn ? 'Signed in. Redirecting…' : 'Password saved. Redirecting…'}
+            </p>
           </div>
         )}
 

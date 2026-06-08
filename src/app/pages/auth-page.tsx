@@ -145,7 +145,7 @@ export function AuthPage() {
               {/* Info Text */}
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  No password needed - we'll email you a secure link to sign in.
+                  We&apos;ll email you a secure link. Returning users enter their password on the next screen.
                 </p>
               </div>
 
