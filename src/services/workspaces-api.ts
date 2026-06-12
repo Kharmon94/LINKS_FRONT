@@ -7,6 +7,7 @@ export interface WorkspaceJson {
   description: string;
   linksCount: number;
   campaignsCount: number;
+  totalClicks?: number;
   createdAt: string;
   members?: TeamMemberJson[];
 }

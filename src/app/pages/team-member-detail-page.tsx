@@ -243,7 +243,7 @@ export function TeamMemberDetailPage() {
                       </div>
                       <div className="text-right text-sm">
                         <p>{formatTimestamp(click.timestamp)}</p>
-                        <p className="text-xs text-muted-foreground">{click.location}</p>
+                        <p className="text-xs text-muted-foreground">{click.location?.trim() || 'Unknown'}</p>
                       </div>
                     </div>
                   ))}

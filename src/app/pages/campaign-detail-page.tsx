@@ -6,7 +6,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Plus, Copy, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { getCampaign, type CampaignJson, type LinkInCampaign } from '@/services/campaigns-api';
-import { getCampaignAnalytics, type ClickEventJson } from '@/services/analytics-api';
+import { getCampaignAnalytics, type EntityAnalytics, type ClickEventJson } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
@@ -17,38 +17,61 @@ export function CampaignDetailPage() {
   const { can } = usePermissions();
 
   const [campaign, setCampaign] = useState<CampaignJson | null>(null);
-  const [analytics, setAnalytics] = useState<Awaited<ReturnType<typeof getCampaignAnalytics>> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<EntityAnalytics | null>(null);
+  const [campaignLoading, setCampaignLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsDenied, setAnalyticsDenied] = useState(false);
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
   const [isRecentClicksOpen, setIsRecentClicksOpen] = useState(true);
   const [isCampaignLinksOpen, setIsCampaignLinksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
 
   useEffect(() => {
+    if (!campaignId) return;
     let cancelled = false;
     (async () => {
+      setCampaignLoading(true);
       try {
-        const [camp, stats] = await Promise.all([
-          getCampaign(campaignId!),
-          getCampaignAnalytics(campaignId!),
-        ]);
-        if (!cancelled) {
-          setCampaign(camp);
-          setAnalytics(stats);
-        }
+        const camp = await getCampaign(campaignId);
+        if (!cancelled) setCampaign(camp);
       } catch (err) {
         if (!cancelled) {
           toast.error(err instanceof ApiError ? err.message : 'Failed to load campaign');
-          navigate('/campaigns');
+          setCampaign(null);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setCampaignLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [campaignId, navigate]);
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (!campaignId || !can.analytics) return;
+    let cancelled = false;
+    (async () => {
+      setAnalyticsLoading(true);
+      setAnalyticsDenied(false);
+      try {
+        const stats = await getCampaignAnalytics(campaignId);
+        if (!cancelled) setAnalytics(stats);
+      } catch (err) {
+        if (!cancelled) {
+          setAnalytics(null);
+          if (err instanceof ApiError && err.status === 403) {
+            setAnalyticsDenied(true);
+          }
+        }
+      } finally {
+        if (!cancelled) setAnalyticsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId, can.analytics]);
 
   const formatTimestamp = (timestamp: string) =>
     new Date(timestamp).toLocaleString('en-US', {
@@ -63,7 +86,7 @@ export function CampaignDetailPage() {
   const links = campaign?.links ?? [];
   const recentClicks = analytics?.recentClicks ?? [];
 
-  if (loading) {
+  if (campaignLoading) {
     return (
       <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">
         <AppLayout>
@@ -73,7 +96,15 @@ export function CampaignDetailPage() {
     );
   }
 
-  if (!campaign) return null;
+  if (!campaign) {
+    return (
+      <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">
+        <AppLayout>
+          <div className="text-center py-24 text-muted-foreground">Campaign not found</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
 
   return (
     <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">
@@ -103,76 +134,92 @@ export function CampaignDetailPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => setIsQuickStatsOpen(!isQuickStatsOpen)}
-                  className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-                >
-                  <h2 className="text-2xl">Quick Stats</h2>
-                  {isQuickStatsOpen ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </button>
-                {isQuickStatsOpen && analytics && (
-                  <div className="px-6 pb-6">
-                    <AnalyticsCharts
-                      quickStats={analytics.quickStats}
-                      showQuickStats
-                      showLocations={false}
-                    />
-                    <p className="text-sm text-muted-foreground mt-4">
-                      Created{' '}
-                      {new Date(campaign.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => setIsRecentClicksOpen(!isRecentClicksOpen)}
-                  className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-                >
-                  <h2 className="text-2xl">Recent Clicks</h2>
-                  {isRecentClicksOpen ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </button>
-                {isRecentClicksOpen && (
-                  <div className="px-6 pb-6">
-                    {recentClicks.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">No clicks yet</p>
+              {can.analytics && (
+                <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickStatsOpen(!isQuickStatsOpen)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                  >
+                    <h2 className="text-2xl">Quick Stats</h2>
+                    {isQuickStatsOpen ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
                     ) : (
-                      <div className="space-y-3">
-                        {recentClicks.map((click: ClickEventJson) => (
-                          <div
-                            key={click.id}
-                            className="grid grid-cols-1 md:grid-cols-4 gap-2 p-3 border-b border-border/30"
-                          >
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              {formatTimestamp(click.timestamp)}
-                            </div>
-                            <div className="text-sm font-mono">{click.linkName}</div>
-                            <div className="text-sm">{click.device}</div>
-                            <div className="text-sm text-muted-foreground truncate">{click.referrer}</div>
-                          </div>
-                        ))}
-                      </div>
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
                     )}
-                  </div>
-                )}
-              </div>
+                  </button>
+                  {isQuickStatsOpen && (
+                    <div className="px-6 pb-6">
+                      {analyticsLoading ? (
+                        <p className="text-sm text-muted-foreground py-4">Loading stats...</p>
+                      ) : analyticsDenied ? (
+                        <p className="text-sm text-muted-foreground py-4">Analytics unavailable for your plan.</p>
+                      ) : analytics?.quickStats ? (
+                        <>
+                          <AnalyticsCharts
+                            quickStats={analytics.quickStats}
+                            showQuickStats
+                            showLocations={false}
+                          />
+                          <p className="text-sm text-muted-foreground mt-4">
+                            Created{' '}
+                            {new Date(campaign.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-4">No analytics data yet</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {can.analytics && (
+                <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setIsRecentClicksOpen(!isRecentClicksOpen)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                  >
+                    <h2 className="text-2xl">Recent Clicks</h2>
+                    {isRecentClicksOpen ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  {isRecentClicksOpen && (
+                    <div className="px-6 pb-6">
+                      {analyticsLoading ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">Loading clicks...</p>
+                      ) : recentClicks.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">No clicks yet</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {recentClicks.map((click: ClickEventJson) => (
+                            <div
+                              key={click.id}
+                              className="grid grid-cols-1 md:grid-cols-4 gap-2 p-3 border-b border-border/30"
+                            >
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                {formatTimestamp(click.timestamp)}
+                              </div>
+                              <div className="text-sm font-mono">{click.linkName}</div>
+                              <div className="text-sm">{click.device}</div>
+                              <div className="text-sm text-muted-foreground truncate">{click.referrer}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
                 <button
@@ -236,30 +283,42 @@ export function CampaignDetailPage() {
                 )}
               </div>
 
-              <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => setIsAnalyticsOpen(!isAnalyticsOpen)}
-                  className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-                >
-                  <h2 className="text-2xl">Analytics</h2>
-                  {isAnalyticsOpen ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              {can.analytics && (
+                <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setIsAnalyticsOpen(!isAnalyticsOpen)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                  >
+                    <h2 className="text-2xl">Analytics</h2>
+                    {isAnalyticsOpen ? (
+                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  {isAnalyticsOpen && (
+                    <div className="px-6 pb-6">
+                      {analyticsLoading ? (
+                        <p className="text-sm text-muted-foreground py-8">Loading analytics...</p>
+                      ) : analyticsDenied ? (
+                        <p className="text-sm text-muted-foreground py-8">Analytics unavailable for your plan.</p>
+                      ) : analytics ? (
+                        <AnalyticsCharts
+                          clicksOverTime={analytics.clicksOverTime}
+                          deviceBreakdown={analytics.deviceBreakdown}
+                          topLocations={analytics.topLocations}
+                          referrerBreakdown={analytics.referrerBreakdown}
+                          showQuickStats={false}
+                          showReferrers
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-8">No analytics data yet</p>
+                      )}
+                    </div>
                   )}
-                </button>
-                {isAnalyticsOpen && analytics && (
-                  <div className="px-6 pb-6">
-                    <AnalyticsCharts
-                      clicksOverTime={analytics.clicksOverTime}
-                      deviceBreakdown={analytics.deviceBreakdown}
-                      topLocations={analytics.topLocations}
-                      showQuickStats={false}
-                    />
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

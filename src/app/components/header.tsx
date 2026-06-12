@@ -2,6 +2,7 @@ import { Moon, Sun, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '../contexts/theme-context';
 import { WorkspaceSwitcher } from './workspace-switcher';
 import { 
@@ -27,6 +28,7 @@ export function Header({ onMenuToggle, customNavItems }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { isAuthenticated, logout } = useAuth();
+  const { permissions } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -44,14 +46,14 @@ export function Header({ onMenuToggle, customNavItems }: HeaderProps) {
   };
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/links', label: 'Links', icon: LinkIcon },
-    { path: '/campaigns', label: 'Campaigns', icon: FolderKanban },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/team', label: 'Team', icon: Users },
-    { path: '/workspaces', label: 'Workspaces', icon: Briefcase },
-    { path: '/settings', label: 'Settings', icon: Settings },
-  ];
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, show: true },
+    { path: '/links', label: 'Links', icon: LinkIcon, show: true },
+    { path: '/campaigns', label: 'Campaigns', icon: FolderKanban, show: true },
+    { path: '/analytics', label: 'Analytics', icon: BarChart3, show: permissions.analytics.read },
+    { path: '/team', label: 'Team', icon: Users, show: true },
+    { path: '/workspaces', label: 'Workspaces', icon: Briefcase, show: true },
+    { path: '/settings', label: 'Settings', icon: Settings, show: true },
+  ].filter((item) => item.show);
 
   const handleNavClick = (path: string) => {
     navigate(path);

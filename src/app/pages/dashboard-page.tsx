@@ -4,6 +4,7 @@ import { apiRequest, ApiError } from '@/services/api';
 import { createLink, shortLinkHost } from '@/services/links-api';
 import { listDomains, type CustomDomainJson } from '@/services/domains-api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
+import { getAnalyticsOverview } from '@/services/analytics-api';
 import { toast } from 'sonner';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -16,8 +17,6 @@ import { UserGuide } from '../components/user-guide';
 import { 
   Link as LinkIcon, 
   Copy, 
-  BarChart3, 
-  TrendingUp,
   Folder,
   Target,
   Edit,
@@ -68,6 +67,23 @@ export function DashboardPage() {
 
   const [links, setLinks] = useState<ShortenedLink[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
+  const [overviewClicks, setOverviewClicks] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!can.analytics) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const overview = await getAnalyticsOverview();
+        if (!cancelled) setOverviewClicks(overview.totalClicks);
+      } catch {
+        if (!cancelled) setOverviewClicks(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [can.analytics]);
 
   useEffect(() => {
     let cancelled = false;
@@ -542,6 +558,23 @@ export function DashboardPage() {
         <div className="w-full px-4 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="space-y-12 w-full">
+              {can.analytics && overviewClicks !== null && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
+                    <p className="text-3xl font-bold">{overviewClicks.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">Total clicks</p>
+                  </div>
+                  <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
+                    <p className="text-3xl font-bold">{links.length}</p>
+                    <p className="text-sm text-muted-foreground">Recent links loaded</p>
+                  </div>
+                  <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
+                    <p className="text-3xl font-bold">{campaigns.length}</p>
+                    <p className="text-sm text-muted-foreground">Recent campaigns loaded</p>
+                  </div>
+                </div>
+              )}
+
               {/* Recent Links */}
               <div id="recent-links-section" className="w-full">
                 <div className="flex flex-col items-center mb-6 gap-2">

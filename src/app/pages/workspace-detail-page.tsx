@@ -5,7 +5,7 @@ import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { ArrowLeft, Users, Plus, Trash2, UserMinus, Edit2, Save, Briefcase } from 'lucide-react';
+import { ArrowLeft, Users, Plus, Trash2, UserMinus, Edit2, Save, Briefcase, Link2, MousePointerClick } from 'lucide-react';
 import {
   getWorkspace,
   updateWorkspace,
@@ -160,6 +160,23 @@ export function WorkspaceDetailPage() {
               Back to Workspaces
             </Button>
 
+            {can.readWorkspaces && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-4 text-center">
+                  <Link2 className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-2xl font-semibold">{workspace.linksCount}</p>
+                  <p className="text-sm text-muted-foreground">Links</p>
+                </div>
+                <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-4 text-center">
+                  <MousePointerClick className="w-5 h-5 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-2xl font-semibold">
+                    {(workspace.totalClicks ?? 0).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Total clicks</p>
+                </div>
+              </div>
+            )}
+
             <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 mb-6">
               {isEditing ? (
                 <div className="space-y-4">
@@ -189,6 +206,9 @@ export function WorkspaceDetailPage() {
                     <p className="text-muted-foreground">{workspace.description || 'No description'}</p>
                     <p className="text-sm text-muted-foreground mt-2">
                       {workspace.linksCount} links · {workspace.campaignsCount} campaigns
+                      {typeof workspace.totalClicks === 'number'
+                        ? ` · ${workspace.totalClicks.toLocaleString()} clicks`
+                        : ''}
                     </p>
                   </div>
                   {can.updateWorkspaces && (

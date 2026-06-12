@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { CardListSkeleton } from '../components/page-states';
 import { listLinks, deleteLink, displayShortUrl } from '@/services/links-api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
+import { getAnalyticsOverview } from '@/services/analytics-api';
 import type { LinkJson, LinksListMeta } from '@/types';
 
 export function LinksPage() {
@@ -26,6 +27,7 @@ export function LinksPage() {
   const [linkTypeFilter, setLinkTypeFilter] = useState<'all' | 'single' | 'randomizer'>('all');
   const [campaignFilter, setCampaignFilter] = useState('');
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
+  const [accountTotalClicks, setAccountTotalClicks] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -50,6 +52,22 @@ export function LinksPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!can.analytics) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const overview = await getAnalyticsOverview();
+        if (!cancelled) setAccountTotalClicks(overview.totalClicks);
+      } catch {
+        if (!cancelled) setAccountTotalClicks(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [can.analytics]);
 
   const loadLinks = useCallback(async () => {
     setListLoading(true);
@@ -77,7 +95,6 @@ export function LinksPage() {
   }, [loadLinks]);
 
   const totalLinks = meta?.total ?? links.length;
-  const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
   const randomizerCount = links.filter((link) => link.isRandomizer).length;
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.perPage)) : 1;
 
@@ -189,15 +206,19 @@ export function LinksPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className={`grid grid-cols-2 ${can.analytics ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 mb-6`}>
             <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
               <p className="text-2xl font-semibold">{totalLinks.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Total links</p>
             </div>
-            <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
-              <p className="text-2xl font-semibold">{totalClicks.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Clicks (this page)</p>
-            </div>
+            {can.analytics && (
+              <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
+                <p className="text-2xl font-semibold">
+                  {(accountTotalClicks ?? 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">Total clicks</p>
+              </div>
+            )}
             <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
               <p className="text-2xl font-semibold">{randomizerCount.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Randomizers (this page)</p>

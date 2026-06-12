@@ -1,5 +1,7 @@
 import { apiRequest } from './api';
-import type { LinkJson } from '@/types';
+import type { LinkJson, ClickEventJson } from '@/types';
+
+export type { ClickEventJson };
 
 export type AnalyticsPeriod = '7D' | '30D' | '90D' | '1Y' | 'ALL';
 
@@ -25,6 +27,14 @@ export interface ReferrerItem {
   clicks: number;
 }
 
+export interface PoolBreakdownItem {
+  poolEntryId: string;
+  url: string;
+  weight: number;
+  clicks: number;
+  percentage: number;
+}
+
 export interface QuickStats {
   last7Days: number;
   last30Days: number;
@@ -37,18 +47,6 @@ export interface QuickStats {
   createdAt?: string;
 }
 
-export interface ClickEventJson {
-  id: string;
-  timestamp: string;
-  linkName: string;
-  shortUrl: string;
-  country?: string | null;
-  city?: string | null;
-  device?: string | null;
-  browser?: string | null;
-  referrer: string;
-}
-
 export interface OverviewAnalytics {
   totalClicks: number;
   totalLinks: number;
@@ -57,6 +55,8 @@ export interface OverviewAnalytics {
   topLinks: { shortUrl: string; clicks: number; percentage: number }[];
   topCampaigns: { campaign: string; clicks: number; percentage: number }[];
   topWorkspaces: { name: string; clicks: number; percentage: number }[];
+  clicksOverTime?: Record<AnalyticsPeriod, ChartPoint[]>;
+  deviceBreakdown?: DeviceBreakdownItem[];
 }
 
 export interface EntityAnalytics {
@@ -67,6 +67,7 @@ export interface EntityAnalytics {
   topLocations: LocationItem[];
   referrerBreakdown?: ReferrerItem[];
   recentClicks?: ClickEventJson[];
+  poolBreakdown?: PoolBreakdownItem[];
   link?: LinkJson;
   campaign?: { id: string; name: string; description: string };
 }

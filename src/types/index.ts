@@ -266,11 +266,16 @@ export interface LinkJson {
 export interface ClickEventJson {
   id: string;
   timestamp: string;
+  linkId?: string;
+  linkName?: string;
+  shortUrl?: string;
   country?: string | null;
   city?: string | null;
   device?: string | null;
   browser?: string | null;
   referrer?: string | null;
+  destinationUrl?: string | null;
+  poolEntryId?: string | null;
 }
 
 export interface LinksListMeta {

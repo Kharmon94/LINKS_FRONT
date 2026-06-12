@@ -4,6 +4,7 @@ import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
 import { BarChart3, TrendingUp, FolderKanban } from 'lucide-react';
 import { getAnalyticsOverview, type OverviewAnalytics } from '@/services/analytics-api';
+import { AnalyticsCharts } from '../components/analytics-charts';
 
 export function GlobalAnalyticsPage() {
   const { can } = usePermissions();
@@ -163,6 +164,17 @@ export function GlobalAnalyticsPage() {
                     </div>
                   )}
                 </div>
+
+                {(stats.clicksOverTime || stats.deviceBreakdown) && (
+                  <div className="mb-6">
+                    <AnalyticsCharts
+                      clicksOverTime={stats.clicksOverTime}
+                      deviceBreakdown={stats.deviceBreakdown}
+                      showQuickStats={false}
+                      showLocations={false}
+                    />
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">Unable to load analytics</div>

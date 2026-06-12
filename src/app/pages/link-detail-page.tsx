@@ -18,11 +18,10 @@ import {
   Nfc,
 } from 'lucide-react';
 import { getLink, getLinkClicks, displayShortUrl } from '@/services/links-api';
-import { getLinkAnalytics } from '@/services/analytics-api';
+import { getLinkAnalytics, type EntityAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
-import type { LinkJson } from '@/types';
-import type { EntityAnalytics } from '@/services/analytics-api';
-import type { ClickEventJson } from '@/types';
+import { ApiError } from '@/services/api';
+import type { LinkJson, ClickEventJson } from '@/types';
 
 export function LinkDetailPage() {
   const { linkId } = useParams();
@@ -31,7 +30,10 @@ export function LinkDetailPage() {
   const [link, setLink] = useState<LinkJson | null>(null);
   const [analytics, setAnalytics] = useState<EntityAnalytics | null>(null);
   const [recentClicks, setRecentClicks] = useState<ClickEventJson[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [linkLoading, setLinkLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [clicksLoading, setClicksLoading] = useState(false);
+  const [analyticsDenied, setAnalyticsDenied] = useState(false);
   const [isRecentClicksOpen, setIsRecentClicksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
@@ -40,24 +42,58 @@ export function LinkDetailPage() {
     if (!linkId) return;
     let cancelled = false;
     (async () => {
+      setLinkLoading(true);
       try {
-        const [linkData, analyticsData, clicksData] = await Promise.all([
-          getLink(linkId),
-          getLinkAnalytics(linkId),
-          getLinkClicks(linkId, 1, 10),
-        ]);
-        if (!cancelled) {
-          setLink(linkData);
-          setAnalytics(analyticsData);
-          setRecentClicks(clicksData.clicks);
-        }
+        const linkData = await getLink(linkId);
+        if (!cancelled) setLink(linkData);
       } catch {
+        if (!cancelled) setLink(null);
+      } finally {
+        if (!cancelled) setLinkLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [linkId]);
+
+  useEffect(() => {
+    if (!linkId || !can.analytics) return;
+    let cancelled = false;
+    (async () => {
+      setAnalyticsLoading(true);
+      setAnalyticsDenied(false);
+      try {
+        const analyticsData = await getLinkAnalytics(linkId);
+        if (!cancelled) setAnalytics(analyticsData);
+      } catch (err) {
         if (!cancelled) {
-          setLink(null);
           setAnalytics(null);
+          if (err instanceof ApiError && err.status === 403) {
+            setAnalyticsDenied(true);
+          }
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setAnalyticsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [linkId, can.analytics]);
+
+  useEffect(() => {
+    if (!linkId) return;
+    let cancelled = false;
+    (async () => {
+      setClicksLoading(true);
+      try {
+        const clicksData = await getLinkClicks(linkId, 1, 10);
+        if (!cancelled) setRecentClicks(clicksData.clicks);
+      } catch {
+        if (!cancelled) setRecentClicks([]);
+      } finally {
+        if (!cancelled) setClicksLoading(false);
       }
     })();
     return () => {
@@ -70,7 +106,7 @@ export function LinkDetailPage() {
     toast.success('Copied to clipboard');
   };
 
-  if (loading) {
+  if (linkLoading) {
     return (
       <FeatureGate allowed={can.readLinks} featureName="Links">
         <AppLayout>
@@ -126,6 +162,9 @@ export function LinkDetailPage() {
       minute: '2-digit',
       hour12: true,
     });
+
+  const formatLocation = (click: ClickEventJson) =>
+    [click.city, click.country].filter(Boolean).join(', ') || 'Unknown';
 
   return (
     <FeatureGate allowed={can.readLinks} featureName="Links">
@@ -188,37 +227,49 @@ export function LinkDetailPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => setIsQuickStatsOpen(!isQuickStatsOpen)}
-                  className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-                >
-                  <h2 className="text-2xl">Quick Stats</h2>
-                  {isQuickStatsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-                {isQuickStatsOpen && analytics?.quickStats && (
-                  <div className="px-6 pb-6">
-                    <AnalyticsCharts quickStats={analytics.quickStats} showLocations={false} />
-                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Created</p>
-                        <p className="font-medium">
-                          {new Date(link.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Campaign</p>
-                        <p className="font-medium">{link.campaign?.name || 'None'}</p>
-                      </div>
+              {can.analytics && (
+                <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickStatsOpen(!isQuickStatsOpen)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                  >
+                    <h2 className="text-2xl">Quick Stats</h2>
+                    {isQuickStatsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                  </button>
+                  {isQuickStatsOpen && (
+                    <div className="px-6 pb-6">
+                      {analyticsLoading ? (
+                        <p className="text-sm text-muted-foreground py-4">Loading stats...</p>
+                      ) : analyticsDenied ? (
+                        <p className="text-sm text-muted-foreground py-4">Analytics unavailable for your plan.</p>
+                      ) : analytics?.quickStats ? (
+                        <>
+                          <AnalyticsCharts quickStats={analytics.quickStats} showLocations={false} />
+                          <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Created</p>
+                              <p className="font-medium">
+                                {new Date(link.createdAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Campaign</p>
+                              <p className="font-medium">{link.campaign?.name || 'None'}</p>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-4">No analytics data yet</p>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
                 <button
@@ -231,7 +282,9 @@ export function LinkDetailPage() {
                 </button>
                 {isRecentClicksOpen && (
                   <div className="px-6 pb-6">
-                    {recentClicks.length === 0 ? (
+                    {clicksLoading ? (
+                      <p className="text-center text-muted-foreground py-6">Loading clicks...</p>
+                    ) : recentClicks.length === 0 ? (
                       <p className="text-center text-muted-foreground py-6">No clicks yet</p>
                     ) : (
                       <div className="space-y-2">
@@ -245,7 +298,7 @@ export function LinkDetailPage() {
                               <span>{formatTimestamp(click.timestamp)}</span>
                             </div>
                             <div className="text-right text-muted-foreground">
-                              {[click.city, click.country].filter(Boolean).join(', ') || 'Unknown'}
+                              {formatLocation(click)}
                               {click.device ? ` · ${click.device}` : ''}
                             </div>
                           </div>
@@ -256,7 +309,7 @@ export function LinkDetailPage() {
                 )}
               </div>
 
-              {analytics && (
+              {can.analytics && (
                 <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
                   <button
                     type="button"
@@ -268,12 +321,24 @@ export function LinkDetailPage() {
                   </button>
                   {isAnalyticsOpen && (
                     <div className="px-6 pb-6">
-                      <AnalyticsCharts
-                        clicksOverTime={analytics.clicksOverTime}
-                        deviceBreakdown={analytics.deviceBreakdown}
-                        topLocations={analytics.topLocations}
-                        showQuickStats={false}
-                      />
+                      {analyticsLoading ? (
+                        <p className="text-sm text-muted-foreground py-8">Loading analytics...</p>
+                      ) : analyticsDenied ? (
+                        <p className="text-sm text-muted-foreground py-8">Analytics unavailable for your plan.</p>
+                      ) : analytics ? (
+                        <AnalyticsCharts
+                          clicksOverTime={analytics.clicksOverTime}
+                          deviceBreakdown={analytics.deviceBreakdown}
+                          topLocations={analytics.topLocations}
+                          referrerBreakdown={analytics.referrerBreakdown}
+                          poolBreakdown={analytics.poolBreakdown}
+                          showQuickStats={false}
+                          showReferrers
+                          showPoolBreakdown={link.isRandomizer}
+                        />
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-8">No analytics data yet</p>
+                      )}
                     </div>
                   )}
                 </div>
