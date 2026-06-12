@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Header } from './header';
 import { Footer } from './footer';
 import { Sidebar } from './sidebar';
+import { Toaster } from './ui/sonner';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       <Footer />
+      <Toaster richColors position="top-right" />
     </div>
   );
 }

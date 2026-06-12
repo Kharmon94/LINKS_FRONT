@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, ExternalLink, Shield } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Shield, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
-import { fetchAdminUser, updateAdminUser } from '@/services/admin-api';
-import type { AdminUser, UserRole } from '@/types';
+import {
+  cancelAdminSubscription,
+  createAdminBillingPortalSession,
+  fetchAdminUser,
+  lookupAdminBillingUser,
+  updateAdminUser,
+} from '@/services/admin-api';
+import type { AdminBillingUserLookup, AdminUser, SubscriptionTier, UserRole } from '@/types';
 import { useAuth } from '@/app/contexts/auth-context';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
 import { AdminTierBadge } from '../../components/admin/admin-tier-badge';
@@ -13,6 +19,7 @@ import { AdminCardSkeleton, AdminErrorState } from '../../components/admin/admin
 import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -36,7 +43,8 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { Link as LinkIcon } from 'lucide-react';
+
+const TIERS: SubscriptionTier[] = ['free', 'starter', 'growth', 'enterprise'];
 
 export function AdminUserDetailPage() {
   const { userId } = useParams();
@@ -49,7 +57,14 @@ export function AdminUserDetailPage() {
   const [pendingAdmin, setPendingAdmin] = useState<boolean | null>(null);
   const [confirmRole, setConfirmRole] = useState(false);
   const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
+  const [confirmTier, setConfirmTier] = useState(false);
+  const [pendingTier, setPendingTier] = useState<SubscriptionTier | null>(null);
   const [saving, setSaving] = useState(false);
+  const [billingInfo, setBillingInfo] = useState<AdminBillingUserLookup | null>(null);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -68,6 +83,28 @@ export function AdminUserDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!user?.stripeCustomerId) {
+      setBillingInfo(null);
+      return;
+    }
+    let cancelled = false;
+    setBillingLoading(true);
+    void lookupAdminBillingUser(user.email)
+      .then((data) => {
+        if (!cancelled) setBillingInfo(data.user);
+      })
+      .catch(() => {
+        if (!cancelled) setBillingInfo(null);
+      })
+      .finally(() => {
+        if (!cancelled) setBillingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email, user?.stripeCustomerId]);
 
   const applyAdmin = async (admin: boolean) => {
     if (!userId) return;
@@ -101,6 +138,50 @@ export function AdminUserDetailPage() {
     }
   };
 
+  const applyTier = async (subscriptionTier: SubscriptionTier) => {
+    if (!userId) return;
+    setSaving(true);
+    try {
+      const data = await updateAdminUser(userId, { subscriptionTier });
+      setUser(data.user);
+      toast.success('Subscription tier updated');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Update failed');
+    } finally {
+      setSaving(false);
+      setConfirmTier(false);
+      setPendingTier(null);
+    }
+  };
+
+  const openPortal = async () => {
+    if (!userId) return;
+    setPortalLoading(true);
+    try {
+      const data = await createAdminBillingPortalSession(userId);
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to open portal');
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!userId || !user) return;
+    setCancelLoading(true);
+    try {
+      const data = await cancelAdminSubscription(userId);
+      setBillingInfo(data.user);
+      toast.success('Subscription set to cancel at period end');
+      setCancelOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Cancel failed');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   if (loading) return <AdminCardSkeleton />;
   if (error || !user) return <AdminErrorState message={error ?? 'User not found'} onRetry={load} />;
 
@@ -130,6 +211,18 @@ export function AdminUserDetailPage() {
               <div><dt className="text-muted-foreground">Email</dt><dd>{user.email}</dd></div>
               <div><dt className="text-muted-foreground">Name</dt><dd>{user.name}</dd></div>
               <div className="flex gap-2 items-center"><dt className="text-muted-foreground">Tier</dt><dd><AdminTierBadge tier={user.subscriptionTier} /></dd></div>
+              {user.teamId && (
+                <div>
+                  <dt className="text-muted-foreground">Team</dt>
+                  <dd className="flex items-center gap-2 mt-1">
+                    <UsersRound className="w-4 h-4 text-muted-foreground" />
+                    <Link to={`/admin/teams/${user.teamId}`} className="text-primary hover:underline">
+                      {user.teamName ?? 'View team'}
+                    </Link>
+                    {user.membershipRole && <AdminRoleBadge role={user.membershipRole} />}
+                  </dd>
+                </div>
+              )}
               <div><dt className="text-muted-foreground">Provider</dt><dd>{user.provider ?? 'email'}</dd></div>
               <div><dt className="text-muted-foreground">Joined</dt><dd>{user.createdAt ? new Date(user.createdAt).toLocaleString() : '—'}</dd></div>
               {user.stripeCustomerId && (
@@ -137,6 +230,46 @@ export function AdminUserDetailPage() {
               )}
             </dl>
           </div>
+
+          {user.stripeCustomerId && (
+            <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-semibold">Billing</h2>
+                <Link to="/admin/billing" className="text-sm text-primary hover:underline">Billing dashboard</Link>
+              </div>
+              {billingLoading ? (
+                <p className="text-sm text-muted-foreground">Loading subscription status…</p>
+              ) : billingInfo ? (
+                <div className="text-sm space-y-2">
+                  <p className="flex flex-wrap items-center gap-2">
+                    {billingInfo.subscriptionStatus && (
+                      <Badge variant={billingInfo.subscriptionStatus === 'active' ? 'default' : 'secondary'}>
+                        {billingInfo.subscriptionStatus}
+                      </Badge>
+                    )}
+                    {billingInfo.cancelAtPeriodEnd && (
+                      <Badge variant="outline">Cancels at period end</Badge>
+                    )}
+                  </p>
+                  {billingInfo.currentPeriodEnd && (
+                    <p className="text-muted-foreground">
+                      Current period ends: {new Date(billingInfo.currentPeriodEnd).toLocaleDateString()}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button variant="outline" size="sm" disabled={portalLoading} onClick={() => void openPortal()}>
+                      Open Stripe portal
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => setCancelOpen(true)}>
+                      Cancel subscription
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No active Stripe subscription found.</p>
+              )}
+            </div>
+          )}
 
           <div className="bg-card/50 backdrop-blur-md rounded-lg border border-destructive/30 p-6 space-y-4">
             <h2 className="font-semibold flex items-center gap-2"><Shield className="w-4 h-4" />Permissions</h2>
@@ -150,6 +283,24 @@ export function AdminUserDetailPage() {
                   setConfirmAdmin(true);
                 }}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subscription-tier">Subscription tier (override)</Label>
+              <Select
+                value={user.subscriptionTier}
+                onValueChange={(v) => {
+                  setPendingTier(v as SubscriptionTier);
+                  setConfirmTier(true);
+                }}
+              >
+                <SelectTrigger id="subscription-tier"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TIERS.map((tier) => (
+                    <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Support override — does not change Stripe billing automatically.</p>
             </div>
             <div className="space-y-2">
               <Label>Team role</Label>
@@ -203,9 +354,9 @@ export function AdminUserDetailPage() {
                       </TableCell>
                       <TableCell>{link.clicks}</TableCell>
                       <TableCell>
-                        <a href={link.shortUrl} target="_blank" rel="noreferrer" className="text-primary">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+                        <Link to={`/admin/links/${link.id}`} className="text-primary hover:underline">
+                          View
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -232,6 +383,16 @@ export function AdminUserDetailPage() {
       />
 
       <AdminConfirmDialog
+        open={confirmTier}
+        onOpenChange={setConfirmTier}
+        title="Override subscription tier?"
+        description={`Set tier to "${pendingTier}" for ${user.email}? This is a support override and may not match Stripe.`}
+        confirmLabel="Update tier"
+        loading={saving}
+        onConfirm={() => pendingTier && applyTier(pendingTier)}
+      />
+
+      <AdminConfirmDialog
         open={confirmRole}
         onOpenChange={setConfirmRole}
         title="Change team role?"
@@ -239,6 +400,17 @@ export function AdminUserDetailPage() {
         confirmLabel="Update role"
         loading={saving}
         onConfirm={() => pendingRole && applyRole(pendingRole)}
+      />
+
+      <AdminConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title="Cancel subscription?"
+        description={`Set ${user.email}'s subscription to cancel at the end of the current billing period.`}
+        confirmLabel="Cancel at period end"
+        destructive
+        loading={cancelLoading}
+        onConfirm={() => void handleCancelSubscription()}
       />
     </div>
   );

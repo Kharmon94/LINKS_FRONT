@@ -10,6 +10,7 @@ import { AdminPagination } from '../../components/admin/admin-pagination';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
 import { AdminRoleBadge, getRoleBadgeColor } from '../../components/admin/admin-role-badge';
 import { AdminTierBadge } from '../../components/admin/admin-tier-badge';
+import { AdminConfirmDialog } from '../../components/admin/admin-confirm-dialog';
 import { AdminTableSkeleton, AdminEmptyState, AdminErrorState } from '../../components/admin/admin-page-states';
 import { Button } from '../../components/ui/button';
 import {
@@ -45,6 +46,11 @@ export function AdminTeamsPage() {
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, perPage: 50, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmRole, setConfirmRole] = useState(false);
+  const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; role: UserRole; email: string } | null>(
+    null
+  );
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +72,7 @@ export function AdminTeamsPage() {
   }, [load]);
 
   const changeRole = async (userId: string, newRole: UserRole) => {
+    setSaving(true);
     try {
       await updateAdminUser(userId, { role: newRole });
       setMembers((m) => m.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
@@ -73,6 +80,10 @@ export function AdminTeamsPage() {
       void load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Update failed');
+    } finally {
+      setSaving(false);
+      setConfirmRole(false);
+      setPendingRoleChange(null);
     }
   };
 
@@ -152,7 +163,13 @@ export function AdminTeamsPage() {
                       {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '—'}
                     </TableCell>
                     <TableCell>
-                      <Select value={m.role} onValueChange={(v) => void changeRole(m.id, v as UserRole)}>
+                      <Select
+                        value={m.role}
+                        onValueChange={(v) => {
+                          setPendingRoleChange({ userId: m.id, role: v as UserRole, email: m.email });
+                          setConfirmRole(true);
+                        }}
+                      >
                         <SelectTrigger className={`w-28 ${getRoleBadgeColor(m.role)}`}>
                           <SelectValue />
                         </SelectTrigger>
@@ -171,6 +188,25 @@ export function AdminTeamsPage() {
           <AdminPagination meta={meta} onPageChange={(p) => setQuery({ page: p })} />
         </>
       )}
+
+      <AdminConfirmDialog
+        open={confirmRole}
+        onOpenChange={(open) => {
+          setConfirmRole(open);
+          if (!open) setPendingRoleChange(null);
+        }}
+        title="Change team role?"
+        description={
+          pendingRoleChange
+            ? `Set team role to "${pendingRoleChange.role}" for ${pendingRoleChange.email}?`
+            : ''
+        }
+        confirmLabel="Update role"
+        loading={saving}
+        onConfirm={() =>
+          pendingRoleChange && changeRole(pendingRoleChange.userId, pendingRoleChange.role)
+        }
+      />
     </div>
   );
 }

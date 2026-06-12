@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { AuthProvider } from "./contexts/auth-context";
+import { WorkspaceProvider } from "./contexts/workspace-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import { ProtectedRoute } from "./components/protected-route";
 import { AdminRoute } from "./components/admin-route";
@@ -35,14 +36,22 @@ import { AdminLinkDetailPage } from "./pages/admin/admin-link-detail-page";
 import { AdminHealthPage } from "./pages/admin/admin-health-page";
 import { AdminFeatureFlagsPage } from "./pages/admin/admin-feature-flags-page";
 import { AdminTeamsPage } from "./pages/admin/admin-teams-page";
+import { AdminTeamDetailPage } from "./pages/admin/admin-team-detail-page";
 import { AdminBillingPage } from "./pages/admin/admin-billing-page";
+import { AdminCampaignsPage } from "./pages/admin/admin-campaigns-page";
+import { AdminWorkspacesPage } from "./pages/admin/admin-workspaces-page";
+import { AdminDomainsPage } from "./pages/admin/admin-domains-page";
+import { AdminPushPage } from "./pages/admin/admin-push-page";
+import { AcceptInvitePage } from "./pages/accept-invite-page";
 import { NotFoundPage } from "./pages/not-found-page";
 
 function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Outlet />
+        <WorkspaceProvider>
+          <Outlet />
+        </WorkspaceProvider>
       </AuthProvider>
     </ThemeProvider>
   );
@@ -89,7 +98,12 @@ export const router = createBrowserRouter([
           { path: "health", Component: AdminHealthPage },
           { path: "feature-flags", Component: AdminFeatureFlagsPage },
           { path: "teams", Component: AdminTeamsPage },
+          { path: "teams/:teamId", Component: AdminTeamDetailPage },
           { path: "billing", Component: AdminBillingPage },
+          { path: "campaigns", Component: AdminCampaignsPage },
+          { path: "workspaces", Component: AdminWorkspacesPage },
+          { path: "domains", Component: AdminDomainsPage },
+          { path: "push", Component: AdminPushPage },
         ],
       },
       {
@@ -143,6 +157,18 @@ export const router = createBrowserRouter([
       {
         path: "/team/:memberId",
         element: <ProtectedRoute><TeamMemberDetailPage /></ProtectedRoute>,
+      },
+      {
+        path: "/accept-invite/:token",
+        element: <ProtectedRoute><AcceptInvitePage /></ProtectedRoute>,
+      },
+      {
+        path: "/auth/accept-invite/:token",
+        element: <ProtectedRoute><AcceptInvitePage /></ProtectedRoute>,
+      },
+      {
+        path: "/team/accept/:token",
+        element: <ProtectedRoute><AcceptInvitePage /></ProtectedRoute>,
       },
       {
         path: "/workspaces",

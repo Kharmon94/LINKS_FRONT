@@ -5,6 +5,7 @@ type AdminQueryDefaults = {
   q?: string;
   role?: string;
   page?: string;
+  per_page?: string;
   user_id?: string;
 };
 
@@ -14,10 +15,11 @@ export function useAdminQuery(defaults: AdminQueryDefaults = {}) {
   const q = searchParams.get('q') ?? defaults.q ?? '';
   const role = searchParams.get('role') ?? defaults.role ?? '';
   const page = Math.max(1, parseInt(searchParams.get('page') ?? defaults.page ?? '1', 10) || 1);
+  const perPage = Math.max(1, parseInt(searchParams.get('per_page') ?? defaults.per_page ?? '50', 10) || 50);
   const userId = searchParams.get('user_id') ?? defaults.user_id ?? '';
 
   const setQuery = useCallback(
-    (updates: Partial<{ q: string; role: string; page: number; user_id: string }>, replace = false) => {
+    (updates: Partial<{ q: string; role: string; page: number; per_page: number; user_id: string }>, replace = false) => {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -45,8 +47,9 @@ export function useAdminQuery(defaults: AdminQueryDefaults = {}) {
     if (role) params.set('role', role);
     if (userId) params.set('user_id', userId);
     params.set('page', String(page));
+    params.set('per_page', String(perPage));
     return params;
-  }, [q, role, page, userId]);
+  }, [q, role, page, perPage, userId]);
 
-  return { q, role, page, userId, setQuery, apiParams };
+  return { q, role, page, perPage, userId, setQuery, apiParams };
 }

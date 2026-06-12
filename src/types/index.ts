@@ -52,6 +52,7 @@ export interface User {
   subscriptionTier: SubscriptionTier;
   role: UserRole;
   admin?: boolean;
+  activeWorkspaceId?: string | null;
   permissions?: UserPermissions;
   limits?: UserLimits;
 }
@@ -61,7 +62,47 @@ export interface AdminUser extends User {
   createdAt: string;
   provider?: string | null;
   stripeCustomerId?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  membershipRole?: UserRole | null;
   recentLinks?: AdminRecentLink[];
+}
+
+export interface AdminTeam {
+  id: string;
+  name: string;
+  personal: boolean;
+  memberCount: number;
+  workspaceCount: number;
+  ownerEmail?: string | null;
+  createdAt: string;
+  members?: AdminTeamMember[];
+  invitations?: AdminTeamInvitation[];
+  workspaces?: AdminTeamWorkspace[];
+}
+
+export interface AdminTeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  joinedAt: string;
+}
+
+export interface AdminTeamInvitation {
+  id: string;
+  email: string;
+  role: UserRole;
+  expiresAt: string;
+  invitedAt: string;
+}
+
+export interface AdminTeamWorkspace {
+  id: string;
+  name: string;
+  description: string;
+  linksCount: number;
+  createdAt: string;
 }
 
 export interface AdminRecentLink {
@@ -104,9 +145,99 @@ export interface AdminDashboardStats {
   adminUsersCount: number;
 }
 
-export interface AuthResponse {
-  user: User;
-  token?: string;
+export interface AdminBillingOverview {
+  mrrCents: number;
+  mrrFormatted: string;
+  mrrSource?: 'stripe' | 'fallback';
+  subscribersByTier: Record<SubscriptionTier, number>;
+  paidSubscribers: number;
+  stripeLinkedUsers: number;
+  recentEvents: AdminBillingEvent[];
+}
+
+export interface AdminBillingEvent {
+  id: string;
+  userId: string;
+  email: string;
+  eventType: string;
+  tier: SubscriptionTier;
+  amountCents?: number | null;
+  amountFormatted?: string | null;
+  stripeCustomerId?: string | null;
+  createdAt: string;
+}
+
+export interface AdminBillingUserLookup {
+  id: string;
+  email: string;
+  name: string;
+  subscriptionTier: SubscriptionTier;
+  stripeCustomerId?: string | null;
+  hasStripeCustomer?: boolean;
+  subscriptionStatus?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd?: boolean;
+}
+
+export interface AdminHealthStatus {
+  database: { ok: boolean; latencyMs: number | null };
+  redis: { ok: boolean; skipped?: boolean; latencyMs?: number | null };
+  stripe: { configured: boolean };
+  version: string | null;
+  migrationVersion?: number;
+}
+
+export interface AdminCampaignRow {
+  id: string;
+  name: string;
+  userId: string;
+  userEmail: string;
+  linksCount: number;
+  createdAt: string;
+}
+
+export interface AdminWorkspaceRow {
+  id: string;
+  name: string;
+  teamId: string;
+  teamName: string;
+  linksCount: number;
+  createdAt: string;
+}
+
+export interface AdminCustomDomainRow {
+  id: string;
+  domain: string;
+  status: string;
+  userId: string;
+  userEmail: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface AdminPushSubscriptionRow {
+  id: string;
+  userId: string;
+  userEmail: string;
+  endpointPreview: string;
+  createdAt: string;
+}
+
+export interface PlanJson {
+  id?: number;
+  name: string;
+  tier: string;
+  stripePriceIdMonthly?: string | null;
+  stripePriceIdYearly?: string | null;
+  prices?: { monthly: number; yearly: number } | null;
+  features?: string[];
+  checkout?: boolean;
+  salesLed?: boolean;
+}
+
+export interface LinkCampaign {
+  id: string;
+  name: string;
 }
 
 export interface LinkJson {
@@ -115,8 +246,49 @@ export interface LinkJson {
   originalUrl: string;
   shortCode: string;
   shortUrl: string;
+  fullShortUrl?: string;
   clicks: number;
   createdAt: string;
-  campaign?: string | null;
+  linkType?: 'single' | 'randomizer';
+  campaign?: LinkCampaign | null;
+  campaignId?: string | null;
   isRandomizer?: boolean;
+  poolEntries?: { id: string; url: string; weight: number; position: number }[];
+  utmParams?: {
+    source?: string | null;
+    medium?: string | null;
+    campaign?: string | null;
+    term?: string | null;
+    content?: string | null;
+  };
+}
+
+export interface ClickEventJson {
+  id: string;
+  timestamp: string;
+  country?: string | null;
+  city?: string | null;
+  device?: string | null;
+  browser?: string | null;
+  referrer?: string | null;
+}
+
+export interface LinksListMeta {
+  page: number;
+  perPage: number;
+  total: number;
+  q?: string;
+  linkType?: string;
+  campaignId?: string;
+  workspaceId?: string;
+}
+
+export interface CampaignJson {
+  id: string;
+  name: string;
+  description: string;
+  linksCount: number;
+  totalClicks: number;
+  createdAt: string;
+  links?: LinkJson[];
 }

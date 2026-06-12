@@ -1,33 +1,29 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
-
-interface Workspace {
-  id: string;
-  name: string;
-}
+import { useWorkspace } from '../contexts/workspace-context';
+import { usePermissions } from '@/hooks/use-permissions';
 
 export function WorkspaceSwitcher() {
+  const navigate = useNavigate();
+  const { can } = usePermissions();
+  const { workspaces, currentWorkspace, loading, switchWorkspace } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
-  
-  // Mock data - replace with API call to Rails backend
-  const [workspaces] = useState<Workspace[]>([
-    { id: '1', name: 'Personal Workspace' },
-    { id: '2', name: 'Marketing Team' },
-    { id: '3', name: 'Development Team' },
-  ]);
-  
-  const [currentWorkspace, setCurrentWorkspace] = useState(workspaces[0]);
 
-  const handleWorkspaceChange = (workspace: Workspace) => {
-    setCurrentWorkspace(workspace);
+  if (!can.readWorkspaces || loading || !currentWorkspace) {
+    return null;
+  }
+
+  const handleWorkspaceChange = async (workspaceId: string) => {
     setIsOpen(false);
-    // TODO: Replace with actual API call to switch workspace
-    console.log('Switched to workspace:', workspace.name);
+    if (workspaceId === currentWorkspace.id) return;
+    await switchWorkspace(workspaceId);
   };
 
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-muted/50 rounded-full hover:bg-muted transition-colors"
       >
@@ -40,19 +36,14 @@ export function WorkspaceSwitcher() {
 
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown */}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full left-0 right-0 mt-2 bg-card shadow-lg z-50 overflow-hidden">
             <div className="p-2 space-y-1">
               {workspaces.map((workspace) => (
                 <button
                   key={workspace.id}
-                  onClick={() => handleWorkspaceChange(workspace)}
+                  type="button"
+                  onClick={() => handleWorkspaceChange(workspace.id)}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-sm hover:bg-muted transition-colors text-left"
                 >
                   <span className="text-sm truncate">{workspace.name}</span>
@@ -61,13 +52,23 @@ export function WorkspaceSwitcher() {
                   )}
                 </button>
               ))}
-              
-              <div className="h-px bg-border/50 my-2" />
-              
-              <button className="w-full flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-muted transition-colors text-left text-sm">
-                <Plus className="w-4 h-4" />
-                Create Workspace
-              </button>
+
+              {can.createWorkspaces && (
+                <>
+                  <div className="h-px bg-border/50 my-2" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate('/workspaces');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-muted transition-colors text-left text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Workspace
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </>

@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { apiRequest, ApiError } from '@/services/api';
+import { createLink, shortLinkHost } from '@/services/links-api';
+import { listDomains, type CustomDomainJson } from '@/services/domains-api';
+import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
+import { toast } from 'sonner';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '../contexts/auth-context';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -32,7 +37,9 @@ interface ShortenedLink {
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { can } = usePermissions();
+  const { checkAuth } = useAuth();
   const [longUrl, setLongUrl] = useState('');
   const [customSlug, setCustomSlug] = useState('');
   const [showCustomSlug, setShowCustomSlug] = useState(false);
@@ -55,15 +62,12 @@ export function DashboardPage() {
   const [utmContent, setUtmContent] = useState('');
 
   // Domain selection state
-  const [selectedDomain, setSelectedDomain] = useState('links.blackcollar.io');
-  
-  // Available domains (would come from API/settings in production)
-  const availableDomains = [
-    { id: '1', domain: 'links.blackcollar.io', isDefault: true, status: 'verified' },
-    { id: '2', domain: 'mybrand.com', isDefault: false, status: 'verified' },
-  ];
+  const [availableDomains, setAvailableDomains] = useState<CustomDomainJson[]>([]);
+  const [selectedDomainId, setSelectedDomainId] = useState('');
+  const platformHost = shortLinkHost();
 
   const [links, setLinks] = useState<ShortenedLink[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,53 +84,135 @@ export function DashboardPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!can.readCampaigns) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await listCampaigns();
+        if (!cancelled) setCampaigns(data);
+      } catch {
+        if (!cancelled) setCampaigns([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [can.readCampaigns]);
+
+  useEffect(() => {
+    if (!can.domains) {
+      setAvailableDomains([]);
+      setSelectedDomainId('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const domains = await listDomains();
+        const verified = domains.filter((d) => d.status === 'verified');
+        if (cancelled) return;
+        setAvailableDomains(verified);
+        const defaultDomain = verified.find((d) => d.isDefault) ?? verified[0];
+        setSelectedDomainId(defaultDomain?.id ?? '');
+      } catch {
+        if (!cancelled) {
+          setAvailableDomains([]);
+          setSelectedDomainId('');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [can.domains]);
+
+  useEffect(() => {
+    if (searchParams.get('checkout') !== 'success') return;
+    void (async () => {
+      await checkAuth();
+      toast.success('Subscription updated! Your plan is now active.');
+      setSearchParams({}, { replace: true });
+    })();
+  }, [searchParams, setSearchParams, checkAuth]);
+
+  const domainOptions: CustomDomainJson[] =
+    availableDomains.length > 0
+      ? availableDomains
+      : [
+          {
+            id: '',
+            domain: platformHost,
+            status: 'verified',
+            isDefault: true,
+            createdAt: '',
+          },
+        ];
+
+  const selectedDomainHost =
+    domainOptions.find((d) => d.id === selectedDomainId)?.domain ?? platformHost;
+
+  const linkCustomizePayload = () => ({
+    ...(selectedDomainId ? { custom_domain_id: selectedDomainId } : {}),
+    ...(customSlug.trim() ? { short_code: customSlug.trim() } : {}),
+    ...(utmSource.trim() ? { utm_source: utmSource.trim() } : {}),
+    ...(utmMedium.trim() ? { utm_medium: utmMedium.trim() } : {}),
+    ...(utmCampaign.trim() ? { utm_campaign: utmCampaign.trim() } : {}),
+    ...(utmTerm.trim() ? { utm_term: utmTerm.trim() } : {}),
+    ...(utmContent.trim() ? { utm_content: utmContent.trim() } : {}),
+  });
+
   const handleCreateLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!longUrl.trim()) return;
     try {
-      const data = await apiRequest<{ link: ShortenedLink }>('/api/v1/links', {
-        method: 'POST',
-        body: JSON.stringify({
-          link: { destination_url: longUrl, name: linkName || 'New Link' },
-        }),
+      const link = await createLink({
+        destination_url: longUrl,
+        name: linkName || 'New Link',
+        ...linkCustomizePayload(),
       });
-      setLinks((prev) => [data.link, ...prev]);
-      setGeneratedUrl(data.link.shortUrl);
+      setLinks((prev) => [link as ShortenedLink, ...prev]);
+      setGeneratedUrl(link.shortUrl);
       setLongUrl('');
       setLinkName('');
+      setCustomSlug('');
+      toast.success('Link created');
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Could not create link';
-      alert(msg);
+      toast.error(msg);
     }
   };
 
-  const handleCreateRandomizer = (e: React.FormEvent) => {
+  const handleCreateRandomizer = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Filter out empty URLs
-    const validUrls = randomizerUrls.filter(url => url.trim() !== '');
-    
+
+    const validUrls = randomizerUrls.filter((url) => url.trim() !== '');
+
     if (validUrls.length < 2) {
-      alert('Please add at least 2 destination URLs for the randomizer');
+      toast.error('Please add at least 2 destination URLs for the randomizer');
       return;
     }
-    
-    // TODO: Replace with actual API call to Rails backend
-    const slug = customSlug || Math.random().toString(36).substring(2, 8);
-    const newShortUrl = `${selectedDomain}/${slug}`;
-    
-    const newLink: ShortenedLink = {
-      id: String(Date.now()),
-      name: randomizerName || 'Randomizer Link',
-      originalUrl: `${validUrls.length} destinations`,
-      shortCode: slug,
-      shortUrl: newShortUrl,
-      clicks: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    
-    setLinks([newLink, ...links]);
-    setGeneratedUrl(newShortUrl);
+
+    try {
+      const data = await createLink({
+        name: randomizerName || 'Randomizer Link',
+        link_type: 'randomizer',
+        ...linkCustomizePayload(),
+        pool_entries_attributes: validUrls.map((url, index) => ({
+          destination_url: url,
+          weight: 1,
+          position: index,
+        })),
+      });
+      setLinks((prev) => [data as ShortenedLink, ...prev]);
+      setGeneratedUrl(data.shortUrl);
+      setRandomizerUrls(['', '']);
+      setRandomizerName('');
+      setCustomSlug('');
+      toast.success('Randomizer created');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not create randomizer');
+    }
   };
 
   const addRandomizerUrl = () => {
@@ -146,57 +232,11 @@ export function DashboardPage() {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    navigator.clipboard.writeText(text.startsWith('http') ? text : `https://${text}`);
+    toast.success('Copied to clipboard');
   };
 
-  // Calculate stats
-  const totalClicks = links.reduce((sum, link) => sum + link.clicks, 0);
   const totalLinks = links.length;
-
-  // Mock campaign data - replace with API call to Rails backend
-  const campaigns = [
-    {
-      id: '1',
-      name: 'Spring Sale 2026',
-      linksCount: 12,
-      clicks: 4523,
-      description: 'Marketing campaign for spring promotion'
-    },
-    {
-      id: '2',
-      name: 'Product Launch',
-      linksCount: 8,
-      clicks: 3201,
-      description: 'New product announcement'
-    },
-    {
-      id: '3',
-      name: 'Summer Campaign',
-      linksCount: 15,
-      clicks: 5847,
-      description: 'Summer seasonal promotion'
-    },
-  ];
-
-  const totalCampaigns = campaigns.length;
-  const totalCampaignClicks = campaigns.reduce((sum, campaign) => sum + campaign.clicks, 0);
-
-  // Scroll handlers for links
-  const scrollLinks = (direction: 'left' | 'right') => {
-    const newIndex = direction === 'left' 
-      ? Math.max(0, linkScrollPosition - 1)
-      : Math.min(links.length - 1, linkScrollPosition + 1);
-    setLinkScrollPosition(newIndex);
-  };
-
-  // Scroll handlers for campaigns
-  const scrollCampaigns = (direction: 'left' | 'right') => {
-    const newIndex = direction === 'left' 
-      ? Math.max(0, campaignScrollPosition - 1)
-      : Math.min(campaigns.length - 1, campaignScrollPosition + 1);
-    setCampaignScrollPosition(newIndex);
-  };
 
   return (
     <FeatureGate allowed={can.readLinks} featureName="Dashboard">
@@ -271,12 +311,13 @@ export function DashboardPage() {
                         </label>
                         <select
                           id="domain-select"
-                          value={selectedDomain}
-                          onChange={(e) => setSelectedDomain(e.target.value)}
+                          value={selectedDomainId}
+                          onChange={(e) => setSelectedDomainId(e.target.value)}
+                          disabled={!can.domains && domainOptions.length === 1}
                           className="h-10 text-sm w-full rounded-full bg-muted border-0 focus:ring-0 focus:outline-none px-4"
                         >
-                          {availableDomains.map((domain) => (
-                            <option key={domain.id} value={domain.domain}>
+                          {domainOptions.map((domain) => (
+                            <option key={domain.id || domain.domain} value={domain.id}>
                               {domain.domain} {domain.isDefault ? '(Default)' : ''}
                             </option>
                           ))}
@@ -288,7 +329,7 @@ export function DashboardPage() {
                           Customize your link (optional)
                         </label>
                         <div className="flex items-center gap-2 w-full">
-                          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">{selectedDomain}/</span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">{selectedDomainHost}/</span>
                           <Input
                             id="custom-slug"
                             type="text"
@@ -426,12 +467,13 @@ export function DashboardPage() {
                         </label>
                         <select
                           id="domain-select-randomizer"
-                          value={selectedDomain}
-                          onChange={(e) => setSelectedDomain(e.target.value)}
+                          value={selectedDomainId}
+                          onChange={(e) => setSelectedDomainId(e.target.value)}
+                          disabled={!can.domains && domainOptions.length === 1}
                           className="h-10 text-sm w-full rounded-full bg-muted border-0 focus:ring-0 focus:outline-none px-4"
                         >
-                          {availableDomains.map((domain) => (
-                            <option key={domain.id} value={domain.domain}>
+                          {domainOptions.map((domain) => (
+                            <option key={domain.id || domain.domain} value={domain.id}>
                               {domain.domain} {domain.isDefault ? '(Default)' : ''}
                             </option>
                           ))}
@@ -442,7 +484,7 @@ export function DashboardPage() {
                         Customize your link (optional)
                       </label>
                       <div className="flex items-center gap-2 w-full">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">{selectedDomain}/</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">{selectedDomainHost}/</span>
                         <Input
                           id="custom-slug-randomizer"
                           type="text"
@@ -588,7 +630,7 @@ export function DashboardPage() {
 
                       {/* Clicks - own row */}
                       <div className="bg-muted/30 rounded p-2 text-center">
-                        <p className="text-2xl leading-none mb-1">{campaign.clicks.toLocaleString()}</p>
+                        <p className="text-2xl leading-none mb-1">{campaign.totalClicks.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">clicks</p>
                       </div>
                     </div>

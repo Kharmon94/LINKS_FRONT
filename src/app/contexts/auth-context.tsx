@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { User } from '@/types';
 import { apiRequest, setStoredToken, getStoredToken, apiBase, ApiError } from '@/services/api';
+import { signInWithPassword as apiSignIn } from '@/services/account-api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,6 +23,7 @@ interface AuthContextType {
     passwordConfirmation?: string
   ) => Promise<{ success: boolean; user?: User; error?: string }>;
   loginWithGoogle: () => void;
+  signInWithPassword: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -151,6 +153,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = `${base}/users/auth/google_oauth2`;
   };
 
+  const signInWithPassword = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const data = await apiSignIn(email, password);
+      if (data.token) setStoredToken(data.token);
+      setUser(data.user);
+      setIsAuthenticated(true);
+      return { success: true };
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
+      return { success: false, error: msg };
+    }
+  };
+
   const logout = async () => {
     try {
       await apiRequest('/api/auth/logout', { method: 'DELETE' });
@@ -173,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         checkMagicLinkToken,
         completeMagicLink,
         loginWithGoogle,
+        signInWithPassword,
         logout,
         checkAuth,
       }}

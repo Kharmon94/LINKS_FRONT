@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -6,148 +6,115 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ArrowLeft, Users, Plus, Trash2, UserMinus, Edit2, Save, Briefcase } from 'lucide-react';
-
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  role: 'owner' | 'admin' | 'member';
-}
-
-interface Workspace {
-  id: string;
-  name: string;
-  description: string;
-  members: TeamMember[];
-  linksCount: number;
-  campaignsCount: number;
-  createdAt: string;
-}
+import {
+  getWorkspace,
+  updateWorkspace,
+  deleteWorkspace,
+  addWorkspaceMember,
+  removeWorkspaceMember,
+  type WorkspaceJson,
+} from '@/services/workspaces-api';
+import { getTeam, type TeamMemberJson } from '@/services/team-api';
+import { ApiError } from '@/services/api';
+import { toast } from 'sonner';
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const { can } = usePermissions();
-  
+  const [workspace, setWorkspace] = useState<WorkspaceJson | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberJson[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
-  
-  // Mock data - replace with API call to Rails backend
-  const [workspace, setWorkspace] = useState<Workspace>({
-    id: workspaceId || '1',
-    name: 'Marketing Team',
-    description: 'All marketing campaigns and promotional links',
-    members: [
-      {
-        id: '1',
-        name: 'Developer',
-        email: 'dev@example.com',
-        role: 'owner',
-      },
-      {
-        id: '2',
-        name: 'John Smith',
-        email: 'john@example.com',
-        role: 'admin',
-      },
-      {
-        id: '3',
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        role: 'member',
-      },
-    ],
-    linksCount: 24,
-    campaignsCount: 5,
-    createdAt: '2026-01-15',
-  });
+  const [editedName, setEditedName] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const [editedName, setEditedName] = useState(workspace.name);
-  const [editedDescription, setEditedDescription] = useState(workspace.description);
-  const [workspaceMembers, setWorkspaceMembers] = useState(workspace.members);
+  const refresh = async () => {
+    if (!workspaceId) return;
+    const [ws, team] = await Promise.all([getWorkspace(workspaceId), getTeam()]);
+    setWorkspace(ws);
+    setEditedName(ws.name);
+    setEditedDescription(ws.description);
+    setTeamMembers(team.members);
+  };
 
-  // All available team members for adding to workspaces
-  const allTeamMembers: TeamMember[] = [
-    {
-      id: '1',
-      name: 'Developer',
-      email: 'dev@example.com',
-      role: 'owner',
-    },
-    {
-      id: '2',
-      name: 'John Smith',
-      email: 'john@example.com',
-      role: 'admin',
-    },
-    {
-      id: '3',
-      name: 'Jane Doe',
-      email: 'jane@example.com',
-      role: 'member',
-    },
-    {
-      id: '4',
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      role: 'member',
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh();
+      } catch {
+        if (!cancelled) setWorkspace(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
 
-  // Get team members not in this workspace
-  const availableMembers = allTeamMembers.filter(
-    member => !workspaceMembers.some(wm => wm.id === member.id)
+  const workspaceMembers = workspace?.members ?? [];
+  const availableMembers = teamMembers.filter(
+    (member) => !workspaceMembers.some((wm) => wm.id === member.id)
   );
 
-  const handleSaveEdit = () => {
-    // TODO: Replace with actual API call to Rails backend
-    setWorkspace({
-      ...workspace,
-      name: editedName,
-      description: editedDescription,
-      members: workspaceMembers,
-    });
-    setIsEditing(false);
-    alert('Workspace updated successfully!');
+  const handleSaveEdit = async () => {
+    if (!workspaceId) return;
+    setSaving(true);
+    try {
+      const updated = await updateWorkspace(workspaceId, {
+        name: editedName,
+        description: editedDescription,
+      });
+      setWorkspace(updated);
+      setIsEditing(false);
+      toast.success('Workspace updated');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not update workspace');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleAddMember = (member: TeamMember) => {
-    // TODO: Replace with actual API call to Rails backend
-    const updatedMembers = [...workspaceMembers, member];
-    setWorkspaceMembers(updatedMembers);
-    setWorkspace({
-      ...workspace,
-      members: updatedMembers,
-    });
-    setIsAddingMember(false);
-    alert('Member added successfully!');
+  const handleAddMember = async (member: TeamMemberJson) => {
+    if (!workspaceId) return;
+    try {
+      const updated = await addWorkspaceMember(workspaceId, member.id);
+      setWorkspace(updated);
+      setIsAddingMember(false);
+      toast.success('Member added');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not add member');
+    }
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    // Prevent removing the owner
-    const memberToRemove = workspaceMembers.find(m => m.id === memberId);
+  const handleRemoveMember = async (memberId: string) => {
+    const memberToRemove = workspaceMembers.find((m) => m.id === memberId);
     if (memberToRemove?.role === 'owner') {
-      alert('Cannot remove the workspace owner');
+      toast.error('Cannot remove the workspace owner');
       return;
     }
-
-    if (confirm('Are you sure you want to remove this member from the workspace?')) {
-      // TODO: Replace with actual API call to Rails backend
-      const updatedMembers = workspaceMembers.filter(m => m.id !== memberId);
-      setWorkspaceMembers(updatedMembers);
-      setWorkspace({
-        ...workspace,
-        members: updatedMembers,
-      });
-      alert('Member removed successfully!');
+    if (!workspaceId || !confirm('Remove this member from the workspace?')) return;
+    try {
+      const updated = await removeWorkspaceMember(workspaceId, memberId);
+      setWorkspace(updated);
+      toast.success('Member removed');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not remove member');
     }
   };
 
-  const handleDeleteWorkspace = () => {
-    if (confirm('Are you sure you want to delete this workspace? This action cannot be undone.')) {
-      // TODO: Replace with actual API call to Rails backend
-      alert('Workspace deleted successfully');
+  const handleDeleteWorkspace = async () => {
+    if (!workspaceId || !confirm('Delete this workspace? This cannot be undone.')) return;
+    try {
+      await deleteWorkspace(workspaceId);
+      toast.success('Workspace deleted');
       navigate('/workspaces');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not delete workspace');
     }
   };
 
@@ -162,233 +129,142 @@ export function WorkspaceDetailPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <FeatureGate allowed={can.readWorkspaces} featureName="Workspaces">
+        <AppLayout>
+          <div className="text-center py-12 text-muted-foreground">Loading workspace...</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
+
+  if (!workspace) {
+    return (
+      <FeatureGate allowed={can.readWorkspaces} featureName="Workspaces">
+        <AppLayout>
+          <div className="text-center py-12 text-muted-foreground">Workspace not found</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
+
   return (
     <FeatureGate allowed={can.readWorkspaces} featureName="Workspaces">
-    <AppLayout>
-      <div className="min-h-screen bg-background relative">
-        {/* Subtle background pattern for glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto px-4 py-6 relative">
-          {/* Back Button */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/workspaces')}
-            className="mb-4 rounded-full"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Workspaces
-          </Button>
+      <AppLayout>
+        <div className="min-h-screen bg-background relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+          <div className="max-w-4xl mx-auto px-4 py-6 relative">
+            <Button variant="ghost" onClick={() => navigate('/workspaces')} className="mb-4 rounded-full">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Workspaces
+            </Button>
 
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="mb-2 text-center text-[36px]">Workspace Details</h1>
-            <p className="text-sm text-muted-foreground text-center">
-              Manage workspace settings and team member access
-            </p>
-          </div>
-
-          {/* Workspace Info */}
-          <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-6 mb-6">
-            {isEditing ? (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="edit-name" className="block font-medium mb-1.5 text-[15px]">
-                    Workspace Name
-                  </label>
+            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 mb-6">
+              {isEditing ? (
+                <div className="space-y-4">
+                  <Input value={editedName} onChange={(e) => setEditedName(e.target.value)} />
                   <Input
-                    id="edit-name"
-                    type="text"
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    className="h-10 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="edit-description" className="block font-medium mb-1.5 text-[15px]">
-                    Description
-                  </label>
-                  <Input
-                    id="edit-description"
-                    type="text"
                     value={editedDescription}
                     onChange={(e) => setEditedDescription(e.target.value)}
-                    className="h-10 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
+                    placeholder="Description"
                   />
-                </div>
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={handleSaveEdit}
-                    className="flex-1 h-10 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Changes
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditedName(workspace.name);
-                      setEditedDescription(workspace.description);
-                    }}
-                    className="flex-1 h-10 rounded-full"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Workspace Icon */}
-                <div className="flex justify-center mb-3">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Briefcase className="w-8 h-8 text-primary" />
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveEdit} disabled={saving}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button variant="ghost" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </Button>
                   </div>
                 </div>
-
-                <div>
-                  <h2 className="text-[24px] font-semibold mb-2 text-center">{workspace.name}</h2>
-                  <p className="text-sm text-muted-foreground text-center">{workspace.description}</p>
+              ) : (
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <h1 className="text-2xl font-semibold mb-2 flex items-center gap-2">
+                      <Briefcase className="w-6 h-6" />
+                      {workspace.name}
+                    </h1>
+                    <p className="text-muted-foreground">{workspace.description || 'No description'}</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {workspace.linksCount} links · {workspace.campaignsCount} campaigns
+                    </p>
+                  </div>
+                  {can.updateWorkspaces && (
+                    <Button variant="outline" onClick={() => setIsEditing(true)}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
-                
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-muted/30 rounded p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Members</p>
-                    <p className="text-2xl">{workspaceMembers.length}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Links</p>
-                    <p className="text-2xl">{workspace.linksCount}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded p-3 text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Campaigns</p>
-                    <p className="text-2xl">{workspace.campaignsCount}</p>
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={() => setIsEditing(true)}
-                  variant="outline"
-                  className="w-full h-10 rounded-full"
-                >
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Workspace
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Team Members Section */}
-          <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[20px] font-semibold">Team Members ({workspaceMembers.length})</h3>
-              <Button 
-                onClick={() => setIsAddingMember(!isAddingMember)}
-                size="sm"
-                className="h-9 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Member
-              </Button>
+              )}
             </div>
 
-            {/* Add Member Section */}
-            {isAddingMember && (
-              <div className="bg-muted/30 rounded-lg p-4 mb-4">
-                <h4 className="text-sm font-medium mb-3">Available Team Members</h4>
-                {availableMembers.length > 0 ? (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {availableMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between p-3 bg-background/50 rounded hover:bg-background/70 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                            <Users className="w-4 h-4 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{member.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddMember(member)}
-                          className="h-8 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 shrink-0"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    All team members are already in this workspace
-                  </p>
+            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Members
+                </h2>
+                {can.updateWorkspaces && (
+                  <Button size="sm" onClick={() => setIsAddingMember(!isAddingMember)}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add
+                  </Button>
                 )}
               </div>
-            )}
 
-            {/* Current Members List */}
-            <div className="space-y-2">
-              {workspaceMembers.map((member) => (
-                <div
-                  key={member.id}
-                  className="bg-muted/30 rounded-lg p-4 flex items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm mb-0.5 truncate">{member.name}</h4>
-                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full font-medium ${getRoleBadgeColor(
-                        member.role
-                      )}`}
+              {isAddingMember && availableMembers.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {availableMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => handleAddMember(member)}
+                      className="w-full text-left p-3 bg-muted/30 rounded-lg hover:bg-muted/50"
                     >
-                      {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                    </span>
-                    {member.role !== 'owner' && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="h-8 w-8 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <UserMinus className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
+                      {member.name} ({member.email})
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          {/* Danger Zone */}
-          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
-            <h3 className="text-[20px] font-semibold mb-2 text-destructive">Danger Zone</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Deleting a workspace will remove all associated links and campaigns. This action cannot be undone.
-            </p>
-            <Button 
-              variant="destructive"
-              onClick={handleDeleteWorkspace}
-              className="h-10 rounded-full"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Workspace
-            </Button>
+              <div className="space-y-2">
+                {workspaceMembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                    <div>
+                      <p className="font-medium">{member.name}</p>
+                      <p className="text-xs text-muted-foreground">{member.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded-full ${getRoleBadgeColor(member.role)}`}>
+                        {member.role}
+                      </span>
+                      {can.updateWorkspaces && member.role !== 'owner' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveMember(member.id)}
+                        >
+                          <UserMinus className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {can.destroyWorkspaces && (
+              <Button variant="destructive" onClick={handleDeleteWorkspace}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Workspace
+              </Button>
+            )}
           </div>
         </div>
-      </div>
-    </AppLayout>
+      </AppLayout>
     </FeatureGate>
   );
 }

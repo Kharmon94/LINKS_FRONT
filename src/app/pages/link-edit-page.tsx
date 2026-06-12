@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -6,7 +6,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { 
+import {
   ArrowLeft,
   Copy,
   ExternalLink,
@@ -17,6 +17,10 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { getLink, updateLink, deleteLink } from '@/services/links-api';
+import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
+import { ApiError } from '@/services/api';
+import { toast } from 'sonner';
 
 interface PoolEntry {
   id: string;
@@ -29,42 +33,74 @@ export function LinkEditPage() {
   const navigate = useNavigate();
   const { can } = usePermissions();
 
-  // Mock data - replace with API call to Rails backend
-  const [linkData] = useState({
-    id: linkId || '1',
-    name: 'Spring Campaign Link',
-    originalUrl: 'https://www.example.com/marketing-campaign',
-    shortCode: 'spring24',
-    shortUrl: 'blackcollar.io/spring24',
-    clicks: 2891,
-    campaign: 'Spring Campaign',
-    createdAt: '2026-02-25',
-    isRandomizer: false,
+  const [linkData, setLinkData] = useState({
+    shortUrl: '',
+    fullShortUrl: '',
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
+  const [campaignId, setCampaignId] = useState('');
 
-  const [isRandomizer, setIsRandomizer] = useState(linkData.isRandomizer);
-  const [linkName, setLinkName] = useState(linkData.name);
-  const [destinationUrl, setDestinationUrl] = useState(linkData.originalUrl);
-  const [poolEntries, setPoolEntries] = useState<PoolEntry[]>([
-    { id: '1', url: 'https://www.example.com/option-a', weight: 50 },
-    { id: '2', url: 'https://www.example.com/option-b', weight: 50 },
-  ]);
+  const [isRandomizer, setIsRandomizer] = useState(false);
+  const [linkName, setLinkName] = useState('');
+  const [destinationUrl, setDestinationUrl] = useState('');
+  const [poolEntries, setPoolEntries] = useState<PoolEntry[]>([]);
 
-  // UTM Parameters state
   const [utmSource, setUtmSource] = useState('');
   const [utmMedium, setUtmMedium] = useState('');
   const [utmCampaign, setUtmCampaign] = useState('');
   const [utmTerm, setUtmTerm] = useState('');
   const [utmContent, setUtmContent] = useState('');
 
-  // Collapsible sections state
   const [isUtmOpen, setIsUtmOpen] = useState(false);
   const [isCampaignOpen, setIsCampaignOpen] = useState(true);
   const [isLinkTypeOpen, setIsLinkTypeOpen] = useState(true);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [link, campaignList] = await Promise.all([
+          getLink(linkId!),
+          can.readCampaigns ? listCampaigns() : Promise.resolve([]),
+        ]);
+        if (cancelled) return;
+        setLinkData({ shortUrl: link.shortUrl, fullShortUrl: link.fullShortUrl || `https://${link.shortUrl}` });
+        setLinkName(link.name);
+        setDestinationUrl(link.originalUrl);
+        setIsRandomizer(link.isRandomizer ?? false);
+        setCampaignId(link.campaignId || '');
+        setCampaigns(campaignList);
+        setUtmSource(link.utmParams?.source || '');
+        setUtmMedium(link.utmParams?.medium || '');
+        setUtmCampaign(link.utmParams?.campaign || '');
+        setUtmTerm(link.utmParams?.term || '');
+        setUtmContent(link.utmParams?.content || '');
+        setPoolEntries(
+          (link.poolEntries || []).map((e) => ({
+            id: e.id,
+            url: e.url,
+            weight: e.weight,
+          }))
+        );
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof ApiError ? err.message : 'Failed to load link');
+          navigate('/links');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [linkId, navigate, can.readCampaigns]);
+
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    navigator.clipboard.writeText(text.startsWith('http') ? text : `https://${text}`);
+    toast.success('Copied to clipboard');
   };
 
   const buildUtmParams = () => {
@@ -84,21 +120,45 @@ export function LinkEditPage() {
     return `${destinationUrl}${separator}${utmParams}`;
   };
 
-  const handleSave = () => {
-    // TODO: Replace with actual API call to Rails backend
-    console.log('Saving link:', {
-      destinationUrl,
-      isRandomizer,
-      poolEntries: isRandomizer ? poolEntries : null,
-    });
-    alert('Link updated successfully!');
-    navigate(`/links/${linkId}`);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateLink(linkId!, {
+        name: linkName,
+        link_type: isRandomizer ? 'randomizer' : 'single',
+        destination_url: isRandomizer ? undefined : destinationUrl,
+        campaign_id: campaignId || null,
+        utm_source: utmSource || undefined,
+        utm_medium: utmMedium || undefined,
+        utm_campaign: utmCampaign || undefined,
+        utm_term: utmTerm || undefined,
+        utm_content: utmContent || undefined,
+        pool_entries_attributes: isRandomizer
+          ? poolEntries.map((entry, index) => ({
+              id: entry.id.match(/^\d+$/) ? entry.id : undefined,
+              destination_url: entry.url,
+              weight: entry.weight || 1,
+              position: index,
+            }))
+          : undefined,
+      });
+      toast.success('Link updated');
+      navigate(`/links/${linkId}`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to save link');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this link? This action cannot be undone.')) {
-      // TODO: Replace with actual API call to Rails backend
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this link? This action cannot be undone.')) return;
+    try {
+      await deleteLink(linkId!);
+      toast.success('Link deleted');
       navigate('/links');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to delete link');
     }
   };
 
@@ -122,6 +182,16 @@ export function LinkEditPage() {
   };
 
   const totalWeight = poolEntries.reduce((sum, entry) => sum + entry.weight, 0);
+
+  if (loading) {
+    return (
+      <FeatureGate allowed={can.updateLinks} featureName="Link editing">
+        <AppLayout>
+          <div className="text-center py-24 text-muted-foreground">Loading link...</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
 
   return (
     <FeatureGate allowed={can.updateLinks} featureName="Link editing">
@@ -156,7 +226,7 @@ export function LinkEditPage() {
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => window.open(`https://${linkData.shortUrl}`, '_blank')}
+                  onClick={() => window.open(linkData.fullShortUrl, '_blank')}
                   className="p-1 hover:bg-muted rounded"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -336,12 +406,16 @@ export function LinkEditPage() {
               <Label htmlFor="campaign">Assign to Campaign (Optional)</Label>
               <select
                 id="campaign"
+                value={campaignId}
+                onChange={(e) => setCampaignId(e.target.value)}
                 className="w-full h-11 px-3 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
               >
                 <option value="">No Campaign</option>
-                <option value="1">Summer Sale</option>
-                <option value="2">Product Launch</option>
-                <option value="3">Spring Campaign</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -449,9 +523,9 @@ export function LinkEditPage() {
           </div>
 
           {/* Save Button */}
-          <Button onClick={handleSave} size="lg" className="w-full rounded-full h-12">
+          <Button onClick={handleSave} size="lg" className="w-full rounded-full h-12" disabled={saving}>
             <Save className="w-4 h-4 mr-2" />
-            Save Changes
+            {saving ? 'Saving...' : 'Save Changes'}
           </Button>
 
           {/* Danger Zone */}

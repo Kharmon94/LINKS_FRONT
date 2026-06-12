@@ -1,349 +1,210 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router';
 import { AppLayout } from '../components/app-layout';
+import { FeatureGate } from '../components/feature-gate';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
-import { 
+import { toast } from 'sonner';
+import QRCode from 'qrcode';
+import {
   ArrowLeft,
   Copy,
   ExternalLink,
   Edit,
-  MousePointerClick,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  QrCode,
+  Nfc,
 } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getLink, getLinkClicks, displayShortUrl } from '@/services/links-api';
+import { getLinkAnalytics } from '@/services/analytics-api';
+import { AnalyticsCharts } from '../components/analytics-charts';
+import type { LinkJson } from '@/types';
+import type { EntityAnalytics } from '@/services/analytics-api';
+import type { ClickEventJson } from '@/types';
 
 export function LinkDetailPage() {
   const { linkId } = useParams();
   const navigate = useNavigate();
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<'7D' | '30D' | '90D' | '1Y' | 'ALL'>('7D');
-  
-  // Collapsible sections state
+  const { can } = usePermissions();
+  const [link, setLink] = useState<LinkJson | null>(null);
+  const [analytics, setAnalytics] = useState<EntityAnalytics | null>(null);
+  const [recentClicks, setRecentClicks] = useState<ClickEventJson[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isRecentClicksOpen, setIsRecentClicksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
 
-  // Mock data - replace with API call to Rails backend
-  const [linkData] = useState({
-    id: linkId || '1',
-    name: 'Spring Campaign Link',
-    originalUrl: 'https://www.example.com/marketing-campaign',
-    shortCode: 'spring24',
-    shortUrl: 'blackcollar.io/spring24',
-    clicks: 2891,
-    campaign: 'Spring Campaign',
-    createdAt: '2026-02-25',
-    isRandomizer: false,
-    utmParams: {
-      source: 'facebook',
-      medium: 'social',
-      campaign: 'spring_sale_2026',
-      term: '',
-      content: 'main_ad'
-    }
-  });
+  useEffect(() => {
+    if (!linkId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [linkData, analyticsData, clicksData] = await Promise.all([
+          getLink(linkId),
+          getLinkAnalytics(linkId),
+          getLinkClicks(linkId, 1, 10),
+        ]);
+        if (!cancelled) {
+          setLink(linkData);
+          setAnalytics(analyticsData);
+          setRecentClicks(clicksData.clicks);
+        }
+      } catch {
+        if (!cancelled) {
+          setLink(null);
+          setAnalytics(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [linkId]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    toast.success('Copied to clipboard');
   };
 
-  const handleExportQR = () => {
-    // TODO: Generate and download QR code
-    alert('QR Code export functionality coming soon!');
+  if (loading) {
+    return (
+      <FeatureGate allowed={can.readLinks} featureName="Links">
+        <AppLayout>
+          <div className="text-center py-12 text-muted-foreground">Loading link...</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
+
+  if (!link) {
+    return (
+      <FeatureGate allowed={can.readLinks} featureName="Links">
+        <AppLayout>
+          <div className="text-center py-12 text-muted-foreground">Link not found</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
+
+  const fullShortUrl = displayShortUrl(link);
+
+  const handleExportQR = async () => {
+    try {
+      const dataUrl = await QRCode.toDataURL(fullShortUrl, { width: 512, margin: 2 });
+      const anchor = document.createElement('a');
+      anchor.href = dataUrl;
+      anchor.download = `${link.shortCode || 'link'}-qr.png`;
+      anchor.click();
+      toast.success('QR code downloaded');
+    } catch {
+      toast.error('Could not generate QR code');
+    }
   };
 
   const handleExportNFC = () => {
-    // TODO: Generate NFC data
-    alert('NFC export functionality coming soon!');
+    const payload = `URI:${fullShortUrl}`;
+    const blob = new Blob([payload], { type: 'text/plain' });
+    const anchor = document.createElement('a');
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = `${link.shortCode || 'link'}.nfc`;
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
+    navigator.clipboard.writeText(fullShortUrl);
+    toast.success('NFC payload downloaded and URL copied');
   };
 
-  // Mock analytics data for different time periods
-  const allClicksData = {
-    '7D': [
-      { date: 'Mar 4', clicks: 65 },
-      { date: 'Mar 5', clicks: 89 },
-      { date: 'Mar 6', clicks: 120 },
-      { date: 'Mar 7', clicks: 95 },
-      { date: 'Mar 8', clicks: 145 },
-      { date: 'Mar 9', clicks: 178 },
-      { date: 'Mar 10', clicks: 203 },
-    ],
-    '30D': [
-      { date: 'Feb 9', clicks: 45 },
-      { date: 'Feb 12', clicks: 67 },
-      { date: 'Feb 15', clicks: 89 },
-      { date: 'Feb 18', clicks: 102 },
-      { date: 'Feb 21', clicks: 125 },
-      { date: 'Feb 24', clicks: 134 },
-      { date: 'Feb 27', clicks: 156 },
-      { date: 'Mar 2', clicks: 145 },
-      { date: 'Mar 5', clicks: 178 },
-      { date: 'Mar 8', clicks: 203 },
-    ],
-    '90D': [
-      { date: 'Dec 12', clicks: 12 },
-      { date: 'Dec 25', clicks: 28 },
-      { date: 'Jan 7', clicks: 45 },
-      { date: 'Jan 20', clicks: 67 },
-      { date: 'Feb 2', clicks: 89 },
-      { date: 'Feb 15', clicks: 112 },
-      { date: 'Feb 28', clicks: 145 },
-      { date: 'Mar 10', clicks: 203 },
-    ],
-    '1Y': [
-      { date: 'Mar', clicks: 234 },
-      { date: 'Apr', clicks: 456 },
-      { date: 'May', clicks: 678 },
-      { date: 'Jun', clicks: 543 },
-      { date: 'Jul', clicks: 789 },
-      { date: 'Aug', clicks: 901 },
-      { date: 'Sep', clicks: 834 },
-      { date: 'Oct', clicks: 956 },
-      { date: 'Nov', clicks: 1123 },
-      { date: 'Dec', clicks: 1456 },
-      { date: 'Jan', clicks: 1678 },
-      { date: 'Feb', clicks: 1890 },
-    ],
-    'ALL': [
-      { date: 'Q1 25', clicks: 1234 },
-      { date: 'Q2 25', clicks: 1678 },
-      { date: 'Q3 25', clicks: 2345 },
-      { date: 'Q4 25', clicks: 2890 },
-      { date: 'Q1 26', clicks: 3247 },
-    ],
-  };
-
-  const clicksOverTime = allClicksData[selectedTimePeriod];
-
-  const deviceData = [
-    { name: 'Mobile', value: 658, color: '#4285F4' },
-    { name: 'Desktop', value: 412, color: '#34A853' },
-    { name: 'Tablet', value: 177, color: '#FBBC05' },
-  ];
-
-  const locationData = [
-    { city: 'New York', clicks: 425 },
-    { city: 'London', clicks: 312 },
-    { city: 'Toronto', clicks: 198 },
-    { city: 'Berlin', clicks: 167 },
-    { city: 'Sydney', clicks: 145 },
-  ];
-
-  // Mock individual clicks data - replace with API call to Rails backend
-  const recentClicks = [
-    {
-      id: '1',
-      timestamp: '2026-02-28T14:32:15Z',
-      country: 'United States',
-      city: 'New York',
-      device: 'Mobile',
-      browser: 'Chrome',
-      os: 'iOS',
-      referrer: 'https://twitter.com'
-    },
-    {
-      id: '2',
-      timestamp: '2026-02-28T14:28:43Z',
-      country: 'United Kingdom',
-      city: 'London',
-      device: 'Desktop',
-      browser: 'Safari',
-      os: 'macOS',
-      referrer: 'https://facebook.com'
-    },
-    {
-      id: '3',
-      timestamp: '2026-02-28T14:15:22Z',
-      country: 'Canada',
-      city: 'Toronto',
-      device: 'Mobile',
-      browser: 'Firefox',
-      os: 'Android',
-      referrer: 'Direct'
-    },
-    {
-      id: '4',
-      timestamp: '2026-02-28T13:58:11Z',
-      country: 'Germany',
-      city: 'Berlin',
-      device: 'Desktop',
-      browser: 'Chrome',
-      os: 'Windows',
-      referrer: 'https://google.com'
-    },
-    {
-      id: '5',
-      timestamp: '2026-02-28T13:45:09Z',
-      country: 'Australia',
-      city: 'Sydney',
-      device: 'Tablet',
-      browser: 'Safari',
-      os: 'iPadOS',
-      referrer: 'https://linkedin.com'
-    },
-    {
-      id: '6',
-      timestamp: '2026-02-28T13:32:56Z',
-      country: 'United States',
-      city: 'Los Angeles',
-      device: 'Mobile',
-      browser: 'Chrome',
-      os: 'Android',
-      referrer: 'https://instagram.com'
-    },
-    {
-      id: '7',
-      timestamp: '2026-02-28T13:21:34Z',
-      country: 'United Kingdom',
-      city: 'Manchester',
-      device: 'Desktop',
-      browser: 'Edge',
-      os: 'Windows',
-      referrer: 'Direct'
-    },
-    {
-      id: '8',
-      timestamp: '2026-02-28T13:08:17Z',
-      country: 'France',
-      city: 'Paris',
-      device: 'Mobile',
-      browser: 'Chrome',
-      os: 'iOS',
-      referrer: 'https://youtube.com'
-    },
-    {
-      id: '9',
-      timestamp: '2026-02-28T12:55:42Z',
-      country: 'Japan',
-      city: 'Tokyo',
-      device: 'Desktop',
-      browser: 'Chrome',
-      os: 'macOS',
-      referrer: 'https://reddit.com'
-    },
-    {
-      id: '10',
-      timestamp: '2026-02-28T12:43:28Z',
-      country: 'Spain',
-      city: 'Madrid',
-      device: 'Mobile',
-      browser: 'Safari',
-      os: 'iOS',
-      referrer: 'https://twitter.com'
-    },
-  ];
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', { 
-      month: 'short', 
+  const formatTimestamp = (timestamp: string) =>
+    new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
-  };
 
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-background relative">
-        {/* Subtle background pattern for glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-        
-        <div className="px-4 py-8 max-w-5xl mx-auto relative">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/links')}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Links
-          </Button>
+    <FeatureGate allowed={can.readLinks} featureName="Links">
+      <AppLayout>
+        <div className="min-h-screen bg-background relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="mb-2 text-center text-[32px]">{linkData.name}</h1>
-              <div className="flex items-center gap-2 justify-center md:justify-start">
-                <span className="text-primary font-medium">
-                  {linkData.shortUrl}
-                </span>
-                <button
-                  onClick={() => copyToClipboard(linkData.shortUrl)}
-                  className="p-1 hover:bg-muted rounded"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => window.open(`https://${linkData.shortUrl}`, '_blank')}
-                  className="p-1 hover:bg-muted rounded"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </button>
+          <div className="px-4 py-8 max-w-5xl mx-auto relative">
+            <nav className="text-sm text-muted-foreground mb-4">
+              <Link to="/links" className="hover:text-foreground">
+                Links
+              </Link>
+              <span className="mx-2">/</span>
+              <span className="text-foreground">{link.name}</span>
+            </nav>
+
+            <Button variant="ghost" onClick={() => navigate('/links')} className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Links
+            </Button>
+
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+              <div>
+                <h1 className="mb-2 text-[32px]">{link.name}</h1>
+                <p className="text-sm text-muted-foreground mb-2 truncate max-w-lg">{link.originalUrl}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-primary font-medium">{link.shortUrl}</span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(fullShortUrl)}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open(fullShortUrl, '_blank')}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={handleExportQR}>
+                  <QrCode className="w-4 h-4 mr-2" />
+                  QR
+                </Button>
+                <Button variant="outline" onClick={handleExportNFC}>
+                  <Nfc className="w-4 h-4 mr-2" />
+                  NFC
+                </Button>
+                {can.updateLinks && (
+                  <Button onClick={() => navigate(`/links/${link.id}/edit`)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Link
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-2 justify-center md:justify-end">
-              <Button
-                onClick={() => navigate(`/links/${linkData.id}/edit`)}
-                className="h-10 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Link
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {/* Quick Stats - Full width, horizontal on desktop */}
-          <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-            <button
-              onClick={() => setIsQuickStatsOpen(!isQuickStatsOpen)}
-              className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-            >
-              <h2 className="text-2xl">Quick Stats</h2>
-              {isQuickStatsOpen ? (
-                <ChevronUp className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              )}
-            </button>
-            
-            {isQuickStatsOpen && (
-              <div className="px-6 pb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Last 7 Days</p>
-                    <p className="text-2xl font-bold">895</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Last 30 Days</p>
-                    <p className="text-2xl font-bold">{linkData.clicks.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">All Time</p>
-                    <p className="text-2xl font-bold">3,247</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Avg. Daily Clicks</p>
-                    <p className="text-2xl font-bold">178</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Peak Day</p>
-                    <p className="text-2xl font-bold">203</p>
-                    <p className="text-xs text-muted-foreground mt-1">Feb 28, 2026</p>
-                  </div>
-                  <div className="md:col-span-3 lg:col-span-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickStatsOpen(!isQuickStatsOpen)}
+                  className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                >
+                  <h2 className="text-2xl">Quick Stats</h2>
+                  {isQuickStatsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </button>
+                {isQuickStatsOpen && analytics?.quickStats && (
+                  <div className="px-6 pb-6">
+                    <AnalyticsCharts quickStats={analytics.quickStats} showLocations={false} />
+                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Created</p>
+                        <p className="text-muted-foreground">Created</p>
                         <p className="font-medium">
-                          {new Date(linkData.createdAt).toLocaleDateString('en-US', {
+                          {new Date(link.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -351,235 +212,76 @@ export function LinkDetailPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">Campaign</p>
-                        <p className="font-medium">{linkData.campaign || 'None'}</p>
+                        <p className="text-muted-foreground">Campaign</p>
+                        <p className="font-medium">{link.campaign?.name || 'None'}</p>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Recent Clicks */}
-          <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-            <button
-              onClick={() => setIsRecentClicksOpen(!isRecentClicksOpen)}
-              className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-            >
-              <h2 className="text-2xl">Recent Clicks</h2>
-              {isRecentClicksOpen ? (
-                <ChevronUp className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              )}
-            </button>
-            
-            {isRecentClicksOpen && (
-              <div className="px-6 pb-6">
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                  <div className="min-w-full space-y-2">
-                    {/* Header */}
-                    <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-muted/30 rounded-lg text-xs font-medium text-muted-foreground">
-                      <div className="col-span-3">Time</div>
-                      <div className="col-span-3">Location</div>
-                      <div className="col-span-2">Device</div>
-                      <div className="col-span-2">Browser</div>
-                      <div className="col-span-2">Referrer</div>
-                    </div>
-                    
-                    {/* Rows */}
-                    {recentClicks.map(click => (
-                      <div 
-                        key={click.id} 
-                        className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="col-span-3 flex items-center gap-2 text-sm">
-                          <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <span>{formatTimestamp(click.timestamp)}</span>
-                        </div>
-                        <div className="col-span-3 text-sm">
-                          <div className="font-medium">{click.city}</div>
-                          <div className="text-xs text-muted-foreground">{click.country}</div>
-                        </div>
-                        <div className="col-span-2 text-sm">
-                          <div className="font-medium">{click.device}</div>
-                          <div className="text-xs text-muted-foreground">{click.os}</div>
-                        </div>
-                        <div className="col-span-2 text-sm font-medium">
-                          {click.browser}
-                        </div>
-                        <div className="col-span-2 text-sm text-muted-foreground truncate">
-                          {click.referrer === 'Direct' ? 'Direct' : new URL(click.referrer).hostname.replace('www.', '')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Mobile Card View */}
-                <div className="md:hidden space-y-3">
-                  {recentClicks.map(click => (
-                    <div 
-                      key={click.id} 
-                      className="bg-muted/20 rounded-lg p-4 space-y-2 border border-border/30"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <span className="text-xs">{formatTimestamp(click.timestamp)}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Location</div>
-                          <div className="font-medium">{click.city}</div>
-                          <div className="text-xs text-muted-foreground">{click.country}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Device</div>
-                          <div className="font-medium">{click.device}</div>
-                          <div className="text-xs text-muted-foreground">{click.os}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Browser</div>
-                          <div className="font-medium">{click.browser}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Referrer</div>
-                          <div className="font-medium text-xs truncate">
-                            {click.referrer === 'Direct' ? 'Direct' : new URL(click.referrer).hostname.replace('www.', '')}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Analytics Section */}
-          <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
-            <button
-              onClick={() => setIsAnalyticsOpen(!isAnalyticsOpen)}
-              className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
-            >
-              <h2 className="text-2xl">Analytics</h2>
-              {isAnalyticsOpen ? (
-                <ChevronUp className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              )}
-            </button>
-
-            {isAnalyticsOpen && (
-              <div className="px-6 pb-6">
-                {/* Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Clicks Over Time Chart */}
-                  <div className="bg-muted/10 backdrop-blur-md rounded-lg p-6 border border-border/30">
-                    <div className="flex flex-col mb-4 gap-3">
-                      <h3 className="text-lg font-semibold">Clicks Over Time</h3>
-                      
-                      {/* Time Period Selector */}
-                      <div className="flex gap-1 bg-muted/30 rounded-lg p-1">
-                        {(['7D', '30D', '90D', '1Y', 'ALL'] as const).map((period) => (
-                          <button
-                            key={period}
-                            onClick={() => setSelectedTimePeriod(period)}
-                            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                              selectedTimePeriod === period
-                                ? 'bg-black dark:bg-white text-white dark:text-black'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
+              <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setIsRecentClicksOpen(!isRecentClicksOpen)}
+                  className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                >
+                  <h2 className="text-2xl">Recent Clicks</h2>
+                  {isRecentClicksOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </button>
+                {isRecentClicksOpen && (
+                  <div className="px-6 pb-6">
+                    {recentClicks.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-6">No clicks yet</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {recentClicks.map((click) => (
+                          <div
+                            key={click.id}
+                            className="flex justify-between items-center p-3 bg-muted/20 rounded-lg text-sm"
                           >
-                            {period}
-                          </button>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span>{formatTimestamp(click.timestamp)}</span>
+                            </div>
+                            <div className="text-right text-muted-foreground">
+                              {[click.city, click.country].filter(Boolean).join(', ') || 'Unknown'}
+                              {click.device ? ` · ${click.device}` : ''}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                    
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={clicksOverTime} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="date" className="text-xs" stroke="currentColor" />
-                        <YAxis 
-                          stroke="currentColor"
-                          style={{ fontSize: '12px', fontWeight: 500 }}
-                          width={45}
-                          tickFormatter={(value) => {
-                            if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
-                            return value;
-                          }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--background))', 
-                            border: '1px solid hsl(var(--border))' 
-                          }} 
-                        />
-                        <Line type="monotone" dataKey="clicks" stroke="#4285F4" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    )}
                   </div>
-
-                  {/* Device Breakdown */}
-                  <div className="bg-muted/10 backdrop-blur-md rounded-lg p-6 border border-border/30">
-                    <h3 className="text-lg font-semibold mb-4">Device Breakdown</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie
-                          data={deviceData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {deviceData.map((entry) => (
-                            <Cell key={`cell-${entry.name}-${entry.value}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Top Locations */}
-                  <div className="bg-muted/10 backdrop-blur-md rounded-lg p-6 border border-border/30 lg:col-span-2">
-                    <h3 className="text-lg font-semibold mb-4">Top Locations</h3>
-                    <div className="space-y-3">
-                      {locationData.map((location, index) => (
-                        <div key={location.city} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-black/10 dark:bg-white/10 text-sm font-semibold">
-                              {index + 1}
-                            </div>
-                            <span className="font-medium">{location.city}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold">{location.clicks.toLocaleString()}</div>
-                            <div className="text-xs text-muted-foreground">clicks</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
-            )}
+
+              {analytics && (
+                <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setIsAnalyticsOpen(!isAnalyticsOpen)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-muted/10 transition-colors"
+                  >
+                    <h2 className="text-2xl">Analytics</h2>
+                    {isAnalyticsOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                  </button>
+                  {isAnalyticsOpen && (
+                    <div className="px-6 pb-6">
+                      <AnalyticsCharts
+                        clicksOverTime={analytics.clicksOverTime}
+                        deviceBreakdown={analytics.deviceBreakdown}
+                        topLocations={analytics.topLocations}
+                        showQuickStats={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      </div>
-    </AppLayout>
+      </AppLayout>
+    </FeatureGate>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -7,23 +7,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Briefcase, Plus, Users, Link as LinkIcon, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/auth-context';
-
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  role: 'owner' | 'admin' | 'member';
-}
-
-interface Workspace {
-  id: string;
-  name: string;
-  description: string;
-  members: TeamMember[];
-  linksCount: number;
-  campaignsCount: number;
-  createdAt: string;
-}
+import { createWorkspace, listWorkspaces, type WorkspaceJson } from '@/services/workspaces-api';
+import { ApiError } from '@/services/api';
+import { toast } from 'sonner';
 
 export function WorkspacesPage() {
   const navigate = useNavigate();
@@ -32,325 +18,165 @@ export function WorkspacesPage() {
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
-  
-  // Check if user can create workspaces (only owner and admin)
-  const canCreateWorkspace = user?.role === 'owner' || user?.role === 'admin';
+  const [workspaces, setWorkspaces] = useState<WorkspaceJson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
 
-  // Mock data - replace with API call to Rails backend
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([
-    {
-      id: '1',
-      name: 'Marketing Team',
-      description: 'All marketing campaigns and promotional links',
-      members: [
-        {
-          id: '1',
-          name: 'Developer',
-          email: 'dev@example.com',
-          role: 'owner',
-        },
-        {
-          id: '2',
-          name: 'John Smith',
-          email: 'john@example.com',
-          role: 'admin',
-        },
-        {
-          id: '3',
-          name: 'Jane Doe',
-          email: 'jane@example.com',
-          role: 'member',
-        },
-      ],
-      linksCount: 24,
-      campaignsCount: 5,
-      createdAt: '2026-01-15',
-    },
-    {
-      id: '2',
-      name: 'Sales Team',
-      description: 'Customer outreach and sales materials',
-      members: [
-        {
-          id: '1',
-          name: 'Developer',
-          email: 'dev@example.com',
-          role: 'owner',
-        },
-        {
-          id: '2',
-          name: 'John Smith',
-          email: 'john@example.com',
-          role: 'member',
-        },
-      ],
-      linksCount: 18,
-      campaignsCount: 3,
-      createdAt: '2026-02-01',
-    },
-    {
-      id: '3',
-      name: 'Product Team',
-      description: 'Product launches and feature announcements',
-      members: [
-        {
-          id: '1',
-          name: 'Developer',
-          email: 'dev@example.com',
-          role: 'owner',
-        },
-      ],
-      linksCount: 12,
-      campaignsCount: 2,
-      createdAt: '2026-02-20',
-    },
-  ]);
+  const canCreateWorkspace = can.createWorkspaces;
 
-  // All available team members for adding to workspaces
-  const [allTeamMembers] = useState<TeamMember[]>([
-    {
-      id: '1',
-      name: 'Developer',
-      email: 'dev@example.com',
-      role: 'owner',
-    },
-    {
-      id: '2',
-      name: 'John Smith',
-      email: 'john@example.com',
-      role: 'admin',
-    },
-    {
-      id: '3',
-      name: 'Jane Doe',
-      email: 'jane@example.com',
-      role: 'member',
-    },
-    {
-      id: '4',
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      role: 'member',
-    },
-  ]);
-
-  const handleCreateWorkspace = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // TODO: Replace with actual API call to Rails backend
-    const newWorkspace: Workspace = {
-      id: String(Date.now()),
-      name: newWorkspaceName,
-      description: newWorkspaceDescription,
-      members: [
-        {
-          id: '1',
-          name: 'Developer',
-          email: 'dev@example.com',
-          role: 'owner',
-        },
-      ],
-      linksCount: 0,
-      campaignsCount: 0,
-      createdAt: new Date().toISOString().split('T')[0],
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await listWorkspaces();
+        if (!cancelled) setWorkspaces(data);
+      } catch {
+        if (!cancelled) setWorkspaces([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-    
-    setWorkspaces([...workspaces, newWorkspace]);
-    setNewWorkspaceName('');
-    setNewWorkspaceDescription('');
-    setIsCreatingWorkspace(false);
-    alert('Workspace created successfully!');
+  }, []);
+
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const created = await createWorkspace({
+        name: newWorkspaceName.trim(),
+        description: newWorkspaceDescription.trim(),
+      });
+      setWorkspaces((prev) => [...prev, created]);
+      setNewWorkspaceName('');
+      setNewWorkspaceDescription('');
+      setIsCreatingWorkspace(false);
+      toast.success('Workspace created');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not create workspace');
+    } finally {
+      setCreating(false);
+    }
   };
 
-  // Filter workspaces to only show those the current user is a member of
-  const userWorkspaces = workspaces.filter(workspace => 
-    workspace.members.some(member => member.email === user?.email)
+  const userWorkspaces = workspaces.filter((workspace) =>
+    workspace.members?.some((member) => member.email === user?.email)
   );
 
-  // Calculate stats based on user's workspaces only
-  const totalWorkspaces = userWorkspaces.length;
   const totalLinks = userWorkspaces.reduce((sum, ws) => sum + ws.linksCount, 0);
   const totalCampaigns = userWorkspaces.reduce((sum, ws) => sum + ws.campaignsCount, 0);
 
   return (
     <FeatureGate allowed={can.readWorkspaces} featureName="Workspaces">
-    <AppLayout>
-      <div className="min-h-screen bg-background relative">
-        {/* Subtle background pattern for glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-        
-        <div className="max-w-6xl mx-auto px-4 py-6 relative">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="mb-2 text-center text-[36px]">Workspaces</h1>
-            <p className="text-sm text-muted-foreground text-center">
-              Organize your links and campaigns into workspaces and control team access
-            </p>
-          </div>
+      <AppLayout>
+        <div className="min-h-screen bg-background relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
-          {/* Create Workspace Button */}
-          {canCreateWorkspace ? (
-            <div className="mb-6 flex justify-center">
-              <Button 
-                onClick={() => setIsCreatingWorkspace(true)}
-                className="h-10 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Workspace
-              </Button>
+          <div className="max-w-6xl mx-auto px-4 py-6 relative">
+            <div className="mb-6">
+              <h1 className="mb-2 text-center text-[36px]">Workspaces</h1>
+              <p className="text-sm text-muted-foreground text-center">
+                Organize your links and campaigns into workspaces and control team access
+              </p>
             </div>
-          ) : (
-            <div className="mb-6 flex justify-center">
-              <div className="bg-muted/50 backdrop-blur-md rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground">
-                <Lock className="w-4 h-4" />
-                <span>Only admins and owners can create workspaces</span>
+
+            {canCreateWorkspace ? (
+              <div className="mb-6 flex justify-center">
+                <Button
+                  onClick={() => setIsCreatingWorkspace(true)}
+                  className="h-10 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Workspace
+                </Button>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="mb-6 flex justify-center items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                Only owners and admins can create workspaces
+              </div>
+            )}
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-4">
-              <p className="text-xs text-muted-foreground mb-1 text-center">Total Workspaces</p>
-              <p className="text-3xl text-center">{totalWorkspaces}</p>
-            </div>
-            <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-4">
-              <p className="text-xs text-muted-foreground mb-1 text-center">Total Links</p>
-              <p className="text-3xl text-center">
-                {totalLinks}
-              </p>
-            </div>
-            <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-4">
-              <p className="text-xs text-muted-foreground mb-1 text-center">Total Campaigns</p>
-              <p className="text-3xl text-center">
-                {totalCampaigns}
-              </p>
-            </div>
-          </div>
-
-          {/* Create Workspace Form */}
-          {isCreatingWorkspace && (
-            <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-5 mb-6">
-              <h2 className="mb-4 text-center font-light text-[20px]">Create New Workspace</h2>
-              <form onSubmit={handleCreateWorkspace} className="space-y-4">
-                <div>
-                  <label htmlFor="workspace-name" className="block font-medium mb-1.5 text-[15px]">
-                    Workspace Name
-                  </label>
+            {isCreatingWorkspace && (
+              <div className="bg-card/50 backdrop-blur-md shadow-lg p-6 mb-6 max-w-lg mx-auto">
+                <h2 className="text-lg mb-4 text-center">New Workspace</h2>
+                <form onSubmit={handleCreateWorkspace} className="space-y-4">
                   <Input
-                    id="workspace-name"
-                    type="text"
-                    placeholder="e.g., Marketing Team"
+                    placeholder="Workspace name"
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
                     required
-                    className="h-10 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
                   />
-                </div>
-                <div>
-                  <label htmlFor="workspace-description" className="block font-medium mb-1.5 text-[15px]">
-                    Description
-                  </label>
                   <Input
-                    id="workspace-description"
-                    type="text"
-                    placeholder="Brief description of this workspace"
+                    placeholder="Description (optional)"
                     value={newWorkspaceDescription}
                     onChange={(e) => setNewWorkspaceDescription(e.target.value)}
-                    required
-                    className="h-10 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
                   />
-                </div>
-                <div className="flex gap-3">
-                  <Button 
-                    type="submit" 
-                    className="flex-1 h-10 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
-                  >
-                    Create Workspace
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreatingWorkspace(false);
-                      setNewWorkspaceName('');
-                      setNewWorkspaceDescription('');
-                    }}
-                    className="flex-1 h-10 rounded-full"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Workspaces Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {userWorkspaces.map((workspace) => (
-              <div
-                key={workspace.id}
-                onClick={() => navigate(`/workspaces/${workspace.id}`)}
-                className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-5 cursor-pointer hover:bg-card/70 transition-all"
-              >
-                {/* Workspace Icon */}
-                <div className="flex justify-center mb-3">
-                  
-                </div>
-
-                {/* Workspace Name */}
-                <h3 className="font-semibold text-[18px] mb-2 text-center">
-                  {workspace.name}
-                </h3>
-
-                {/* Description */}
-                <p className="text-xs text-muted-foreground mb-4 text-center line-clamp-2 min-h-[32px]">
-                  {workspace.description}
-                </p>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="bg-muted/30 rounded p-2 text-center">
-                    <Users className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
-                    <p className="text-xs font-medium">{workspace.members.length}</p>
+                  <div className="flex gap-3 justify-center">
+                    <Button type="submit" disabled={creating}>
+                      {creating ? 'Creating...' : 'Create'}
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => setIsCreatingWorkspace(false)}>
+                      Cancel
+                    </Button>
                   </div>
-                  <div className="bg-muted/30 rounded p-2 text-center">
-                    <LinkIcon className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
-                    <p className="text-xs font-medium">{workspace.linksCount}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded p-2 text-center">
-                    <Briefcase className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
-                    <p className="text-xs font-medium">{workspace.campaignsCount}</p>
-                  </div>
-                </div>
-
-                {/* Member Avatars */}
-                <div className="flex justify-center items-center gap-1">
-                  {workspace.members.slice(0, 3).map((member, index) => (
-                    <div
-                      key={member.id}
-                      className="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center text-[10px] font-medium border-2 border-background"
-                      style={{ marginLeft: index > 0 ? '-8px' : '0' }}
-                      title={member.name}
-                    >
-                      {member.name.charAt(0).toUpperCase()}
-                    </div>
-                  ))}
-                  {workspace.members.length > 3 && (
-                    <div
-                      className="w-6 h-6 bg-muted/50 rounded-full flex items-center justify-center text-[10px] font-medium border-2 border-background"
-                      style={{ marginLeft: '-8px' }}
-                    >
-                      +{workspace.members.length - 3}
-                    </div>
-                  )}
-                </div>
+                </form>
               </div>
-            ))}
+            )}
+
+            {loading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading workspaces...</div>
+            ) : userWorkspaces.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">No workspaces yet</div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {userWorkspaces.map((workspace) => (
+                  <div
+                    key={workspace.id}
+                    onClick={() => navigate(`/workspaces/${workspace.id}`)}
+                    className="bg-card/50 backdrop-blur-md shadow-lg p-5 cursor-pointer hover:bg-card/70 transition-all"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <Briefcase className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold truncate">{workspace.name}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      {workspace.description || 'No description'}
+                    </p>
+                    <div className="flex gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {workspace.members?.length ?? 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <LinkIcon className="w-3 h-3" />
+                        {workspace.linksCount}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-card/50 backdrop-blur-md p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Workspaces</p>
+                <p className="text-3xl">{userWorkspaces.length}</p>
+              </div>
+              <div className="bg-card/50 backdrop-blur-md p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Total Links</p>
+                <p className="text-3xl">{totalLinks}</p>
+              </div>
+              <div className="bg-card/50 backdrop-blur-md p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Campaigns</p>
+                <p className="text-3xl">{totalCampaigns}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </AppLayout>
+      </AppLayout>
     </FeatureGate>
   );
 }

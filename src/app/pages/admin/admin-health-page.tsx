@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Activity, CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
-import { checkHealth } from '@/services/admin-api';
+import { checkHealth, fetchAdminHealth } from '@/services/admin-api';
+import type { AdminHealthStatus } from '@/types';
 import { Button } from '../../components/ui/button';
 import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
@@ -15,34 +16,56 @@ import {
   BreadcrumbSeparator,
 } from '../../components/ui/breadcrumb';
 
-interface HealthResult {
+interface PublicHealthResult {
   ok: boolean;
   status: number;
   latencyMs: number;
-  body: string;
-  url: string;
   checkedAt: Date;
 }
 
+function StatusCard({
+  title,
+  ok,
+  detail,
+}: {
+  title: string;
+  ok: boolean;
+  detail: string;
+}) {
+  return (
+    <div className={`bg-card/50 backdrop-blur-md rounded-lg border p-5 ${ok ? 'border-emerald-500/30' : 'border-destructive/30'}`}>
+      <div className="flex items-center gap-3 mb-2">
+        {ok ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-destructive" />}
+        <h3 className="font-semibold">{title}</h3>
+      </div>
+      <p className="text-sm text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
+
 export function AdminHealthPage() {
-  const [result, setResult] = useState<HealthResult | null>(null);
+  const [health, setHealth] = useState<AdminHealthStatus | null>(null);
+  const [publicHealth, setPublicHealth] = useState<PublicHealthResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   const runCheck = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await checkHealth();
-      setResult({ ...data, checkedAt: new Date() });
-    } catch {
-      setResult({
-        ok: false,
-        status: 0,
-        latencyMs: 0,
-        body: 'Request failed',
-        url: '/up',
+      const [adminData, upData] = await Promise.all([
+        fetchAdminHealth(),
+        checkHealth(),
+      ]);
+      setHealth(adminData.health);
+      setPublicHealth({
+        ok: upData.ok,
+        status: upData.status,
+        latencyMs: upData.latencyMs,
         checkedAt: new Date(),
       });
+    } catch {
+      setHealth(null);
+      setPublicHealth({ ok: false, status: 0, latencyMs: 0, checkedAt: new Date() });
     } finally {
       setLoading(false);
     }
@@ -58,6 +81,8 @@ export function AdminHealthPage() {
     return () => clearInterval(id);
   }, [autoRefresh, runCheck]);
 
+  const allOk = health?.database.ok && (health.redis.skipped || health.redis.ok) && publicHealth?.ok;
+
   return (
     <div className="space-y-6">
       <Breadcrumb>
@@ -71,7 +96,7 @@ export function AdminHealthPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">System health</h1>
-          <p className="text-muted-foreground text-sm">API uptime via GET /up</p>
+          <p className="text-muted-foreground text-sm">Authenticated service checks + public /up</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -85,35 +110,64 @@ export function AdminHealthPage() {
         </div>
       </div>
 
-      {loading && !result ? (
+      {loading && !health ? (
         <AdminCardSkeleton />
-      ) : result && (
-        <div className={`bg-card/50 backdrop-blur-md rounded-lg border p-8 ${result.ok ? 'border-emerald-500/30' : 'border-destructive/30'}`}>
-          <div className="flex items-center gap-4 mb-6">
-            {result.ok ? (
-              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-            ) : (
-              <XCircle className="w-12 h-12 text-destructive" />
-            )}
-            <div>
-              <h2 className="text-2xl font-semibold">{result.ok ? 'Operational' : 'Degraded'}</h2>
-              <p className="text-muted-foreground">HTTP {result.status} · {result.latencyMs}ms</p>
+      ) : health && (
+        <>
+          <div className={`bg-card/50 backdrop-blur-md rounded-lg border p-6 ${allOk ? 'border-emerald-500/30' : 'border-destructive/30'}`}>
+            <div className="flex items-center gap-3">
+              {allOk ? <CheckCircle2 className="w-8 h-8 text-emerald-500" /> : <XCircle className="w-8 h-8 text-destructive" />}
+              <div>
+                <h2 className="text-xl font-semibold">{allOk ? 'All systems operational' : 'Degraded'}</h2>
+                <p className="text-sm text-muted-foreground">
+                  Version {health.version ?? 'unknown'}
+                  {health.migrationVersion != null && ` · migration ${health.migrationVersion}`}
+                </p>
+              </div>
             </div>
           </div>
-          <dl className="text-sm space-y-2">
-            <div><dt className="text-muted-foreground inline">URL: </dt><dd className="inline font-mono">{result.url}</dd></div>
-            <div><dt className="text-muted-foreground inline">Checked: </dt><dd className="inline">{result.checkedAt.toLocaleString()}</dd></div>
-            <div><dt className="text-muted-foreground">Response</dt><dd className="font-mono text-xs bg-muted p-2 rounded mt-1">{result.body.slice(0, 200)}</dd></div>
-          </dl>
-        </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatusCard
+              title="Database"
+              ok={health.database.ok}
+              detail={health.database.ok ? `${health.database.latencyMs}ms` : 'Connection failed'}
+            />
+            <StatusCard
+              title="Redis"
+              ok={health.redis.skipped ? true : health.redis.ok}
+              detail={
+                health.redis.skipped
+                  ? 'Skipped (REDIS_URL unset)'
+                  : health.redis.ok
+                    ? `${health.redis.latencyMs ?? 0}ms`
+                    : 'Unreachable'
+              }
+            />
+            <StatusCard
+              title="Stripe"
+              ok={health.stripe.configured}
+              detail={health.stripe.configured ? 'API key configured' : 'STRIPE_SECRET_KEY missing'}
+            />
+            <StatusCard
+              title="Public /up"
+              ok={publicHealth?.ok ?? false}
+              detail={
+                publicHealth
+                  ? `HTTP ${publicHealth.status} · ${publicHealth.latencyMs}ms`
+                  : 'Not checked'
+              }
+            />
+          </div>
+        </>
       )}
 
       <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-6">
         <h2 className="font-semibold flex items-center gap-2 mb-2"><Activity className="w-4 h-4" />Operational notes</h2>
         <ul className="text-sm text-muted-foreground space-y-2">
           <li>Check Railway deployment logs for recent errors.</li>
-          <li>Review deploy history in your hosting dashboard.</li>
           <li>Database migrations run via docker-entrypoint on deploy.</li>
+          <li>Stripe admin billing actions require STRIPE_SECRET_KEY in production.</li>
         </ul>
       </div>
     </div>

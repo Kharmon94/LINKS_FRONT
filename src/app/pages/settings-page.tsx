@@ -7,8 +7,39 @@ import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
-import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle } from 'lucide-react';
-import { apiRequest } from '@/services/api';
+import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle, HelpCircle } from 'lucide-react';
+import { apiRequest, ApiError } from '@/services/api';
+import { toast } from 'sonner';
+import {
+  updateAccount,
+  updatePassword,
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+  type NotificationPreferences,
+} from '@/services/account-api';
+import {
+  createDomain,
+  deleteDomain,
+  listDomains,
+  setDefaultDomain,
+  type CustomDomainJson,
+} from '@/services/domains-api';
+import { createPortalSession } from '@/services/billing-api';
+import type { SubscriptionTier } from '@/types';
+
+const TIER_LABELS: Record<SubscriptionTier, string> = {
+  free: 'Free',
+  starter: 'Starter',
+  growth: 'Growth',
+  enterprise: 'Enterprise',
+};
+
+const TIER_FEATURES: Record<SubscriptionTier, string[]> = {
+  free: ['1 link', 'Basic analytics'],
+  starter: ['Up to 20 links', '2 campaigns', 'Tap analytics dashboard'],
+  growth: ['Unlimited links & campaigns', 'Custom domain', 'Workspaces & team'],
+  enterprise: ['Everything in Growth', 'Dedicated support'],
+};
 
 async function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -20,110 +51,192 @@ async function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function SettingsPage() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, checkAuth } = useAuth();
   const { can } = usePermissions();
   const navigate = useNavigate();
   
   const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [email] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+  const [notifSaving, setNotifSaving] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) setName(user.name);
+  }, [user?.name]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchNotificationPreferences();
+        if (!cancelled) setNotifPrefs(data.notificationPreferences);
+      } catch {
+        if (!cancelled) setNotifPrefs(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
 
   // Custom domains state
   const [newDomain, setNewDomain] = useState('');
-  const [domains, setDomains] = useState([
-    {
-      id: '1',
-      domain: 'links.blackcollar.io',
-      status: 'verified',
-      isDefault: true,
-      createdAt: '2026-01-15',
-    },
-    {
-      id: '2',
-      domain: 'mybrand.com',
-      status: 'verified',
-      isDefault: false,
-      createdAt: '2026-02-10',
-    },
-    {
-      id: '3',
-      domain: 'link.example.com',
-      status: 'pending',
-      isDefault: false,
-      createdAt: '2026-03-05',
-    },
-  ]);
+  const [domains, setDomains] = useState<CustomDomainJson[]>([]);
+  const [domainsLoading, setDomainsLoading] = useState(false);
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!isAuthenticated || !can.manageDomains) return;
+    let cancelled = false;
+    (async () => {
+      setDomainsLoading(true);
+      try {
+        const data = await listDomains();
+        if (!cancelled) setDomains(data);
+      } catch {
+        if (!cancelled) setDomains([]);
+      } finally {
+        if (!cancelled) setDomainsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, can.manageDomains]);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Replace with actual API call to Rails backend
-    console.log('Update profile:', { name, email });
-    alert('Profile updated successfully!');
+    setProfileSaving(true);
+    try {
+      await updateAccount({ name });
+      await checkAuth();
+      toast.success('Profile updated');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not update profile');
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
-    // TODO: Replace with actual API call to Rails backend
-    console.log('Change password:', { currentPassword, newPassword });
-    alert('Password changed successfully!');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setPasswordSaving(true);
+    try {
+      await updatePassword({
+        current_password: currentPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword,
+      });
+      toast.success('Password changed successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not change password');
+    } finally {
+      setPasswordSaving(false);
+    }
   };
+
+  const handleUpgrade = () => {
+    navigate('/pricing');
+  };
+
+  const handleManageBilling = async () => {
+    setBillingLoading(true);
+    try {
+      const { url } = await createPortalSession();
+      window.location.href = url;
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not open billing portal');
+      setBillingLoading(false);
+    }
+  };
+
+  const handleNotifToggle = async (key: keyof NotificationPreferences, value: boolean) => {
+    if (!notifPrefs) return;
+    const updated = { ...notifPrefs, [key]: value };
+    setNotifPrefs(updated);
+    setNotifSaving(true);
+    try {
+      const data = await updateNotificationPreferences({ [key]: value });
+      setNotifPrefs(data.notificationPreferences);
+      toast.success('Preferences saved');
+    } catch {
+      setNotifPrefs(notifPrefs);
+      toast.error('Could not save preferences');
+    } finally {
+      setNotifSaving(false);
+    }
+  };
+
+  const handleRestartTutorial = () => {
+    localStorage.removeItem('blackcollar_tutorial_completed');
+    toast.success('Tutorial reset — visit the dashboard to start again');
+  };
+
+  const tier = (user?.subscriptionTier || 'free') as SubscriptionTier;
+  const limits = user?.limits;
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const handleAddDomain = (e: React.FormEvent) => {
+  const handleAddDomain = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDomain.trim()) {
-      alert('Please enter a domain name');
+      toast.error('Please enter a domain name');
       return;
     }
-    // TODO: Replace with actual API call to Rails backend
-    const newDomainObj = {
-      id: String(Date.now()),
-      domain: newDomain.trim(),
-      status: 'pending',
-      isDefault: false,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setDomains([...domains, newDomainObj]);
-    setNewDomain('');
-    alert(`Domain ${newDomain} added! Please configure your DNS settings.`);
+    try {
+      const created = await createDomain(newDomain.trim());
+      setDomains((prev) => [...prev, created]);
+      setNewDomain('');
+      toast.success(`Domain ${created.domain} added — configure DNS to verify`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not add domain');
+    }
   };
 
-  const handleSetDefaultDomain = (domainId: string) => {
-    // TODO: Replace with actual API call to Rails backend
-    setDomains(domains.map(d => ({
-      ...d,
-      isDefault: d.id === domainId
-    })));
-    alert('Default domain updated!');
+  const handleSetDefaultDomain = async (domainId: string) => {
+    try {
+      const updated = await setDefaultDomain(domainId);
+      setDomains((prev) =>
+        prev.map((d) => ({ ...d, isDefault: d.id === updated.id }))
+      );
+      toast.success('Default domain updated');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not update default domain');
+    }
   };
 
-  const handleRemoveDomain = (domainId: string) => {
-    const domainToRemove = domains.find(d => d.id === domainId);
+  const handleRemoveDomain = async (domainId: string) => {
+    const domainToRemove = domains.find((d) => d.id === domainId);
     if (domainToRemove?.isDefault) {
-      alert('Cannot remove the default domain. Please set another domain as default first.');
+      toast.error('Cannot remove the default domain. Set another domain as default first.');
       return;
     }
-    // TODO: Replace with actual API call to Rails backend
-    setDomains(domains.filter(d => d.id !== domainId));
-    alert('Domain removed successfully!');
+    try {
+      await deleteDomain(domainId);
+      setDomains((prev) => prev.filter((d) => d.id !== domainId));
+      toast.success('Domain removed');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not remove domain');
+    }
   };
 
   const copyDNSRecord = (record: string) => {
     navigator.clipboard.writeText(record);
-    alert('DNS record copied to clipboard!');
+    toast.success('DNS record copied');
   };
 
   // Push notifications (PWA)
@@ -147,7 +260,7 @@ export function SettingsPage() {
 
       const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
       if (!publicKey) {
-        alert('Missing VAPID public key');
+        toast.error('Missing VAPID public key');
         return;
       }
 
@@ -160,9 +273,9 @@ export function SettingsPage() {
         method: 'POST',
         body: JSON.stringify({ subscription: sub.toJSON() }),
       });
-      alert('Push notifications enabled');
+      toast.success('Push notifications enabled');
     } catch {
-      alert('Could not enable push notifications');
+      toast.error('Could not enable push notifications');
     } finally {
       setPushBusy(false);
     }
@@ -181,9 +294,9 @@ export function SettingsPage() {
         });
         await sub.unsubscribe();
       }
-      alert('Push notifications disabled');
+      toast.success('Push notifications disabled');
     } catch {
-      alert('Could not disable push notifications');
+      toast.error('Could not disable push notifications');
     } finally {
       setPushBusy(false);
     }
@@ -199,7 +312,7 @@ export function SettingsPage() {
           <h1 className="mb-8 text-[32px] text-center">Account Settings</h1>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 mb-8 h-auto gap-2 bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-2">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-8 h-auto gap-2 bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-2">
               <TabsTrigger value="profile" className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 px-1 md:px-2 md:py-3 rounded-full data-[state=active]:bg-black dark:data-[state=active]:bg-white data-[state=active]:text-white dark:data-[state=active]:text-black">
                 <User className="w-4 h-4" />
                 <span className="text-[10px] md:text-sm">Profile</span>
@@ -224,6 +337,10 @@ export function SettingsPage() {
                 <span className="text-[10px] md:text-sm">Billing</span>
               </TabsTrigger>
               )}
+              <TabsTrigger value="help" className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 px-1 md:px-2 md:py-3 rounded-full data-[state=active]:bg-black dark:data-[state=active]:bg-white data-[state=active]:text-white dark:data-[state=active]:text-black">
+                <HelpCircle className="w-4 h-4" />
+                <span className="text-[10px] md:text-sm">Help</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Profile Tab */}
@@ -247,13 +364,14 @@ export function SettingsPage() {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
+                      disabled
+                      className="h-11 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none opacity-70"
                     />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <Button type="submit" size="lg" className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90">
-                      Save Changes
+                    <Button type="submit" size="lg" disabled={profileSaving} className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90">
+                      {profileSaving ? 'Saving...' : 'Save Changes'}
                     </Button>
                     <Button 
                       type="button" 
@@ -466,18 +584,18 @@ export function SettingsPage() {
                       className="h-11 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
                     />
                   </div>
-                  <Button type="submit" size="lg" className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90">
-                    Update Password
+                  <Button type="submit" size="lg" disabled={passwordSaving} className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90">
+                    {passwordSaving ? 'Updating...' : 'Update Password'}
                   </Button>
                 </form>
 
                 <div className="mt-8 pt-8 border-t border-border">
                   <h3 className="text-lg font-semibold mb-4">Two-Factor Authentication</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Add an extra layer of security to your account by enabling two-factor authentication.
+                    Add an extra layer of security to your account. Coming soon.
                   </p>
-                  <Button variant="outline" size="lg">
-                    Enable 2FA
+                  <Button variant="outline" size="lg" disabled>
+                    Enable 2FA (Coming soon)
                   </Button>
                 </div>
               </div>
@@ -487,6 +605,9 @@ export function SettingsPage() {
             <TabsContent value="notifications">
               <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Notification Preferences</h2>
+                {!notifPrefs ? (
+                  <p className="text-muted-foreground text-sm">Loading preferences...</p>
+                ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-3 border-b border-border">
                     <div>
@@ -520,30 +641,69 @@ export function SettingsPage() {
                       <h3 className="font-medium">Email Notifications</h3>
                       <p className="text-sm text-muted-foreground">Receive email updates about your links</p>
                     </div>
-                    <input type="checkbox" className="w-5 h-5" defaultChecked />
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5"
+                      checked={notifPrefs.email_notifications}
+                      disabled={notifSaving}
+                      onChange={(e) => void handleNotifToggle('email_notifications', e.target.checked)}
+                    />
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-border">
                     <div>
                       <h3 className="font-medium">Weekly Reports</h3>
-                      <p className="text-sm text-muted-foreground">Get weekly analytics summaries</p>
+                      <p className="text-sm text-muted-foreground">Get weekly analytics summaries (sent via scheduled job)</p>
                     </div>
-                    <input type="checkbox" className="w-5 h-5" defaultChecked />
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5"
+                      checked={notifPrefs.weekly_reports}
+                      disabled={notifSaving}
+                      onChange={(e) => void handleNotifToggle('weekly_reports', e.target.checked)}
+                    />
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-border">
                     <div>
                       <h3 className="font-medium">Marketing Emails</h3>
                       <p className="text-sm text-muted-foreground">Receive product updates and tips</p>
                     </div>
-                    <input type="checkbox" className="w-5 h-5" />
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5"
+                      checked={notifPrefs.marketing_emails}
+                      disabled={notifSaving}
+                      onChange={(e) => void handleNotifToggle('marketing_emails', e.target.checked)}
+                    />
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <div>
                       <h3 className="font-medium">Link Alerts</h3>
-                      <p className="text-sm text-muted-foreground">Get notified when links reach click milestones</p>
+                      <p className="text-sm text-muted-foreground">Get notified when links reach click milestones (scheduled job)</p>
                     </div>
-                    <input type="checkbox" className="w-5 h-5" defaultChecked />
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5"
+                      checked={notifPrefs.link_alerts}
+                      disabled={notifSaving}
+                      onChange={(e) => void handleNotifToggle('link_alerts', e.target.checked)}
+                    />
                   </div>
                 </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Help Tab */}
+            <TabsContent value="help">
+              <div className="bg-card/50 backdrop-blur-md rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Help</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Restart the product tour to see a walkthrough of key features again.
+                </p>
+                <Button variant="outline" onClick={handleRestartTutorial}>
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  Restart product tour
+                </Button>
               </div>
             </TabsContent>
 
@@ -555,28 +715,37 @@ export function SettingsPage() {
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="font-medium text-lg">Free Plan</h3>
+                      <h3 className="font-medium text-lg">{TIER_LABELS[tier]} Plan</h3>
                       <p className="text-sm text-muted-foreground">Currently active</p>
                     </div>
-                    <span className="text-2xl font-bold">$0/mo</span>
                   </div>
                   <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-                    <p className="text-sm">✓ Up to 100 links</p>
-                    <p className="text-sm">✓ Basic analytics</p>
-                    <p className="text-sm">✓ Standard support</p>
+                    {TIER_FEATURES[tier].map((feature) => (
+                      <p key={feature} className="text-sm">✓ {feature}</p>
+                    ))}
+                    {limits && (
+                      <p className="text-sm pt-2 border-t border-border mt-2">
+                        Links: {limits.links.used}{limits.links.max != null ? ` / ${limits.links.max}` : ' (unlimited)'}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Button size="lg" className="w-full">
-                  Upgrade to Pro
-                </Button>
-
-                <div className="mt-8 pt-8 border-t border-border">
-                  <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
-                  <p className="text-sm text-muted-foreground mb-4">No payment method on file</p>
-                  <Button variant="outline" size="lg">
-                    Add Payment Method
+                {tier === 'free' || tier === 'starter' ? (
+                  <Button size="lg" className="w-full mb-3" onClick={handleUpgrade}>
+                    Upgrade plan
                   </Button>
-                </div>
+                ) : null}
+                {user?.subscriptionTier !== 'free' && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full"
+                    disabled={billingLoading}
+                    onClick={() => void handleManageBilling()}
+                  >
+                    {billingLoading ? 'Opening portal...' : 'Manage subscription'}
+                  </Button>
+                )}
               </div>
             </TabsContent>
             )}

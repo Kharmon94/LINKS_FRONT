@@ -10,12 +10,20 @@ import {
   ArrowLeft,
   X,
   Shield,
+  Megaphone,
+  FolderKanban,
+  Globe,
+  BellRing,
 } from 'lucide-react';
 
 const navItems = [
   { path: '/admin/overview', label: 'Overview', icon: LayoutDashboard },
   { path: '/admin/users', label: 'Users', icon: Users },
   { path: '/admin/links', label: 'Links', icon: LinkIcon },
+  { path: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
+  { path: '/admin/workspaces', label: 'Workspaces', icon: FolderKanban },
+  { path: '/admin/domains', label: 'Domains', icon: Globe },
+  { path: '/admin/push', label: 'Web push', icon: BellRing },
   { path: '/admin/health', label: 'Health', icon: Activity },
   { path: '/admin/feature-flags', label: 'Feature Flags', icon: Flag },
   { path: '/admin/teams', label: 'Teams', icon: UsersRound },

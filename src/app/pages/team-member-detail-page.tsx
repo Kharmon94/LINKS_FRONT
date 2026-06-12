@@ -1,184 +1,103 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { ArrowLeft, Save, Trash2, Users, Mail, Calendar, Shield, Link2, MousePointerClick, FolderKanban, Briefcase, ExternalLink, Globe } from 'lucide-react';
-
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  role: 'owner' | 'admin' | 'member';
-  joinedAt: string;
-}
-
-interface MemberStats {
-  linksCreated: number;
-  totalClicks: number;
-  campaigns: number;
-  workspaces: string[];
-}
-
-interface RecentClick {
-  id: string;
-  linkName: string;
-  shortUrl: string;
-  timestamp: string;
-  location: string;
-}
+import {
+  ArrowLeft,
+  Save,
+  Trash2,
+  Users,
+  Mail,
+  Calendar,
+  Shield,
+  Link2,
+  MousePointerClick,
+  FolderKanban,
+  Briefcase,
+  Globe,
+} from 'lucide-react';
+import {
+  getTeamMember,
+  getTeamMemberClicks,
+  updateTeamMember,
+  removeTeamMember,
+  type TeamMemberDetailJson,
+  type MemberClickJson,
+} from '@/services/team-api';
+import { ApiError } from '@/services/api';
+import { toast } from 'sonner';
 
 export function TeamMemberDetailPage() {
   const { memberId } = useParams();
   const navigate = useNavigate();
   const { can } = usePermissions();
-
-  const [formData, setFormData] = useState<TeamMember>({
-    id: '',
-    name: '',
-    email: '',
-    role: 'member',
-    joinedAt: '',
-  });
-
-  const [stats, setStats] = useState<MemberStats>({
-    linksCreated: 0,
-    totalClicks: 0,
-    campaigns: 0,
-    workspaces: [],
-  });
-
-  const [recentClicks, setRecentClicks] = useState<RecentClick[]>([]);
+  const [member, setMember] = useState<TeamMemberDetailJson | null>(null);
+  const [role, setRole] = useState<'owner' | 'admin' | 'member'>('member');
+  const [recentClicks, setRecentClicks] = useState<MemberClickJson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Mock data - replace with API call to Rails backend
-    const mockMembers: Record<string, TeamMember> = {
-      '1': {
-        id: '1',
-        name: 'Developer',
-        email: 'dev@example.com',
-        role: 'owner',
-        joinedAt: '2026-01-01',
-      },
-      '2': {
-        id: '2',
-        name: 'John Smith',
-        email: 'john@example.com',
-        role: 'admin',
-        joinedAt: '2026-02-01',
-      },
-      '3': {
-        id: '3',
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        role: 'member',
-        joinedAt: '2026-02-15',
-      },
+    if (!memberId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [detail, clicks] = await Promise.all([
+          getTeamMember(memberId),
+          getTeamMemberClicks(memberId),
+        ]);
+        if (!cancelled) {
+          setMember(detail);
+          setRole(detail.role);
+          setRecentClicks(clicks);
+        }
+      } catch {
+        if (!cancelled) setMember(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-
-    // Mock stats data
-    const mockStats: Record<string, MemberStats> = {
-      '1': {
-        linksCreated: 45,
-        totalClicks: 12543,
-        campaigns: 8,
-        workspaces: ['Marketing Team', 'Product Launch', 'Sales Division'],
-      },
-      '2': {
-        linksCreated: 28,
-        totalClicks: 7821,
-        campaigns: 5,
-        workspaces: ['Marketing Team', 'Customer Support'],
-      },
-      '3': {
-        linksCreated: 15,
-        totalClicks: 3245,
-        campaigns: 3,
-        workspaces: ['Product Launch'],
-      },
-    };
-
-    // Mock recent clicks data
-    const mockRecentClicks: Record<string, RecentClick[]> = {
-      '1': [
-        {
-          id: '1',
-          linkName: 'Spring Sale Campaign',
-          shortUrl: 'blk.io/spring-sale',
-          timestamp: '2026-03-10T10:30:00',
-          location: 'New York, US',
-        },
-        {
-          id: '2',
-          linkName: 'Product Demo Video',
-          shortUrl: 'blk.io/demo-vid',
-          timestamp: '2026-03-10T09:15:00',
-          location: 'London, UK',
-        },
-        {
-          id: '3',
-          linkName: 'Newsletter Signup',
-          shortUrl: 'blk.io/newsletter',
-          timestamp: '2026-03-09T16:45:00',
-          location: 'Toronto, CA',
-        },
-      ],
-      '2': [
-        {
-          id: '4',
-          linkName: 'Customer Survey',
-          shortUrl: 'blk.io/survey-2026',
-          timestamp: '2026-03-10T11:20:00',
-          location: 'Chicago, US',
-        },
-        {
-          id: '5',
-          linkName: 'Feature Update Blog',
-          shortUrl: 'blk.io/feature-update',
-          timestamp: '2026-03-10T08:00:00',
-          location: 'Berlin, DE',
-        },
-      ],
-      '3': [
-        {
-          id: '6',
-          linkName: 'Product Launch Page',
-          shortUrl: 'blk.io/launch',
-          timestamp: '2026-03-09T14:30:00',
-          location: 'Sydney, AU',
-        },
-      ],
-    };
-
-    if (memberId && mockMembers[memberId]) {
-      setFormData(mockMembers[memberId]);
-      setStats(mockStats[memberId] || { linksCreated: 0, totalClicks: 0, campaigns: 0, workspaces: [] });
-      setRecentClicks(mockRecentClicks[memberId] || []);
-    }
   }, [memberId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Replace with actual API call to Rails backend
-    console.log('Updating team member:', formData);
-    alert('Team member updated successfully!');
-    navigate('/team');
-  };
-
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to remove this team member? This action cannot be undone.')) {
-      // TODO: Replace with actual API call to Rails backend
-      alert('Team member removed successfully!');
+    if (!memberId || !can.manageTeam) return;
+    setSaving(true);
+    try {
+      const updated = await updateTeamMember(memberId, { role });
+      setMember(updated);
+      toast.success('Team member updated');
       navigate('/team');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not update member');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
+  const handleDelete = async () => {
+    if (!memberId || !can.manageTeam) return;
+    if (!confirm('Are you sure you want to remove this team member? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await removeTeamMember(memberId);
+      toast.success('Team member removed');
+      navigate('/team');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not remove member');
+    }
+  };
+
+  const getRoleBadgeColor = (memberRole: string) => {
+    switch (memberRole) {
       case 'owner':
         return 'bg-primary/10 text-primary';
       case 'admin':
@@ -188,258 +107,152 @@ export function TeamMemberDetailPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
     });
-  };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+  const formatTimestamp = (timestamp: string) =>
+    new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
-    if (diffMins < 60) {
-      return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-    } else if (diffDays < 7) {
-      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }
-  };
+  if (loading) {
+    return (
+      <FeatureGate allowed={can.readTeam} featureName="Team">
+        <AppLayout>
+          <div className="text-center py-12 text-muted-foreground">Loading member...</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
 
-  const isOwner = formData.role === 'owner';
+  if (!member) {
+    return (
+      <FeatureGate allowed={can.readTeam} featureName="Team">
+        <AppLayout>
+          <div className="text-center py-12 text-muted-foreground">Member not found</div>
+        </AppLayout>
+      </FeatureGate>
+    );
+  }
 
   return (
     <FeatureGate allowed={can.readTeam} featureName="Team">
-    <AppLayout>
-      <div className="min-h-screen bg-background relative">
-        {/* Subtle background pattern for glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-        
-        <div className="max-w-2xl mx-auto px-4 py-8 relative">
-          {/* Header */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/team')}
-            className="mb-6"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Team
-          </Button>
+      <AppLayout>
+        <div className="min-h-screen bg-background relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+          <div className="max-w-4xl mx-auto px-4 py-6 relative">
+            <Button variant="ghost" onClick={() => navigate('/team')} className="mb-4 rounded-full">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Team
+            </Button>
 
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-10 h-10 text-primary" />
-            </div>
-            <h1 className="text-[32px] mb-2">{formData.name}</h1>
-            <div className="flex items-center justify-center gap-2">
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-medium ${getRoleBadgeColor(
-                  formData.role
-                )}`}
-              >
-                {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
-              </span>
-            </div>
-          </div>
+            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 mb-6">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <h1 className="text-2xl font-semibold mb-1">{member.name}</h1>
+                  <p className="text-muted-foreground flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    {member.email}
+                  </p>
+                </div>
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${getRoleBadgeColor(member.role)}`}>
+                  {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                </span>
+              </div>
 
-          {/* Member Info Cards */}
-          <div className="grid sm:grid-cols-2 gap-4 mb-8">
-            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Mail className="w-5 h-5 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Email</p>
-              </div>
-              <p className="text-sm font-medium break-all">{formData.email}</p>
-            </div>
-            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-2">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Joined</p>
-              </div>
-              <p className="text-sm font-medium">{formatDate(formData.joinedAt)}</p>
-            </div>
-          </div>
-
-          {/* Activity Stats */}
-          <div className="mb-8">
-            <h2 className="text-[20px] font-light text-center mb-4">Activity Overview</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 text-center">
-                <Link2 className="w-6 h-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-semibold mb-1">{stats.linksCreated}</p>
-                <p className="text-xs text-muted-foreground">Links Created</p>
-              </div>
-              <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 text-center">
-                <MousePointerClick className="w-6 h-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-semibold mb-1">{stats.totalClicks.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Total Clicks</p>
-              </div>
-              <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 text-center col-span-2 sm:col-span-1">
-                <FolderKanban className="w-6 h-6 text-primary mx-auto mb-2" />
-                <p className="text-2xl font-semibold mb-1">{stats.campaigns}</p>
-                <p className="text-xs text-muted-foreground">Campaigns</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Workspaces */}
-          {stats.workspaces.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-[20px] font-light text-center mb-4">Workspaces</h2>
-              <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6">
-                <div className="space-y-3">
-                  {stats.workspaces.map((workspace, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-3 bg-background/50 rounded-lg"
-                    >
-                      <Briefcase className="w-5 h-5 text-primary shrink-0" />
-                      <span className="text-sm font-medium">{workspace}</span>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <Link2 className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-2xl font-bold">{member.stats.linksCreated}</p>
+                  <p className="text-xs text-muted-foreground">Links</p>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <MousePointerClick className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-2xl font-bold">{member.stats.totalClicks.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Clicks</p>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <FolderKanban className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-2xl font-bold">{member.stats.campaigns}</p>
+                  <p className="text-xs text-muted-foreground">Campaigns</p>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <Briefcase className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                  <p className="text-2xl font-bold">{member.stats.workspaces.length}</p>
+                  <p className="text-xs text-muted-foreground">Workspaces</p>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Recent Clicks */}
-          {recentClicks.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-[20px] font-light text-center mb-4">Recent Clicks</h2>
-              <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+                <Calendar className="w-4 h-4" />
+                Joined {formatDate(member.joinedAt)}
+              </div>
+
+              {can.manageTeam && member.role !== 'owner' && (
+                <form onSubmit={handleSubmit} className="space-y-4 border-t pt-6">
+                  <div>
+                    <Label htmlFor="role" className="flex items-center gap-2 mb-2">
+                      <Shield className="w-4 h-4" />
+                      Role
+                    </Label>
+                    <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
+                      <SelectTrigger id="role">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="member">Member</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button type="submit" disabled={saving}>
+                      <Save className="w-4 h-4 mr-2" />
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={handleDelete}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove Member
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6">
+              <h2 className="text-xl mb-4 flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                Recent Clicks
+              </h2>
+              {recentClicks.length === 0 ? (
+                <p className="text-muted-foreground text-center py-6">No recent clicks</p>
+              ) : (
                 <div className="space-y-3">
                   {recentClicks.map((click) => (
-                    <div
-                      key={click.id}
-                      className="flex items-start gap-4 p-4 bg-background/50 rounded-lg hover:bg-background/70 transition-colors"
-                    >
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                        <MousePointerClick className="w-5 h-5 text-primary" />
+                    <div key={click.id} className="flex justify-between items-center p-3 bg-muted/20 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">{click.linkName}</p>
+                        <p className="text-xs text-muted-foreground">{click.shortUrl}</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm mb-1">{click.linkName}</h3>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <ExternalLink className="w-3 h-3" />
-                          <span className="truncate">{click.shortUrl}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Globe className="w-3 h-3" />
-                            <span>{click.location}</span>
-                          </div>
-                          <span>•</span>
-                          <span>{formatTimestamp(click.timestamp)}</span>
-                        </div>
+                      <div className="text-right text-sm">
+                        <p>{formatTimestamp(click.timestamp)}</p>
+                        <p className="text-xs text-muted-foreground">{click.location}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
-          )}
-
-          {/* Edit Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6 space-y-6">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Member Settings
-              </h2>
-
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Member name"
-                  className="h-12 rounded-full bg-background/50"
-                  disabled={isOwner}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="member@example.com"
-                  className="h-12 rounded-full bg-background/50"
-                  disabled={isOwner}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-sm font-medium">Role</Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(value) => setFormData({ ...formData, role: value as TeamMember['role'] })}
-                  disabled={isOwner}
-                >
-                  <SelectTrigger className="h-12 rounded-full bg-background/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="owner">Owner</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="member">Member</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isOwner && "The owner role cannot be modified."}
-                  {formData.role === 'admin' && "Admins can manage team members and settings."}
-                  {formData.role === 'member' && "Members can create and manage links."}
-                </p>
-              </div>
-            </div>
-
-            {/* Save Button */}
-            {!isOwner && (
-              <Button type="submit" className="w-full h-12 rounded-full">
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </Button>
-            )}
-          </form>
-
-          {/* Danger Zone */}
-          {!isOwner && (
-            <div className="mt-12 pt-8 border-t border-border/30">
-              <div className="bg-destructive/10 backdrop-blur-md border border-destructive/30 rounded-lg p-6 shadow-lg">
-                <h3 className="text-lg font-semibold text-destructive mb-2">Danger Zone</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Removing a team member will revoke their access immediately. This action cannot be undone.
-                </p>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  className="rounded-full"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove Team Member
-                </Button>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
-    </AppLayout>
+      </AppLayout>
     </FeatureGate>
   );
 }

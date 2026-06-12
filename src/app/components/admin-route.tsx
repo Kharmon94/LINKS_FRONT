@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
+import { AdminAccessDenied } from './admin/admin-access-denied';
 
 export function AdminRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -16,7 +17,7 @@ export function AdminRoute({ children }: { children: ReactNode }) {
   }
 
   if (!platformAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <AdminAccessDenied />;
   }
 
   return <>{children}</>;
