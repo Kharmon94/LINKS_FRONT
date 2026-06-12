@@ -1,25 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Info, UsersRound } from 'lucide-react';
-import { toast } from 'sonner';
-import { fetchAdminTeams, updateAdminUser } from '@/services/admin-api';
-import type { AdminUser, PaginationMeta, UserRole } from '@/types';
+import { UsersRound } from 'lucide-react';
+import { fetchAdminTeams } from '@/services/admin-api';
+import type { AdminTeam, PaginationMeta } from '@/types';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
-import { AdminRoleBadge, getRoleBadgeColor } from '../../components/admin/admin-role-badge';
-import { AdminTierBadge } from '../../components/admin/admin-tier-badge';
-import { AdminConfirmDialog } from '../../components/admin/admin-confirm-dialog';
 import { AdminTableSkeleton, AdminEmptyState, AdminErrorState } from '../../components/admin/admin-page-states';
+import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
 import {
   Table,
   TableBody,
@@ -37,55 +27,37 @@ import {
   BreadcrumbSeparator,
 } from '../../components/ui/breadcrumb';
 
-const ROLES: (UserRole | '')[] = ['', 'owner', 'admin', 'member'];
+type PersonalFilter = '' | 'true' | 'false';
 
 export function AdminTeamsPage() {
-  const { q, role, page, setQuery, apiParams } = useAdminQuery();
-  const [members, setMembers] = useState<AdminUser[]>([]);
-  const [stats, setStats] = useState<Record<UserRole, number>>({ owner: 0, admin: 0, member: 0 });
+  const { q, page, setQuery, apiParams } = useAdminQuery();
+  const [personalFilter, setPersonalFilter] = useState<PersonalFilter>('');
+  const [teams, setTeams] = useState<AdminTeam[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, perPage: 50, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirmRole, setConfirmRole] = useState(false);
-  const [pendingRoleChange, setPendingRoleChange] = useState<{ userId: string; role: UserRole; email: string } | null>(
-    null
-  );
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchAdminTeams(apiParams);
-      setMembers(data.members);
-      setStats(data.stats);
+      const params = new URLSearchParams(apiParams);
+      if (personalFilter) params.set('personal', personalFilter);
+      const data = await fetchAdminTeams(params);
+      setTeams(data.teams);
       setMeta(data.meta);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load teams');
     } finally {
       setLoading(false);
     }
-  }, [apiParams]);
+  }, [apiParams, personalFilter]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const changeRole = async (userId: string, newRole: UserRole) => {
-    setSaving(true);
-    try {
-      await updateAdminUser(userId, { role: newRole });
-      setMembers((m) => m.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
-      toast.success('Role updated');
-      void load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Update failed');
-    } finally {
-      setSaving(false);
-      setConfirmRole(false);
-      setPendingRoleChange(null);
-    }
-  };
+  const personalOnPage = teams.filter((team) => team.personal).length;
 
   return (
     <div className="space-y-6">
@@ -99,86 +71,72 @@ export function AdminTeamsPage() {
 
       <div>
         <h1 className="text-2xl font-semibold">Teams</h1>
-        <p className="text-muted-foreground text-sm">Account-level role oversight</p>
-      </div>
-
-      <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-4 flex gap-3 text-sm text-muted-foreground">
-        <Info className="w-5 h-5 flex-shrink-0" />
-        <p>Team entities are not yet in the database. This view shows user roles across accounts. When Team models ship, this page will include team groupings above this list.</p>
+        <p className="text-muted-foreground text-sm">Team accounts, members, and workspaces</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <AdminStatCard label="Owners" value={stats.owner} icon={UsersRound} />
-        <AdminStatCard label="Admins" value={stats.admin} icon={UsersRound} />
-        <AdminStatCard label="Members" value={stats.member} icon={UsersRound} />
+        <AdminStatCard label="Total teams" value={meta.total} icon={UsersRound} />
+        <AdminStatCard
+          label="Members (this page)"
+          value={teams.reduce((sum, team) => sum + team.memberCount, 0)}
+          icon={UsersRound}
+        />
+        <AdminStatCard label="Personal (this page)" value={personalOnPage} icon={UsersRound} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
         <div className="flex gap-2 flex-wrap">
-          {ROLES.map((r) => (
+          {(['', 'true', 'false'] as PersonalFilter[]).map((value) => (
             <Button
-              key={r || 'all'}
-              variant={role === r ? 'default' : 'outline'}
+              key={value || 'all'}
+              variant={personalFilter === value ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setQuery({ role: r })}
+              onClick={() => setPersonalFilter(value)}
             >
-              {r || 'All'}
+              {value === '' ? 'All' : value === 'true' ? 'Personal' : 'Shared'}
             </Button>
           ))}
         </div>
-        <AdminSearchInput value={q} onChange={(v) => setQuery({ q: v })} placeholder="Search members…" />
+        <AdminSearchInput value={q} onChange={(v) => setQuery({ q: v })} placeholder="Search team or owner email…" />
       </div>
 
       {error && <AdminErrorState message={error} onRetry={load} />}
 
       {loading ? (
         <AdminTableSkeleton />
-      ) : members.length === 0 ? (
-        <AdminEmptyState icon={UsersRound} title="No members found" description="Adjust filters or search." />
+      ) : teams.length === 0 ? (
+        <AdminEmptyState icon={UsersRound} title="No teams found" description="Adjust filters or search." />
       ) : (
         <>
           <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Member</TableHead>
-                  <TableHead>Tier</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Links</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Change role</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Owner</TableHead>
+                  <TableHead>Members</TableHead>
+                  <TableHead>Workspaces</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {members.map((m) => (
-                  <TableRow key={m.id}>
+                {teams.map((team) => (
+                  <TableRow key={team.id}>
                     <TableCell>
-                      <Link to={`/admin/users/${m.id}`} className="hover:underline">{m.email}</Link>
-                      <p className="text-xs text-muted-foreground">{m.name}</p>
+                      <Link to={`/admin/teams/${team.id}`} className="hover:underline font-medium">
+                        {team.name}
+                      </Link>
+                      {team.personal && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          Personal
+                        </Badge>
+                      )}
                     </TableCell>
-                    <TableCell><AdminTierBadge tier={m.subscriptionTier} /></TableCell>
-                    <TableCell><AdminRoleBadge role={m.role} /></TableCell>
-                    <TableCell>{m.linksCount ?? 0}</TableCell>
+                    <TableCell className="text-sm">{team.ownerEmail ?? '—'}</TableCell>
+                    <TableCell>{team.memberCount}</TableCell>
+                    <TableCell>{team.workspaceCount}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={m.role}
-                        onValueChange={(v) => {
-                          setPendingRoleChange({ userId: m.id, role: v as UserRole, email: m.email });
-                          setConfirmRole(true);
-                        }}
-                      >
-                        <SelectTrigger className={`w-28 ${getRoleBadgeColor(m.role)}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="owner">Owner</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="member">Member</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {team.createdAt ? new Date(team.createdAt).toLocaleDateString() : '—'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -188,25 +146,6 @@ export function AdminTeamsPage() {
           <AdminPagination meta={meta} onPageChange={(p) => setQuery({ page: p })} />
         </>
       )}
-
-      <AdminConfirmDialog
-        open={confirmRole}
-        onOpenChange={(open) => {
-          setConfirmRole(open);
-          if (!open) setPendingRoleChange(null);
-        }}
-        title="Change team role?"
-        description={
-          pendingRoleChange
-            ? `Set team role to "${pendingRoleChange.role}" for ${pendingRoleChange.email}?`
-            : ''
-        }
-        confirmLabel="Update role"
-        loading={saving}
-        onConfirm={() =>
-          pendingRoleChange && changeRole(pendingRoleChange.userId, pendingRoleChange.role)
-        }
-      />
     </div>
   );
 }

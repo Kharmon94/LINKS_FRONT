@@ -69,8 +69,7 @@ export async function updateFeatureFlag(key: string, enabled: boolean) {
 
 export async function fetchAdminTeams(params: URLSearchParams) {
   return apiRequest<{
-    stats: Record<UserRole, number>;
-    members: AdminUser[];
+    teams: AdminTeam[];
     meta: PaginationMeta;
   }>(`/api/v1/admin/teams?${params.toString()}`);
 }
