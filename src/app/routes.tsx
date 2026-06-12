@@ -43,6 +43,7 @@ import { AdminWorkspacesPage } from "./pages/admin/admin-workspaces-page";
 import { AdminDomainsPage } from "./pages/admin/admin-domains-page";
 import { AdminPushPage } from "./pages/admin/admin-push-page";
 import { AcceptInvitePage } from "./pages/accept-invite-page";
+import { ShortLinkRedirectPage } from "./pages/short-link-redirect-page";
 import { NotFoundPage } from "./pages/not-found-page";
 
 function RootLayout() {
@@ -193,6 +194,10 @@ export const router = createBrowserRouter([
       {
         path: "/pricing",
         Component: PricingPage,
+      },
+      {
+        path: "/:shortCode",
+        Component: ShortLinkRedirectPage,
       },
       {
         path: "*",
