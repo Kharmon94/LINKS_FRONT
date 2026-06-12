@@ -8,7 +8,17 @@ export default defineConfig(({ mode }) => {
   const apiTarget = env.VITE_API_URL || 'http://localhost:3000'
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'inject-short-link-api-url',
+        transformIndexHtml(html) {
+          const apiUrl = (env.VITE_API_URL || '').replace(/\/$/, '')
+          return html.replace('%VITE_API_URL%', apiUrl)
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
