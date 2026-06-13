@@ -6,16 +6,6 @@
       <meta name="theme-color" content="#0b0b0c" />
       <link rel="manifest" href="/manifest.webmanifest" />
       <title>Links.BlackCollar.io</title>
-      <script>
-        (function () {
-          var reserved = %RESERVED_SHORT_LINK_SLUGS%;
-          var match = location.pathname.match(/^\/([a-z0-9]{4,32})$/);
-          if (!match || reserved.indexOf(match[1]) !== -1) return;
-          var api = '%VITE_API_URL%'.replace(/\/$/, '');
-          if (!api) return;
-          location.replace(api + '/' + match[1] + location.search + location.hash);
-        })();
-      </script>
     </head>
 
     <body>
@@ -23,4 +13,3 @@
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
-  

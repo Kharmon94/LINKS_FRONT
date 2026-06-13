@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ApiError } from '@/services/api';
 import { createLink, shortLinkHost } from '@/services/links-api';
 import { listDomains, type CustomDomainJson } from '@/services/domains-api';
@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { Link as LinkIcon, Target, Plus, X, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import type { LinkJson } from '@/types';
+import { buildLinkCustomizePayload } from './link-creator-payload';
 
 interface LinkCreatorFormProps {
   onCreated?: (link: LinkJson) => void;
@@ -65,8 +66,6 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
         const verified = domains.filter((d) => d.status === 'verified');
         if (cancelled) return;
         setAvailableDomains(verified);
-        const defaultDomain = verified.find((d) => d.isDefault) ?? verified[0];
-        setSelectedDomainId(defaultDomain?.id ?? '');
       } catch {
         if (!cancelled) {
           setAvailableDomains([]);
@@ -79,32 +78,32 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
     };
   }, [can.domains]);
 
-  const domainOptions: CustomDomainJson[] =
-    availableDomains.length > 0
-      ? availableDomains
-      : [
-          {
-            id: '',
-            domain: platformHost,
-            status: 'verified',
-            isDefault: true,
-            createdAt: '',
-          },
-        ];
+  const domainOptions: CustomDomainJson[] = useMemo(() => {
+    const platformOption: CustomDomainJson = {
+      id: '',
+      domain: platformHost,
+      status: 'verified',
+      isDefault: false,
+      createdAt: '',
+    };
+    return [platformOption, ...availableDomains];
+  }, [availableDomains, platformHost]);
 
   const selectedDomainHost =
     domainOptions.find((d) => d.id === selectedDomainId)?.domain ?? platformHost;
 
-  const linkCustomizePayload = () => ({
-    ...(selectedCampaignId ? { campaign_id: selectedCampaignId } : {}),
-    ...(selectedDomainId ? { custom_domain_id: selectedDomainId } : {}),
-    ...(customSlug.trim() ? { short_code: customSlug.trim() } : {}),
-    ...(utmSource.trim() ? { utm_source: utmSource.trim() } : {}),
-    ...(utmMedium.trim() ? { utm_medium: utmMedium.trim() } : {}),
-    ...(utmCampaign.trim() ? { utm_campaign: utmCampaign.trim() } : {}),
-    ...(utmTerm.trim() ? { utm_term: utmTerm.trim() } : {}),
-    ...(utmContent.trim() ? { utm_content: utmContent.trim() } : {}),
-  });
+  const linkCustomizePayload = () =>
+    buildLinkCustomizePayload({
+      showCustomSlug,
+      selectedCampaignId,
+      selectedDomainId,
+      customSlug,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+      utmTerm,
+      utmContent,
+    });
 
   const resetAfterCreate = () => {
     setCustomSlug('');
@@ -216,8 +215,9 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
           className="h-10 text-sm w-full rounded-full bg-muted border-0 focus:ring-0 focus:outline-none px-4"
         >
           {domainOptions.map((domain) => (
-            <option key={domain.id || domain.domain} value={domain.id}>
-              {domain.domain} {domain.isDefault ? '(Default)' : ''}
+            <option key={domain.id || 'platform'} value={domain.id}>
+              {domain.id ? domain.domain : `${domain.domain} (platform)`}
+              {domain.isDefault ? ' — Default' : ''}
             </option>
           ))}
         </select>

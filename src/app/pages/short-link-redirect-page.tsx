@@ -1,36 +1,25 @@
-import { useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { isShortLinkSlug } from '@/app/config/reserved-slugs';
 
-/** Resolve where short-link GET requests must be handled (Rails RedirectsController). */
-export function resolveShortLinkRedirectUrl(shortCode: string, search: string): string {
-  const apiBase =
-    (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
-    (import.meta.env.DEV ? 'http://localhost:3000' : '');
-  if (apiBase) {
-    return `${apiBase}/${shortCode}${search}`;
-  }
-  return `/${shortCode}${search}`;
-}
-
+/** SPA fallback when dev/prod proxy did not intercept a short code (e.g. reserved slug collision). */
 export function ShortLinkRedirectPage() {
   const { shortCode = '' } = useParams();
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (!isShortLinkSlug(shortCode)) return;
-    const search = searchParams.toString();
-    const query = search ? `?${search}` : '';
-    window.location.replace(resolveShortLinkRedirectUrl(shortCode, query));
-  }, [shortCode, searchParams]);
 
   if (!isShortLinkSlug(shortCode)) {
     return null;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-      <p className="text-muted-foreground text-sm">Redirecting…</p>
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+      <div className="text-center max-w-md">
+        <h1 className="text-xl font-semibold mb-2">Link not found</h1>
+        <p className="text-muted-foreground text-sm mb-4">
+          This short link does not exist or may have been removed.
+        </p>
+        <Link to="/" className="text-sm underline underline-offset-4">
+          Go to Links.BlackCollar.io
+        </Link>
+      </div>
     </div>
   );
 }

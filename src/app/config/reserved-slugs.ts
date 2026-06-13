@@ -1,16 +1,7 @@
+import reservedSlugs from './reserved-slugs.json';
+
 /** Top-level SPA paths that match short-code shape `[a-z0-9]{4,32}` — never treat as short links. */
-export const RESERVED_SHORT_LINK_SLUGS = [
-  'admin',
-  'analytics',
-  'auth',
-  'campaigns',
-  'dashboard',
-  'links',
-  'pricing',
-  'settings',
-  'team',
-  'workspaces',
-] as const;
+export const RESERVED_SHORT_LINK_SLUGS = reservedSlugs as readonly string[];
 
 export const SHORT_CODE_PATTERN = /^[a-z0-9]{4,32}$/;
 
