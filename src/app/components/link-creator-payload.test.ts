@@ -45,6 +45,16 @@ describe('buildLinkCustomizePayload', () => {
     expect(payload.short_code).toBe('my-slug');
   });
 
+  it('omits custom_domain_id when Customize is closed even with pre-selected domain', () => {
+    const payload = buildLinkCustomizePayload({
+      ...baseInput,
+      showCustomSlug: false,
+      selectedDomainId: 'default-domain-id',
+    });
+    expect(payload).not.toHaveProperty('custom_domain_id');
+    expect(payload).toEqual({});
+  });
+
   it('keeps campaign_id outside customize gating', () => {
     const payload = buildLinkCustomizePayload({
       ...baseInput,

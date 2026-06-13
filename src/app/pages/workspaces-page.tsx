@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -6,40 +6,21 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Briefcase, Plus, Users, Link as LinkIcon, Lock } from 'lucide-react';
-import { useAuth } from '../contexts/auth-context';
-import { createWorkspace, listWorkspaces, type WorkspaceJson } from '@/services/workspaces-api';
+import { useWorkspace } from '../contexts/workspace-context';
+import { createWorkspace } from '@/services/workspaces-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
 
 export function WorkspacesPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { workspaces, loading, refreshWorkspaces, switchWorkspace } = useWorkspace();
   const { can } = usePermissions();
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
-  const [workspaces, setWorkspaces] = useState<WorkspaceJson[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
   const canCreateWorkspace = can.createWorkspaces;
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await listWorkspaces();
-        if (!cancelled) setWorkspaces(data);
-      } catch {
-        if (!cancelled) setWorkspaces([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +30,8 @@ export function WorkspacesPage() {
         name: newWorkspaceName.trim(),
         description: newWorkspaceDescription.trim(),
       });
-      setWorkspaces((prev) => [...prev, created]);
+      await refreshWorkspaces();
+      await switchWorkspace(created.id, { silent: true });
       setNewWorkspaceName('');
       setNewWorkspaceDescription('');
       setIsCreatingWorkspace(false);
@@ -61,12 +43,8 @@ export function WorkspacesPage() {
     }
   };
 
-  const userWorkspaces = workspaces.filter((workspace) =>
-    workspace.members?.some((member) => member.email === user?.email)
-  );
-
-  const totalLinks = userWorkspaces.reduce((sum, ws) => sum + ws.linksCount, 0);
-  const totalCampaigns = userWorkspaces.reduce((sum, ws) => sum + ws.campaignsCount, 0);
+  const totalLinks = workspaces.reduce((sum, ws) => sum + ws.linksCount, 0);
+  const totalCampaigns = workspaces.reduce((sum, ws) => sum + ws.campaignsCount, 0);
 
   return (
     <FeatureGate allowed={can.readWorkspaces} featureName="Workspaces">
@@ -128,11 +106,11 @@ export function WorkspacesPage() {
 
             {loading ? (
               <div className="text-center py-12 text-muted-foreground">Loading workspaces...</div>
-            ) : userWorkspaces.length === 0 ? (
+            ) : workspaces.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">No workspaces yet</div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {userWorkspaces.map((workspace) => (
+                {workspaces.map((workspace) => (
                   <div
                     key={workspace.id}
                     onClick={() => navigate(`/workspaces/${workspace.id}`)}
@@ -163,7 +141,7 @@ export function WorkspacesPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-card/50 backdrop-blur-md p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Workspaces</p>
-                <p className="text-3xl">{userWorkspaces.length}</p>
+                <p className="text-3xl">{workspaces.length}</p>
               </div>
               <div className="bg-card/50 backdrop-blur-md p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Total Links</p>

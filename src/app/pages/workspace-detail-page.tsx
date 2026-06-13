@@ -18,12 +18,16 @@ import {
 } from '@/services/workspaces-api';
 import { getTeam, type TeamMemberJson } from '@/services/team-api';
 import { ApiError } from '@/services/api';
+import { useAuth } from '../contexts/auth-context';
+import { useWorkspace } from '../contexts/workspace-context';
 import { toast } from 'sonner';
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const { refreshWorkspaces } = useWorkspace();
+  const { checkAuth } = useAuth();
   const [workspace, setWorkspace] = useState<WorkspaceJson | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMemberJson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +86,7 @@ export function WorkspaceDetailPage() {
       });
       setWorkspace(updated);
       setIsEditing(false);
+      await refreshWorkspaces();
       toast.success('Workspace updated');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not update workspace');
@@ -96,6 +101,7 @@ export function WorkspaceDetailPage() {
       const updated = await addWorkspaceMember(workspaceId, member.id);
       setWorkspace(updated);
       setIsAddingMember(false);
+      await refreshWorkspaces();
       toast.success('Member added');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not add member');
@@ -112,6 +118,7 @@ export function WorkspaceDetailPage() {
     try {
       const updated = await removeWorkspaceMember(workspaceId, memberId);
       setWorkspace(updated);
+      await refreshWorkspaces();
       toast.success('Member removed');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not remove member');
@@ -122,6 +129,8 @@ export function WorkspaceDetailPage() {
     if (!workspaceId || !confirm('Delete this workspace? This cannot be undone.')) return;
     try {
       await deleteWorkspace(workspaceId);
+      await refreshWorkspaces();
+      await checkAuth();
       toast.success('Workspace deleted');
       navigate('/workspaces');
     } catch (err) {

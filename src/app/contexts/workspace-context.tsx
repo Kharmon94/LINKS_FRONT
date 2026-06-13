@@ -18,7 +18,7 @@ interface WorkspaceContextValue {
   currentWorkspace: WorkspaceJson | null;
   loading: boolean;
   refreshWorkspaces: () => Promise<void>;
-  switchWorkspace: (workspaceId: string) => Promise<void>;
+  switchWorkspace: (workspaceId: string, options?: { silent?: boolean }) => Promise<void>;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | undefined>(undefined);
@@ -59,16 +59,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [workspaces, user?.activeWorkspaceId]);
 
   const switchWorkspace = useCallback(
-    async (workspaceId: string) => {
+    async (workspaceId: string, options?: { silent?: boolean }) => {
       try {
         await setActiveWorkspace(workspaceId);
         await checkAuth();
-        toast.success('Workspace switched');
+        await refreshWorkspaces();
+        if (!options?.silent) {
+          toast.success('Workspace switched');
+        }
       } catch (e) {
         toast.error(e instanceof ApiError ? e.message : 'Could not switch workspace');
       }
     },
-    [checkAuth]
+    [checkAuth, refreshWorkspaces]
   );
 
   const value = useMemo(

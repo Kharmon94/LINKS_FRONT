@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { apiRequest } from '@/services/api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
 import { getAnalyticsOverview } from '@/services/analytics-api';
+import { displayShortUrl } from '@/services/links-api';
 import { toast } from 'sonner';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -159,12 +160,12 @@ export function DashboardPage() {
                       {/* Short URL with copy button */}
                       <div className="flex items-center justify-center gap-1.5 mb-1 min-w-0">
                         <span className="font-medium text-sm truncate text-primary">
-                          {link.shortUrl}
+                          {displayShortUrl(link)}
                         </span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            copyToClipboard(link.shortUrl);
+                            copyToClipboard(displayShortUrl(link));
                           }}
                           className="p-1 hover:bg-muted rounded shrink-0"
                         >

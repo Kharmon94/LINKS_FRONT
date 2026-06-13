@@ -283,7 +283,7 @@ export function LinksPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-primary">{link.shortUrl}</span>
+                          <span className="font-medium text-primary">{displayShortUrl(link)}</span>
                           {link.isRandomizer && (
                             <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Randomizer</span>
                           )}
@@ -342,7 +342,7 @@ export function LinksPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium mb-1 text-base">{link.name}</div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-medium text-primary break-all text-sm">{link.shortUrl}</span>
+                        <span className="font-medium text-primary break-all text-sm">{displayShortUrl(link)}</span>
                         {link.isRandomizer && (
                           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded whitespace-nowrap">
                             Randomizer

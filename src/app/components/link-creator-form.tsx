@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ApiError } from '@/services/api';
-import { createLink, shortLinkHost } from '@/services/links-api';
+import { createLink, shortLinkHost, displayShortUrl } from '@/services/links-api';
 import { listDomains, type CustomDomainJson } from '@/services/domains-api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -66,6 +66,11 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
         const verified = domains.filter((d) => d.status === 'verified');
         if (cancelled) return;
         setAvailableDomains(verified);
+        setSelectedDomainId((current) => {
+          if (current !== '') return current;
+          const defaultDomain = verified.find((d) => d.isDefault);
+          return defaultDomain ? defaultDomain.id : '';
+        });
       } catch {
         if (!cancelled) {
           setAvailableDomains([]);
@@ -119,7 +124,7 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
         name: linkName || 'New Link',
         ...linkCustomizePayload(),
       });
-      setGeneratedUrl(link.shortUrl);
+      setGeneratedUrl(displayShortUrl(link));
       setLongUrl('');
       setLinkName('');
       resetAfterCreate();
@@ -149,7 +154,7 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
           position: index,
         })),
       });
-      setGeneratedUrl(link.shortUrl);
+      setGeneratedUrl(displayShortUrl(link));
       setRandomizerUrls(['', '']);
       setRandomizerName('');
       resetAfterCreate();

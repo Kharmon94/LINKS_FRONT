@@ -22,6 +22,13 @@ import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
 import { listDomains, type CustomDomainJson } from '@/services/domains-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
+import { Slider } from '../components/ui/slider';
+import {
+  evenSplitWeights,
+  maxForEntry,
+  normalizeWeightsTo100,
+  rebalanceWeights,
+} from '@/lib/pool-weights';
 
 interface PoolEntry {
   id: string;
@@ -85,12 +92,18 @@ export function LinkEditPage() {
         setUtmCampaign(link.utmParams?.campaign || '');
         setUtmTerm(link.utmParams?.term || '');
         setUtmContent(link.utmParams?.content || '');
+        const entries = (link.poolEntries || []).map((e) => ({
+          id: e.id,
+          url: e.url,
+          weight: e.weight,
+        }));
+        const weights = entries.map((e) => e.weight);
+        const normalized =
+          weights.reduce((a, b) => a + b, 0) !== 100
+            ? normalizeWeightsTo100(weights)
+            : weights;
         setPoolEntries(
-          (link.poolEntries || []).map((e) => ({
-            id: e.id,
-            url: e.url,
-            weight: e.weight,
-          }))
+          entries.map((e, i) => ({ ...e, weight: normalized[i] }))
         );
       } catch (err) {
         if (!cancelled) {
@@ -116,7 +129,13 @@ export function LinkEditPage() {
       try {
         const domains = await listDomains();
         if (!cancelled) {
-          setAvailableDomains(domains.filter((d) => d.status === 'verified'));
+          const verified = domains.filter((d) => d.status === 'verified');
+          setAvailableDomains(verified);
+          setSelectedDomainId((current) => {
+            if (current !== '') return current;
+            const defaultDomain = verified.find((d) => d.isDefault);
+            return defaultDomain ? defaultDomain.id : '';
+          });
         }
       } catch {
         if (!cancelled) setAvailableDomains([]);
@@ -143,8 +162,8 @@ export function LinkEditPage() {
 
   const previewShortUrl = `${selectedDomainHost}/${shortCode}`;
   const previewFullShortUrl = `https://${previewShortUrl}`;
-  const displayShortUrl = can.domains ? previewShortUrl : linkData.shortUrl;
-  const displayFullShortUrl = can.domains ? previewFullShortUrl : linkData.fullShortUrl;
+  const editShortUrlPreview = can.domains ? previewShortUrl : linkData.shortUrl;
+  const editFullShortUrlPreview = can.domains ? previewFullShortUrl : linkData.fullShortUrl;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text.startsWith('http') ? text : `https://${text}`);
@@ -212,21 +231,40 @@ export function LinkEditPage() {
   };
 
   const addPoolEntry = () => {
-    setPoolEntries([
+    const newEntries = [
       ...poolEntries,
-      { id: Date.now().toString(), url: '', weight: 0 },
-    ]);
+      { id: Date.now().toString(), url: '', weight: 1 },
+    ];
+    const weights = evenSplitWeights(newEntries.length);
+    setPoolEntries(
+      newEntries.map((entry, i) => ({ ...entry, weight: weights[i] }))
+    );
   };
 
   const removePoolEntry = (id: string) => {
-    setPoolEntries(poolEntries.filter(entry => entry.id !== id));
+    const filtered = poolEntries.filter((entry) => entry.id !== id);
+    const weights = evenSplitWeights(filtered.length);
+    setPoolEntries(
+      filtered.map((entry, i) => ({ ...entry, weight: weights[i] }))
+    );
   };
 
-  const updatePoolEntry = (id: string, field: 'url' | 'weight', value: string | number) => {
+  const updatePoolEntryUrl = (id: string, url: string) => {
     setPoolEntries(
-      poolEntries.map(entry =>
-        entry.id === id ? { ...entry, [field]: value } : entry
+      poolEntries.map((entry) =>
+        entry.id === id ? { ...entry, url } : entry
       )
+    );
+  };
+
+  const handleWeightChange = (index: number, value: number) => {
+    const newWeights = rebalanceWeights(
+      poolEntries.map((e) => e.weight),
+      index,
+      value
+    );
+    setPoolEntries(
+      poolEntries.map((entry, i) => ({ ...entry, weight: newWeights[i] }))
     );
   };
 
@@ -266,16 +304,16 @@ export function LinkEditPage() {
               <h1 className="mb-2 text-center md:text-left text-[32px]">Edit Link</h1>
               <div className="flex items-center gap-2 justify-center md:justify-start">
                 <span className="text-primary font-medium">
-                  {displayShortUrl}
+                  {editShortUrlPreview}
                 </span>
                 <button
-                  onClick={() => copyToClipboard(displayShortUrl)}
+                  onClick={() => copyToClipboard(editShortUrlPreview)}
                   className="p-1 hover:bg-muted rounded"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => window.open(displayFullShortUrl, '_blank')}
+                  onClick={() => window.open(editFullShortUrlPreview, '_blank')}
                   className="p-1 hover:bg-muted rounded"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -408,24 +446,24 @@ export function LinkEditPage() {
                               placeholder="https://example.com/option"
                               value={entry.url}
                               onChange={(e) =>
-                                updatePoolEntry(entry.id, 'url', e.target.value)
+                                updatePoolEntryUrl(entry.id, e.target.value)
                               }
                               className="h-10 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
                             />
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                placeholder="Weight %"
-                                value={entry.weight}
-                                onChange={(e) =>
-                                  updatePoolEntry(entry.id, 'weight', parseInt(e.target.value) || 0)
-                                }
-                                min="0"
-                                max="100"
-                                className="h-10 w-24 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
+                            <div className="flex items-center gap-3">
+                              <Slider
+                                min={1}
+                                max={maxForEntry(poolEntries.length)}
+                                step={1}
+                                value={[entry.weight]}
+                                onValueChange={([v]) => handleWeightChange(index, v)}
+                                className="flex-1"
                               />
+                              <span className="w-10 text-right tabular-nums">
+                                {entry.weight}%
+                              </span>
                               <span className="text-sm text-muted-foreground">
-                                % of traffic
+                                of traffic
                               </span>
                             </div>
                           </div>
@@ -450,11 +488,6 @@ export function LinkEditPage() {
                       Add URL to Pool
                     </Button>
 
-                    {totalWeight !== 100 && (
-                      <p className="text-sm text-amber-500">
-                        ⚠️ Total weight should equal 100%
-                      </p>
-                    )}
                   </div>
                 )}
               </div>

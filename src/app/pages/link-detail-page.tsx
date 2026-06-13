@@ -190,7 +190,7 @@ export function LinkDetailPage() {
                 <h1 className="mb-2 text-[32px]">{link.name}</h1>
                 <p className="text-sm text-muted-foreground mb-2 truncate max-w-lg">{link.originalUrl}</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-primary font-medium">{link.shortUrl}</span>
+                  <span className="text-primary font-medium">{fullShortUrl}</span>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(fullShortUrl)}
