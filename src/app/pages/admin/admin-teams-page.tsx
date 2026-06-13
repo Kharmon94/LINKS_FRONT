@@ -44,8 +44,8 @@ export function AdminTeamsPage() {
       const params = new URLSearchParams(apiParams);
       if (personalFilter) params.set('personal', personalFilter);
       const data = await fetchAdminTeams(params);
-      setTeams(data.teams);
-      setMeta(data.meta);
+      setTeams(data.teams ?? []);
+      setMeta(data.meta ?? { page: 1, perPage: 50, total: 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load teams');
     } finally {

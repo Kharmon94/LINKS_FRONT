@@ -39,6 +39,7 @@ export function LinksPage() {
   }, [debouncedQuery, linkTypeFilter, campaignFilter]);
 
   useEffect(() => {
+    if (!can.readCampaigns) return;
     let cancelled = false;
     (async () => {
       try {
@@ -51,7 +52,7 @@ export function LinksPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [can.readCampaigns]);
 
   useEffect(() => {
     if (!can.analytics) return;
@@ -181,7 +182,7 @@ export function LinksPage() {
                       <option value="randomizer">Randomizer</option>
                     </select>
                   </div>
-                  {campaigns.length > 0 && (
+                  {can.readCampaigns && campaigns.length > 0 && (
                     <div>
                       <label className="text-sm font-medium mb-1.5 block">Campaign</label>
                       <select
@@ -206,7 +207,15 @@ export function LinksPage() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-2 ${can.analytics ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 mb-6`}>
+          <div
+            className={`grid grid-cols-2 gap-4 mb-6 ${
+              [can.analytics, can.readCampaigns].filter(Boolean).length === 2
+                ? 'md:grid-cols-4'
+                : [can.analytics, can.readCampaigns].filter(Boolean).length === 1
+                  ? 'md:grid-cols-3'
+                  : 'md:grid-cols-2'
+            }`}
+          >
             <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
               <p className="text-2xl font-semibold">{totalLinks.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Total links</p>
@@ -223,10 +232,12 @@ export function LinksPage() {
               <p className="text-2xl font-semibold">{randomizerCount.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Randomizers (this page)</p>
             </div>
-            <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
-              <p className="text-2xl font-semibold">{campaigns.length.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Campaigns</p>
-            </div>
+            {can.readCampaigns && (
+              <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center">
+                <p className="text-2xl font-semibold">{campaigns.length.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">Campaigns</p>
+              </div>
+            )}
           </div>
 
           {listLoading ? (

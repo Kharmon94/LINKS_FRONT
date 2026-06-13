@@ -3,15 +3,8 @@ import { useAuth } from '../contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '../contexts/theme-context';
 import { WorkspaceSwitcher } from './workspace-switcher';
+import { getVisibleNavItems } from '@/app/config/app-nav-items';
 import { 
-  LayoutDashboard, 
-  Link as LinkIcon, 
-  FolderKanban, 
-  BarChart3, 
-  Users, 
-  Briefcase,
-  Settings,
-  Shield,
   X,
   Moon,
   Sun,
@@ -39,16 +32,7 @@ export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopTogg
     window.location.href = '/';
   };
 
-  const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, show: permissions.links.read },
-    { path: '/links', label: 'Links', icon: LinkIcon, show: permissions.links.read },
-    { path: '/campaigns', label: 'Campaigns', icon: FolderKanban, show: permissions.campaigns.read },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3, show: permissions.analytics.read },
-    { path: '/team', label: 'Team', icon: Users, show: permissions.team.read },
-    { path: '/workspaces', label: 'Workspaces', icon: Briefcase, show: permissions.workspaces.read },
-    { path: '/settings', label: 'Settings', icon: Settings, show: true },
-    { path: '/admin/overview', label: 'Admin', icon: Shield, show: platformAdmin },
-  ].filter((item) => item.show);
+  const navItems = getVisibleNavItems({ permissions, platformAdmin });
 
   if (!isAuthenticated) return null;
 

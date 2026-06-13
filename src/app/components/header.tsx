@@ -5,16 +5,8 @@ import { useAuth } from '../contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useTheme } from '../contexts/theme-context';
 import { WorkspaceSwitcher } from './workspace-switcher';
-import { 
-  LayoutDashboard, 
-  Link as LinkIcon, 
-  FolderKanban, 
-  BarChart3, 
-  Users,
-  Briefcase,
-  Settings,
-  LogOut
-} from 'lucide-react';
+import { getVisibleNavItems } from '@/app/config/app-nav-items';
+import { Moon, Sun, Menu, X, LogOut } from 'lucide-react';
 import logoWhite from '@/assets/13a610c2eb52d37dcdb23da9c6c27891d7b11cf3.png';
 import logoBlack from '@/assets/45d2c3ca8dcadef95132a6169f23902806153f9c.png';
 
@@ -28,7 +20,7 @@ export function Header({ onMenuToggle, customNavItems }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { isAuthenticated, logout } = useAuth();
-  const { permissions } = usePermissions();
+  const { permissions, platformAdmin } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -45,15 +37,7 @@ export function Header({ onMenuToggle, customNavItems }: HeaderProps) {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, show: true },
-    { path: '/links', label: 'Links', icon: LinkIcon, show: true },
-    { path: '/campaigns', label: 'Campaigns', icon: FolderKanban, show: true },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3, show: permissions.analytics.read },
-    { path: '/team', label: 'Team', icon: Users, show: true },
-    { path: '/workspaces', label: 'Workspaces', icon: Briefcase, show: true },
-    { path: '/settings', label: 'Settings', icon: Settings, show: true },
-  ].filter((item) => item.show);
+  const navItems = getVisibleNavItems({ permissions, platformAdmin });
 
   const handleNavClick = (path: string) => {
     navigate(path);

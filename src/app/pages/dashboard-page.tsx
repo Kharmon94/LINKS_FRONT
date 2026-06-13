@@ -558,22 +558,34 @@ export function DashboardPage() {
         <div className="w-full px-4 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="space-y-12 w-full">
-              {can.analytics && overviewClicks !== null && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
-                    <p className="text-3xl font-bold">{overviewClicks.toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Total clicks</p>
-                  </div>
+              {(can.analytics && overviewClicks !== null) || can.readCampaigns || links.length > 0 ? (
+                <div
+                  className={`grid grid-cols-1 gap-4 ${
+                    can.analytics && can.readCampaigns
+                      ? 'sm:grid-cols-3'
+                      : can.analytics || can.readCampaigns
+                        ? 'sm:grid-cols-2'
+                        : 'sm:grid-cols-1'
+                  }`}
+                >
+                  {can.analytics && overviewClicks !== null && (
+                    <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
+                      <p className="text-3xl font-bold">{overviewClicks.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Total clicks</p>
+                    </div>
+                  )}
                   <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
                     <p className="text-3xl font-bold">{links.length}</p>
                     <p className="text-sm text-muted-foreground">Recent links loaded</p>
                   </div>
-                  <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
-                    <p className="text-3xl font-bold">{campaigns.length}</p>
-                    <p className="text-sm text-muted-foreground">Recent campaigns loaded</p>
-                  </div>
+                  {can.readCampaigns && (
+                    <div className="bg-card/50 backdrop-blur-md rounded-lg p-4 text-center shadow-lg">
+                      <p className="text-3xl font-bold">{campaigns.length}</p>
+                      <p className="text-sm text-muted-foreground">Recent campaigns loaded</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : null}
 
               {/* Recent Links */}
               <div id="recent-links-section" className="w-full">
@@ -631,7 +643,7 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* Campaign Stats */}
+              {can.readCampaigns && (
               <div id="recent-campaigns-section" className="w-full">
                 <div className="flex flex-col items-center mb-6 gap-2">
                   <h2 className="text-center text-[32px]">Recent Campaigns</h2>
@@ -670,6 +682,7 @@ export function DashboardPage() {
                   ))}
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
