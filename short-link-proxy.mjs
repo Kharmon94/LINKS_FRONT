@@ -85,6 +85,8 @@ export async function fetchShortLinkRedirect({ apiUrl, shortCode, query = '', me
   if (typeof ua === 'string' && ua) forwardHeaders['User-Agent'] = ua;
   const referer = headers['referer'];
   if (typeof referer === 'string' && referer) forwardHeaders['Referer'] = referer;
+  const host = headers['host'];
+  if (typeof host === 'string' && host) forwardHeaders['X-Forwarded-Host'] = host;
 
   return fetchImpl(url, {
     method,
