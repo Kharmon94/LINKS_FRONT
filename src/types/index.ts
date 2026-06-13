@@ -17,6 +17,7 @@ export interface TeamPermissions {
 
 export interface SettingsPermissions {
   billing: boolean;
+  portal?: boolean;
   domains: boolean;
 }
 

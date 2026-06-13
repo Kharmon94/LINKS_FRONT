@@ -8,7 +8,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   campaigns: { read: false, create: false, update: false, destroy: false },
   team: { read: false, invite: false, manage: false, removeMember: false },
   workspaces: { read: false, create: false, update: false, destroy: false },
-  settings: { billing: false, domains: false },
+  settings: { billing: false, portal: false, domains: false },
   analytics: { read: true },
   admin: { users: false, links: false },
 };
@@ -46,6 +46,7 @@ export function usePermissions() {
         updateWorkspaces: user?.permissions?.workspaces.update ?? false,
         destroyWorkspaces: user?.permissions?.workspaces.destroy ?? false,
         billing: user?.permissions?.settings.billing ?? false,
+        portal: user?.permissions?.settings.portal ?? false,
         domains: user?.permissions?.settings.domains ?? false,
         manageDomains: user?.permissions?.settings.domains ?? false,
         analytics: user?.permissions?.analytics.read ?? true,

@@ -49,7 +49,7 @@ const TIERS: SubscriptionTier[] = ['free', 'starter', 'growth', 'enterprise'];
 export function AdminUserDetailPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, checkAuth } = useAuth();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,13 +106,28 @@ export function AdminUserDetailPage() {
     };
   }, [user?.email, user?.stripeCustomerId]);
 
+  const refreshSessionIfAffected = async (updatedUserId: string) => {
+    if (currentUser?.id === updatedUserId) {
+      await checkAuth();
+    }
+  };
+
   const applyAdmin = async (admin: boolean) => {
     if (!userId) return;
     setSaving(true);
     try {
       const data = await updateAdminUser(userId, { admin });
       setUser(data.user);
-      toast.success(admin ? 'Platform admin granted' : 'Platform admin revoked');
+      await refreshSessionIfAffected(userId);
+      toast.success(
+        admin
+          ? currentUser?.id === userId
+            ? 'Platform admin granted'
+            : 'Platform admin granted — user will see Admin after refresh'
+          : currentUser?.id === userId
+            ? 'Platform admin revoked'
+            : 'Platform admin revoked'
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Update failed');
     } finally {
@@ -128,6 +143,7 @@ export function AdminUserDetailPage() {
     try {
       const data = await updateAdminUser(userId, { role });
       setUser(data.user);
+      await refreshSessionIfAffected(userId);
       toast.success('Team role updated');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Update failed');
@@ -144,7 +160,12 @@ export function AdminUserDetailPage() {
     try {
       const data = await updateAdminUser(userId, { subscriptionTier });
       setUser(data.user);
-      toast.success('Subscription tier updated');
+      await refreshSessionIfAffected(userId);
+      toast.success(
+        currentUser?.id === userId
+          ? 'Subscription tier updated'
+          : 'Subscription tier updated — user will see changes after refresh'
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Update failed');
     } finally {

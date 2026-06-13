@@ -64,6 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
+  useEffect(() => {
+    const refreshOnFocus = () => {
+      if (getStoredToken()) {
+        void checkAuth();
+      }
+    };
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
+  }, [checkAuth]);
+
   const sendMagicLink = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
       await apiRequest<{ message: string }>('/api/auth/magic-link', {

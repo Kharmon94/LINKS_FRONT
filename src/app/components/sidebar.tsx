@@ -27,6 +27,8 @@ export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopTogg
   const { isDark, toggleTheme } = useTheme();
   const { permissions, limits, platformAdmin } = usePermissions();
 
+  const showUpgradeCta = user?.subscriptionTier === 'free';
+
   const handleSignOut = () => {
     void logout();
     window.location.href = '/';
@@ -129,13 +131,15 @@ export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopTogg
                   <p className="text-xs text-muted-foreground mt-1">
                     {limits.links.used}/{limits.links.max ?? '∞'} links used
                   </p>
-                  <Link 
-                    to="/settings"
-                    onClick={onClose}
-                    className="text-xs text-primary hover:underline mt-2 inline-block"
-                  >
-                    Upgrade to Pro
-                  </Link>
+                  {showUpgradeCta && (
+                    <Link 
+                      to="/settings"
+                      onClick={onClose}
+                      className="text-xs text-primary hover:underline mt-2 inline-block"
+                    >
+                      Upgrade to Pro
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -220,12 +224,14 @@ export function Sidebar({ id, isOpen, onClose, isDesktopCollapsed, onDesktopTogg
                 <p className="text-xs text-muted-foreground mt-1">
                   {limits.links.used}/{limits.links.max ?? '∞'} links used
                 </p>
-                <Link 
-                  to="/settings"
-                  className="text-xs text-primary hover:underline mt-2 inline-block"
-                >
-                  Upgrade to Pro
-                </Link>
+                {showUpgradeCta && (
+                  <Link 
+                    to="/settings"
+                    className="text-xs text-primary hover:underline mt-2 inline-block"
+                  >
+                    Upgrade to Pro
+                  </Link>
+                )}
               </div>
             )}
           </div>

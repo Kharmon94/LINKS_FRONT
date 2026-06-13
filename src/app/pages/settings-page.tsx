@@ -797,7 +797,7 @@ export function SettingsPage() {
                     Upgrade plan
                   </Button>
                 ) : null}
-                {user?.subscriptionTier !== 'free' && (
+                {can.portal && (
                   <Button
                     size="lg"
                     variant="outline"
