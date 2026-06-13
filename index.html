@@ -8,8 +8,9 @@
       <title>Links.BlackCollar.io</title>
       <script>
         (function () {
+          var reserved = %RESERVED_SHORT_LINK_SLUGS%;
           var match = location.pathname.match(/^\/([a-z0-9]{4,32})$/);
-          if (!match) return;
+          if (!match || reserved.indexOf(match[1]) !== -1) return;
           var api = '%VITE_API_URL%'.replace(/\/$/, '');
           if (!api) return;
           location.replace(api + '/' + match[1] + location.search + location.hash);

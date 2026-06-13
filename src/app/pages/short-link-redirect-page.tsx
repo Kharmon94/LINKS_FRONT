@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router';
-
-const SHORT_CODE_PATTERN = /^[a-z0-9]{4,32}$/;
+import { isShortLinkSlug } from '@/app/config/reserved-slugs';
 
 /** Resolve where short-link GET requests must be handled (Rails RedirectsController). */
 export function resolveShortLinkRedirectUrl(shortCode: string, search: string): string {
@@ -19,13 +18,13 @@ export function ShortLinkRedirectPage() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    if (!SHORT_CODE_PATTERN.test(shortCode)) return;
+    if (!isShortLinkSlug(shortCode)) return;
     const search = searchParams.toString();
     const query = search ? `?${search}` : '';
     window.location.replace(resolveShortLinkRedirectUrl(shortCode, query));
   }, [shortCode, searchParams]);
 
-  if (!SHORT_CODE_PATTERN.test(shortCode)) {
+  if (!isShortLinkSlug(shortCode)) {
     return null;
   }
 
