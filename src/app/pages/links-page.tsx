@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '../contexts/auth-context';
 import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
@@ -21,6 +22,7 @@ import type { LinkJson, LinksListMeta } from '@/types';
 export function LinksPage() {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [links, setLinks] = useState<LinkJson[]>([]);
@@ -58,7 +60,7 @@ export function LinksPage() {
     return () => {
       cancelled = true;
     };
-  }, [can.readCampaigns]);
+  }, [can.readCampaigns, user?.activeWorkspaceId]);
 
   const loadOverview = useCallback(async ({ silent }: { silent: boolean }) => {
     if (!can.analytics) return;
@@ -94,10 +96,12 @@ export function LinksPage() {
   useLiveRefresh(loadOverview, {
     intervalMs: ANALYTICS_POLL_INTERVAL_MS,
     enabled: can.analytics,
+    reloadKey: user?.activeWorkspaceId,
   });
 
   const { refreshNow: refreshLinks } = useLiveRefresh(loadLinks, {
     intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    reloadKey: user?.activeWorkspaceId,
   });
 
   const totalLinks = meta?.total ?? links.length;

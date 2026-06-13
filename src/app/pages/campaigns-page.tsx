@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '../contexts/auth-context';
 import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
@@ -12,6 +13,7 @@ import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
 export function CampaignsPage() {
   const navigate = useNavigate();
   const { can } = usePermissions();
+  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +32,7 @@ export function CampaignsPage() {
   useLiveRefresh(loadCampaigns, {
     intervalMs: ANALYTICS_POLL_INTERVAL_MS,
     enabled: can.readCampaigns,
+    reloadKey: user?.activeWorkspaceId,
   });
 
   return (

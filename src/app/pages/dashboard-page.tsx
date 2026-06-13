@@ -21,7 +21,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { can } = usePermissions();
-  const { checkAuth } = useAuth();
+  const { checkAuth, user } = useAuth();
   const [links, setLinks] = useState<LinkJson[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [overviewClicks, setOverviewClicks] = useState<number | null>(null);
@@ -52,6 +52,7 @@ export function DashboardPage() {
   useLiveRefresh(loadDashboardData, {
     intervalMs: ANALYTICS_POLL_INTERVAL_MS,
     enabled: can.readLinks,
+    reloadKey: user?.activeWorkspaceId,
   });
 
   useEffect(() => {

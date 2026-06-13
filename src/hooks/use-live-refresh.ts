@@ -8,6 +8,8 @@ export interface UseLiveRefreshOptions {
   intervalMs?: number;
   enabled?: boolean;
   pauseWhenHidden?: boolean;
+  /** When this value changes, data is refetched immediately (e.g. active workspace id). */
+  reloadKey?: string | number | null;
 }
 
 export interface UseLiveRefreshResult {
@@ -22,6 +24,7 @@ export function useLiveRefresh(
     intervalMs = 10_000,
     enabled = true,
     pauseWhenHidden = true,
+    reloadKey,
   }: UseLiveRefreshOptions = {},
 ): UseLiveRefreshResult {
   const callbackRef = useRef(callback);
@@ -90,7 +93,7 @@ export function useLiveRefresh(
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       }
     };
-  }, [enabled, intervalMs, pauseWhenHidden, execute]);
+  }, [enabled, intervalMs, pauseWhenHidden, execute, reloadKey]);
 
   return { refreshNow, lastUpdatedAt, isRefreshing };
 }

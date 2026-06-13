@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '../contexts/auth-context';
 import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { BarChart3, TrendingUp, FolderKanban } from 'lucide-react';
@@ -16,6 +17,7 @@ function formatClickGrowth(growth: number): string {
 
 export function GlobalAnalyticsPage() {
   const { can } = usePermissions();
+  const { user } = useAuth();
   const [stats, setStats] = useState<OverviewAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +36,7 @@ export function GlobalAnalyticsPage() {
   useLiveRefresh(loadStats, {
     intervalMs: ANALYTICS_POLL_INTERVAL_MS,
     enabled: can.analytics,
+    reloadKey: user?.activeWorkspaceId,
   });
 
   return (
