@@ -5,7 +5,9 @@ import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { LinkCreatorForm } from '../components/link-creator-form';
 import { Plus, Search, Filter, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CardListSkeleton } from '../components/page-states';
@@ -28,6 +30,8 @@ export function LinksPage() {
   const [campaignFilter, setCampaignFilter] = useState('');
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [accountTotalClicks, setAccountTotalClicks] = useState<number | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [creatorFormKey, setCreatorFormKey] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -140,7 +144,10 @@ export function LinksPage() {
             <div className="flex justify-center">
               <Button
                 size="lg"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => {
+                  setCreatorFormKey((key) => key + 1);
+                  setCreateModalOpen(true);
+                }}
                 className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -245,7 +252,7 @@ export function LinksPage() {
           ) : links.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <p className="mb-2">{hasActiveFilters || debouncedQuery ? 'No links match your filters' : 'No links yet'}</p>
-              <p className="text-sm">Create your first link from the dashboard</p>
+              <p className="text-sm">Click Create Link above to get started</p>
             </div>
           ) : (
           <>
@@ -411,6 +418,22 @@ export function LinksPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Link</DialogTitle>
+          </DialogHeader>
+          <LinkCreatorForm
+            key={creatorFormKey}
+            idPrefix="links-modal"
+            onCreated={() => {
+              setCreateModalOpen(false);
+              void loadLinks();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </AppLayout>
     </FeatureGate>
   );
