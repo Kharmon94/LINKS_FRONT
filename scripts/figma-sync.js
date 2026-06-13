@@ -31,6 +31,8 @@ const FILES_TO_PRESERVE = [
   'src/app/pages/landing-page.tsx',
   'src/app/pages/links-page.tsx',
   'src/app/pages/dashboard-page.tsx',
+  'src/app/pages/global-analytics-page.tsx',
+  'src/services/analytics-api.ts',
   'src/app/pages/settings-page.tsx',
   'src/app/routes.tsx',
   'src/main.tsx',

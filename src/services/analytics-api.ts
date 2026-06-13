@@ -55,6 +55,7 @@ export interface OverviewAnalytics {
   topLinks: { shortUrl: string; clicks: number; percentage: number }[];
   topCampaigns: { campaign: string; clicks: number; percentage: number }[];
   topWorkspaces: { name: string; clicks: number; percentage: number }[];
+  recentClicks?: ClickEventJson[];
   clicksOverTime?: Record<AnalyticsPeriod, ChartPoint[]>;
   deviceBreakdown?: DeviceBreakdownItem[];
 }

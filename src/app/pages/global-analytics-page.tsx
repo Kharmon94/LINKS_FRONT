@@ -5,6 +5,12 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { BarChart3, TrendingUp, FolderKanban } from 'lucide-react';
 import { getAnalyticsOverview, type OverviewAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
+import { formatRelativeTime } from '@/lib/format-relative-time';
+
+function formatClickGrowth(growth: number): string {
+  if (growth === 0) return 'No change this week';
+  return `${growth > 0 ? '+' : ''}${growth}% this week`;
+}
 
 export function GlobalAnalyticsPage() {
   const { can } = usePermissions();
@@ -55,8 +61,7 @@ export function GlobalAnalyticsPage() {
                     <p className="text-3xl font-bold mb-1">{stats.totalClicks.toLocaleString()}</p>
                     <p className="text-xs text-green-500 flex items-center">
                       <TrendingUp className="w-3 h-3 mr-1" />
-                      {stats.clickGrowth >= 0 ? '+' : ''}
-                      {stats.clickGrowth}% this week
+                      {formatClickGrowth(stats.clickGrowth)}
                     </p>
                   </div>
 
@@ -175,6 +180,34 @@ export function GlobalAnalyticsPage() {
                     />
                   </div>
                 )}
+
+                <div className="bg-card rounded-lg p-5 shadow-lg">
+                  <h2 className="mb-4 text-[28px] text-center">Recent Activity</h2>
+                  <div className="space-y-3">
+                    {!stats.recentClicks || stats.recentClicks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
+                    ) : (
+                      stats.recentClicks.map((click) => (
+                        <div
+                          key={click.id}
+                          className="flex items-start justify-between gap-4 pb-3 last:pb-0 border-b border-border/30 last:border-0"
+                        >
+                          <div className="flex-1">
+                            <p className="text-sm font-medium mb-1">
+                              Link clicked: {click.shortUrl}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatRelativeTime(click.timestamp)}
+                            </p>
+                          </div>
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded shrink-0">
+                            +1 click
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">Unable to load analytics</div>
