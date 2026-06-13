@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ArrowLeft, Users, Plus, Trash2, UserMinus, Edit2, Save, Briefcase, Link2, MousePointerClick } from 'lucide-react';
@@ -31,30 +33,39 @@ export function WorkspaceDetailPage() {
   const [editedDescription, setEditedDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const refresh = async () => {
-    if (!workspaceId) return;
-    const [ws, team] = await Promise.all([getWorkspace(workspaceId), getTeam()]);
-    setWorkspace(ws);
-    setEditedName(ws.name);
-    setEditedDescription(ws.description);
-    setTeamMembers(team.members);
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const refresh = useCallback(
+    async ({ silent }: { silent: boolean }) => {
+      if (!workspaceId) return;
+      if (!silent) setLoading(true);
       try {
-        await refresh();
+        const [ws, team] = await Promise.all([getWorkspace(workspaceId), getTeam()]);
+        setWorkspace(ws);
+        setEditedName(ws.name);
+        setEditedDescription(ws.description);
+        setTeamMembers(team.members);
       } catch {
-        if (!cancelled) setWorkspace(null);
+        if (!silent) setWorkspace(null);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!silent) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [workspaceId]);
+    },
+    [workspaceId],
+  );
+
+  const { refreshNow } = useLiveRefresh(refresh, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    enabled: !!workspaceId,
+  });
+
+  const prevWorkspaceIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!workspaceId) return;
+    if (prevWorkspaceIdRef.current !== undefined && prevWorkspaceIdRef.current !== workspaceId) {
+      setWorkspace(null);
+      void refreshNow();
+    }
+    prevWorkspaceIdRef.current = workspaceId;
+  }, [workspaceId, refreshNow]);
 
   const workspaceMembers = workspace?.members ?? [];
   const availableMembers = teamMembers.filter(

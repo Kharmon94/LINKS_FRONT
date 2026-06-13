@@ -73,18 +73,23 @@ export interface EntityAnalytics {
   campaign?: { id: string; name: string; description: string };
 }
 
+export interface AnalyticsResponse<T> {
+  analytics: T;
+  generatedAt?: string;
+}
+
 export async function getAnalyticsOverview(): Promise<OverviewAnalytics> {
-  const data = await apiRequest<{ analytics: OverviewAnalytics }>('/api/v1/analytics/overview');
+  const data = await apiRequest<AnalyticsResponse<OverviewAnalytics>>('/api/v1/analytics/overview');
   return data.analytics;
 }
 
 export async function getLinkAnalytics(linkId: string): Promise<EntityAnalytics> {
-  const data = await apiRequest<{ analytics: EntityAnalytics }>(`/api/v1/links/${linkId}/analytics`);
+  const data = await apiRequest<AnalyticsResponse<EntityAnalytics>>(`/api/v1/links/${linkId}/analytics`);
   return data.analytics;
 }
 
 export async function getCampaignAnalytics(campaignId: string): Promise<EntityAnalytics> {
-  const data = await apiRequest<{ analytics: EntityAnalytics }>(
+  const data = await apiRequest<AnalyticsResponse<EntityAnalytics>>(
     `/api/v1/campaigns/${campaignId}/analytics`
   );
   return data.analytics;

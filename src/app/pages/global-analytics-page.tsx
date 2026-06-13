@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { BarChart3, TrendingUp, FolderKanban } from 'lucide-react';
 import { getAnalyticsOverview, type OverviewAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
@@ -17,22 +19,22 @@ export function GlobalAnalyticsPage() {
   const [stats, setStats] = useState<OverviewAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getAnalyticsOverview();
-        if (!cancelled) setStats(data);
-      } catch {
-        if (!cancelled) setStats(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const loadStats = useCallback(async ({ silent }: { silent: boolean }) => {
+    if (!silent) setLoading(true);
+    try {
+      const data = await getAnalyticsOverview();
+      setStats(data);
+    } catch {
+      setStats(null);
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
+
+  useLiveRefresh(loadStats, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    enabled: can.analytics,
+  });
 
   return (
     <FeatureGate allowed={can.analytics} featureName="Analytics">

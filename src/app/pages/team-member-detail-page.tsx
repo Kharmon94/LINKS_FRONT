@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -41,30 +43,42 @@ export function TeamMemberDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!memberId) return;
-    let cancelled = false;
-    (async () => {
+  const loadMemberData = useCallback(
+    async ({ silent }: { silent: boolean }) => {
+      if (!memberId) return;
+      if (!silent) setLoading(true);
       try {
         const [detail, clicks] = await Promise.all([
           getTeamMember(memberId),
           getTeamMemberClicks(memberId),
         ]);
-        if (!cancelled) {
-          setMember(detail);
-          setRole(detail.role);
-          setRecentClicks(clicks);
-        }
+        setMember(detail);
+        setRole(detail.role);
+        setRecentClicks(clicks);
       } catch {
-        if (!cancelled) setMember(null);
+        if (!silent) setMember(null);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!silent) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [memberId]);
+    },
+    [memberId],
+  );
+
+  const { refreshNow } = useLiveRefresh(loadMemberData, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    enabled: !!memberId,
+  });
+
+  const prevMemberIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!memberId) return;
+    if (prevMemberIdRef.current !== undefined && prevMemberIdRef.current !== memberId) {
+      setMember(null);
+      setRecentClicks([]);
+      void refreshNow();
+    }
+    prevMemberIdRef.current = memberId;
+  }, [memberId, refreshNow]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

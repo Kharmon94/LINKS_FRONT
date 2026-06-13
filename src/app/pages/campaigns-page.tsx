@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { FolderKanban, Plus } from 'lucide-react';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
-import { ApiError } from '@/services/api';
 
 export function CampaignsPage() {
   const navigate = useNavigate();
@@ -14,22 +15,22 @@ export function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await listCampaigns();
-        if (!cancelled) setCampaigns(data);
-      } catch {
-        if (!cancelled) setCampaigns([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const loadCampaigns = useCallback(async ({ silent }: { silent: boolean }) => {
+    if (!silent) setLoading(true);
+    try {
+      const data = await listCampaigns();
+      setCampaigns(data);
+    } catch {
+      setCampaigns([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
+
+  useLiveRefresh(loadCampaigns, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    enabled: can.readCampaigns,
+  });
 
   return (
     <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">

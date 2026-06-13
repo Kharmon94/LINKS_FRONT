@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -58,24 +60,18 @@ export function LinksPage() {
     };
   }, [can.readCampaigns]);
 
-  useEffect(() => {
+  const loadOverview = useCallback(async ({ silent }: { silent: boolean }) => {
     if (!can.analytics) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const overview = await getAnalyticsOverview();
-        if (!cancelled) setAccountTotalClicks(overview.totalClicks);
-      } catch {
-        if (!cancelled) setAccountTotalClicks(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const overview = await getAnalyticsOverview();
+      setAccountTotalClicks(overview.totalClicks);
+    } catch {
+      if (!silent) setAccountTotalClicks(null);
+    }
   }, [can.analytics]);
 
-  const loadLinks = useCallback(async () => {
-    setListLoading(true);
+  const loadLinks = useCallback(async ({ silent }: { silent: boolean }) => {
+    if (!silent) setListLoading(true);
     try {
       const data = await listLinks({
         q: debouncedQuery || undefined,
@@ -89,15 +85,20 @@ export function LinksPage() {
     } catch {
       setLinks([]);
       setMeta(null);
-      toast.error('Could not load links');
+      if (!silent) toast.error('Could not load links');
     } finally {
-      setListLoading(false);
+      if (!silent) setListLoading(false);
     }
   }, [debouncedQuery, linkTypeFilter, campaignFilter, page]);
 
-  useEffect(() => {
-    void loadLinks();
-  }, [loadLinks]);
+  useLiveRefresh(loadOverview, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    enabled: can.analytics,
+  });
+
+  const { refreshNow: refreshLinks } = useLiveRefresh(loadLinks, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+  });
 
   const totalLinks = meta?.total ?? links.length;
   const randomizerCount = links.filter((link) => link.isRandomizer).length;
@@ -115,7 +116,7 @@ export function LinksPage() {
     try {
       await deleteLink(id);
       toast.success('Link deleted');
-      void loadLinks();
+      void refreshLinks();
     } catch {
       toast.error('Could not delete link');
     }
@@ -429,7 +430,7 @@ export function LinksPage() {
             idPrefix="links-modal"
             onCreated={() => {
               setCreateModalOpen(false);
-              void loadLinks();
+              void refreshLinks();
             }}
           />
         </DialogContent>

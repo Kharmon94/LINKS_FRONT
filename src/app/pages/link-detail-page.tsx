@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_DETAIL_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
 import QRCode from 'qrcode';
@@ -38,68 +40,65 @@ export function LinkDetailPage() {
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
 
+  const loadLinkData = useCallback(
+    async ({ silent }: { silent: boolean }) => {
+      if (!linkId) return;
+      if (!silent) {
+        setLinkLoading(true);
+        setAnalyticsLoading(can.analytics);
+        setClicksLoading(true);
+        setAnalyticsDenied(false);
+      }
+
+      const linkPromise = getLink(linkId)
+        .then((linkData) => setLink(linkData))
+        .catch(() => setLink(null))
+        .finally(() => {
+          if (!silent) setLinkLoading(false);
+        });
+
+      const analyticsPromise = can.analytics
+        ? getLinkAnalytics(linkId)
+            .then((analyticsData) => setAnalytics(analyticsData))
+            .catch((err) => {
+              setAnalytics(null);
+              if (err instanceof ApiError && err.status === 403) {
+                setAnalyticsDenied(true);
+              }
+            })
+            .finally(() => {
+              if (!silent) setAnalyticsLoading(false);
+            })
+        : Promise.resolve();
+
+      const clicksPromise = getLinkClicks(linkId, 1, 10)
+        .then((clicksData) => setRecentClicks(clicksData.clicks))
+        .catch(() => setRecentClicks([]))
+        .finally(() => {
+          if (!silent) setClicksLoading(false);
+        });
+
+      await Promise.all([linkPromise, analyticsPromise, clicksPromise]);
+    },
+    [linkId, can.analytics],
+  );
+
+  const { refreshNow } = useLiveRefresh(loadLinkData, {
+    intervalMs: ANALYTICS_DETAIL_POLL_INTERVAL_MS,
+    enabled: !!linkId,
+  });
+
+  const prevLinkIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!linkId) return;
-    let cancelled = false;
-    (async () => {
-      setLinkLoading(true);
-      try {
-        const linkData = await getLink(linkId);
-        if (!cancelled) setLink(linkData);
-      } catch {
-        if (!cancelled) setLink(null);
-      } finally {
-        if (!cancelled) setLinkLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [linkId]);
-
-  useEffect(() => {
-    if (!linkId || !can.analytics) return;
-    let cancelled = false;
-    (async () => {
-      setAnalyticsLoading(true);
-      setAnalyticsDenied(false);
-      try {
-        const analyticsData = await getLinkAnalytics(linkId);
-        if (!cancelled) setAnalytics(analyticsData);
-      } catch (err) {
-        if (!cancelled) {
-          setAnalytics(null);
-          if (err instanceof ApiError && err.status === 403) {
-            setAnalyticsDenied(true);
-          }
-        }
-      } finally {
-        if (!cancelled) setAnalyticsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [linkId, can.analytics]);
-
-  useEffect(() => {
-    if (!linkId) return;
-    let cancelled = false;
-    (async () => {
-      setClicksLoading(true);
-      try {
-        const clicksData = await getLinkClicks(linkId, 1, 10);
-        if (!cancelled) setRecentClicks(clicksData.clicks);
-      } catch {
-        if (!cancelled) setRecentClicks([]);
-      } finally {
-        if (!cancelled) setClicksLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [linkId]);
+    if (prevLinkIdRef.current !== undefined && prevLinkIdRef.current !== linkId) {
+      setLink(null);
+      setAnalytics(null);
+      setRecentClicks([]);
+      void refreshNow();
+    }
+    prevLinkIdRef.current = linkId;
+  }, [linkId, refreshNow]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

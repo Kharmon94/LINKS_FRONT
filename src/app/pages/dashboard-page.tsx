@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { apiRequest } from '@/services/api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
@@ -8,6 +8,8 @@ import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { LinkCreatorForm } from '../components/link-creator-form';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { useAuth } from '../contexts/auth-context';
 import { Button } from '../components/ui/button';
 import { UserGuide } from '../components/user-guide';
@@ -23,52 +25,33 @@ export function DashboardPage() {
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [overviewClicks, setOverviewClicks] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!can.analytics) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const overview = await getAnalyticsOverview();
-        if (!cancelled) setOverviewClicks(overview.totalClicks);
-      } catch {
-        if (!cancelled) setOverviewClicks(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [can.analytics]);
+  const loadDashboardData = useCallback(async () => {
+    const fetches: Promise<void>[] = [
+      apiRequest<{ links: LinkJson[] }>('/api/v1/links')
+        .then((data) => setLinks(data.links))
+        .catch(() => setLinks([])),
+    ];
+    if (can.analytics) {
+      fetches.push(
+        getAnalyticsOverview()
+          .then((overview) => setOverviewClicks(overview.totalClicks))
+          .catch(() => setOverviewClicks(null)),
+      );
+    }
+    if (can.readCampaigns) {
+      fetches.push(
+        listCampaigns()
+          .then((data) => setCampaigns(data))
+          .catch(() => setCampaigns([])),
+      );
+    }
+    await Promise.all(fetches);
+  }, [can.analytics, can.readCampaigns]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiRequest<{ links: LinkJson[] }>('/api/v1/links');
-        if (!cancelled) setLinks(data.links);
-      } catch {
-        if (!cancelled) setLinks([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!can.readCampaigns) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await listCampaigns();
-        if (!cancelled) setCampaigns(data);
-      } catch {
-        if (!cancelled) setCampaigns([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [can.readCampaigns]);
+  useLiveRefresh(loadDashboardData, {
+    intervalMs: ANALYTICS_POLL_INTERVAL_MS,
+    enabled: can.readLinks,
+  });
 
   useEffect(() => {
     if (searchParams.get('checkout') !== 'success') return;

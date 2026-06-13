@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useLiveRefresh } from '@/hooks/use-live-refresh';
+import { ANALYTICS_DETAIL_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Plus, Copy, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { getCampaign, type CampaignJson, type LinkInCampaign } from '@/services/campaigns-api';
@@ -26,52 +28,61 @@ export function CampaignDetailPage() {
   const [isCampaignLinksOpen, setIsCampaignLinksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
 
+  const loadCampaignData = useCallback(
+    async ({ silent }: { silent: boolean }) => {
+      if (!campaignId) return;
+      if (!silent) {
+        setCampaignLoading(true);
+        setAnalyticsLoading(can.analytics);
+        setAnalyticsDenied(false);
+      }
+
+      const campaignPromise = getCampaign(campaignId)
+        .then((camp) => setCampaign(camp))
+        .catch((err) => {
+          if (!silent) {
+            toast.error(err instanceof ApiError ? err.message : 'Failed to load campaign');
+          }
+          setCampaign(null);
+        })
+        .finally(() => {
+          if (!silent) setCampaignLoading(false);
+        });
+
+      const analyticsPromise = can.analytics
+        ? getCampaignAnalytics(campaignId)
+            .then((stats) => setAnalytics(stats))
+            .catch((err) => {
+              setAnalytics(null);
+              if (err instanceof ApiError && err.status === 403) {
+                setAnalyticsDenied(true);
+              }
+            })
+            .finally(() => {
+              if (!silent) setAnalyticsLoading(false);
+            })
+        : Promise.resolve();
+
+      await Promise.all([campaignPromise, analyticsPromise]);
+    },
+    [campaignId, can.analytics],
+  );
+
+  const { refreshNow } = useLiveRefresh(loadCampaignData, {
+    intervalMs: ANALYTICS_DETAIL_POLL_INTERVAL_MS,
+    enabled: !!campaignId,
+  });
+
+  const prevCampaignIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!campaignId) return;
-    let cancelled = false;
-    (async () => {
-      setCampaignLoading(true);
-      try {
-        const camp = await getCampaign(campaignId);
-        if (!cancelled) setCampaign(camp);
-      } catch (err) {
-        if (!cancelled) {
-          toast.error(err instanceof ApiError ? err.message : 'Failed to load campaign');
-          setCampaign(null);
-        }
-      } finally {
-        if (!cancelled) setCampaignLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [campaignId]);
-
-  useEffect(() => {
-    if (!campaignId || !can.analytics) return;
-    let cancelled = false;
-    (async () => {
-      setAnalyticsLoading(true);
-      setAnalyticsDenied(false);
-      try {
-        const stats = await getCampaignAnalytics(campaignId);
-        if (!cancelled) setAnalytics(stats);
-      } catch (err) {
-        if (!cancelled) {
-          setAnalytics(null);
-          if (err instanceof ApiError && err.status === 403) {
-            setAnalyticsDenied(true);
-          }
-        }
-      } finally {
-        if (!cancelled) setAnalyticsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [campaignId, can.analytics]);
+    if (prevCampaignIdRef.current !== undefined && prevCampaignIdRef.current !== campaignId) {
+      setCampaign(null);
+      setAnalytics(null);
+      void refreshNow();
+    }
+    prevCampaignIdRef.current = campaignId;
+  }, [campaignId, refreshNow]);
 
   const formatTimestamp = (timestamp: string) =>
     new Date(timestamp).toLocaleString('en-US', {
