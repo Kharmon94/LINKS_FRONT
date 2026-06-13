@@ -1,12 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Users, Mail } from 'lucide-react';
-import { getTeam, inviteTeamMember, type TeamMemberJson } from '@/services/team-api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Users, Mail, Clock } from 'lucide-react';
+import {
+  getTeam,
+  inviteTeamMember,
+  type TeamMemberJson,
+  type TeamInvitationJson,
+} from '@/services/team-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -14,18 +20,28 @@ export function TeamPage() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'member' | 'admin'>('member');
   const [members, setMembers] = useState<TeamMemberJson[]>([]);
+  const [invitations, setInvitations] = useState<TeamInvitationJson[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviting, setInviting] = useState(false);
+
+  const loadTeam = useCallback(async () => {
+    const data = await getTeam();
+    setMembers(data.members);
+    setInvitations(data.invitations);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await getTeam();
-        if (!cancelled) setMembers(data.members);
+        await loadTeam();
       } catch {
-        if (!cancelled) setMembers([]);
+        if (!cancelled) {
+          setMembers([]);
+          setInvitations([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -33,18 +49,18 @@ export function TeamPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadTeam]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!can.inviteTeam) return;
     setInviting(true);
     try {
-      await inviteTeamMember(inviteEmail.trim());
+      await inviteTeamMember(inviteEmail.trim(), inviteRole);
       toast.success(`Invitation sent to ${inviteEmail}`);
       setInviteEmail('');
-      const data = await getTeam();
-      setMembers(data.members);
+      setInviteRole('member');
+      await loadTeam();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not send invitation');
     } finally {
@@ -61,6 +77,15 @@ export function TeamPage() {
       default:
         return 'bg-muted text-muted-foreground';
     }
+  };
+
+  const formatExpiry = (expiresAt?: string) => {
+    if (!expiresAt) return 'No expiry';
+    return new Date(expiresAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
   return (
@@ -91,6 +116,15 @@ export function TeamPage() {
                       className="h-10 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
                     />
                   </div>
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as typeof inviteRole)}>
+                    <SelectTrigger className="h-10 w-full sm:w-[140px] rounded-full bg-muted border-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     type="submit"
                     disabled={inviting}
@@ -139,16 +173,48 @@ export function TeamPage() {
               )}
             </div>
 
+            {!loading && invitations.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-xl mb-4 text-center">Pending Invitations</h2>
+                <div className="space-y-3">
+                  {invitations.map((invitation) => (
+                    <div
+                      key={invitation.id}
+                      className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center shrink-0">
+                            <Mail className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm mb-0.5 truncate">{invitation.email}</h3>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Expires {formatExpiry(invitation.expiresAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-xs px-3 py-1 rounded-full font-medium ${getRoleBadgeColor(invitation.role)}`}
+                        >
+                          {invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-4">
                 <p className="text-xs text-muted-foreground mb-1 text-center">Total Members</p>
                 <p className="text-3xl text-center">{members.length}</p>
               </div>
               <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-4">
-                <p className="text-xs text-muted-foreground mb-1 text-center">Admins</p>
-                <p className="text-3xl text-center">
-                  {members.filter((m) => m.role === 'admin').length}
-                </p>
+                <p className="text-xs text-muted-foreground mb-1 text-center">Pending Invites</p>
+                <p className="text-3xl text-center">{invitations.length}</p>
               </div>
             </div>
           </div>

@@ -79,6 +79,18 @@ export const router = createBrowserRouter([
         Component: OAuthCompletePage,
       },
       {
+        path: "/accept-invite/:token",
+        Component: AcceptInvitePage,
+      },
+      {
+        path: "/auth/accept-invite/:token",
+        Component: AcceptInvitePage,
+      },
+      {
+        path: "/team/accept/:token",
+        Component: AcceptInvitePage,
+      },
+      {
         path: "/admin/login",
         Component: AdminLoginPage,
       },
@@ -158,18 +170,6 @@ export const router = createBrowserRouter([
       {
         path: "/team/:memberId",
         element: <ProtectedRoute><TeamMemberDetailPage /></ProtectedRoute>,
-      },
-      {
-        path: "/accept-invite/:token",
-        element: <ProtectedRoute><AcceptInvitePage /></ProtectedRoute>,
-      },
-      {
-        path: "/auth/accept-invite/:token",
-        element: <ProtectedRoute><AcceptInvitePage /></ProtectedRoute>,
-      },
-      {
-        path: "/team/accept/:token",
-        element: <ProtectedRoute><AcceptInvitePage /></ProtectedRoute>,
       },
       {
         path: "/workspaces",

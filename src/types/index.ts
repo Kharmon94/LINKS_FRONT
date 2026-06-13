@@ -12,6 +12,7 @@ export interface TeamPermissions {
   read: boolean;
   invite: boolean;
   manage: boolean;
+  removeMember?: boolean;
 }
 
 export interface SettingsPermissions {
@@ -43,6 +44,7 @@ export interface ResourceLimits {
 export interface UserLimits {
   links: ResourceLimits;
   campaigns: ResourceLimits;
+  domains: ResourceLimits;
 }
 
 export interface User {
@@ -252,6 +254,7 @@ export interface LinkJson {
   linkType?: 'single' | 'randomizer';
   campaign?: LinkCampaign | null;
   campaignId?: string | null;
+  customDomainId?: string | null;
   isRandomizer?: boolean;
   poolEntries?: { id: string; url: string; weight: number; position: number }[];
   utmParams?: {

@@ -83,7 +83,7 @@ export function TeamMemberDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!memberId || !can.manageTeam) return;
+    if (!memberId || !can.removeTeamMember) return;
     if (!confirm('Are you sure you want to remove this team member? This action cannot be undone.')) {
       return;
     }
@@ -212,17 +212,20 @@ export function TeamMemberDetailPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex gap-3">
-                    <Button type="submit" disabled={saving}>
-                      <Save className="w-4 h-4 mr-2" />
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                    <Button type="button" variant="destructive" onClick={handleDelete}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Remove Member
-                    </Button>
-                  </div>
+                  <Button type="submit" disabled={saving}>
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
                 </form>
+              )}
+
+              {can.removeTeamMember && member.role !== 'owner' && (
+                <div className={can.manageTeam ? 'mt-4' : 'border-t pt-6 mt-6'}>
+                  <Button type="button" variant="destructive" onClick={handleDelete}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove Member
+                  </Button>
+                </div>
               )}
             </div>
 

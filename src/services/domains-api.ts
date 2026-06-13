@@ -43,3 +43,19 @@ export async function verifyDomain(id: string, force = false): Promise<CustomDom
   );
   return data.domain;
 }
+
+/** DNS CNAME target shown in Settings (Step 2). Defaults to VITE_API_URL host or api.blackcollar.io. */
+export function customDomainCnameTarget(): string {
+  const explicit = import.meta.env.VITE_CUSTOM_DOMAIN_CNAME_TARGET as string | undefined;
+  if (explicit?.trim()) return explicit.trim();
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (apiUrl?.trim()) {
+    try {
+      const host = new URL(apiUrl.trim()).hostname;
+      if (host) return host;
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  return 'api.blackcollar.io';
+}

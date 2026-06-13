@@ -48,8 +48,9 @@ export function AcceptInvitePage() {
   const handleAccept = async () => {
     if (!token) return;
     if (!isAuthenticated) {
-      sessionStorage.setItem('post_auth_redirect', `/team/accept/${token}`);
-      navigate(`/auth?returnTo=${encodeURIComponent(`/team/accept/${token}`)}`);
+      const returnPath = `/accept-invite/${token}`;
+      sessionStorage.setItem('post_auth_redirect', returnPath);
+      navigate(`/auth?returnTo=${encodeURIComponent(returnPath)}`);
       return;
     }
     setAccepting(true);

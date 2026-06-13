@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { FeatureGate } from '../components/feature-gate';
@@ -17,8 +17,9 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { getLink, updateLink, deleteLink } from '@/services/links-api';
+import { getLink, updateLink, deleteLink, shortLinkHost } from '@/services/links-api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
+import { listDomains, type CustomDomainJson } from '@/services/domains-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -57,6 +58,11 @@ export function LinkEditPage() {
   const [isCampaignOpen, setIsCampaignOpen] = useState(true);
   const [isLinkTypeOpen, setIsLinkTypeOpen] = useState(true);
 
+  const [availableDomains, setAvailableDomains] = useState<CustomDomainJson[]>([]);
+  const [selectedDomainId, setSelectedDomainId] = useState('');
+  const [shortCode, setShortCode] = useState('');
+  const platformHost = shortLinkHost();
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -69,6 +75,8 @@ export function LinkEditPage() {
         setLinkData({ shortUrl: link.shortUrl, fullShortUrl: link.fullShortUrl || `https://${link.shortUrl}` });
         setLinkName(link.name);
         setDestinationUrl(link.originalUrl);
+        setShortCode(link.shortCode);
+        setSelectedDomainId(link.customDomainId || '');
         setIsRandomizer(link.isRandomizer ?? false);
         setCampaignId(link.campaignId || '');
         setCampaigns(campaignList);
@@ -97,6 +105,46 @@ export function LinkEditPage() {
       cancelled = true;
     };
   }, [linkId, navigate, can.readCampaigns]);
+
+  useEffect(() => {
+    if (!can.domains) {
+      setAvailableDomains([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const domains = await listDomains();
+        if (!cancelled) {
+          setAvailableDomains(domains.filter((d) => d.status === 'verified'));
+        }
+      } catch {
+        if (!cancelled) setAvailableDomains([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [can.domains]);
+
+  const domainOptions: CustomDomainJson[] = useMemo(() => {
+    const platformOption: CustomDomainJson = {
+      id: '',
+      domain: platformHost,
+      status: 'verified',
+      isDefault: false,
+      createdAt: '',
+    };
+    return [platformOption, ...availableDomains];
+  }, [availableDomains, platformHost]);
+
+  const selectedDomainHost =
+    domainOptions.find((d) => d.id === selectedDomainId)?.domain ?? platformHost;
+
+  const previewShortUrl = `${selectedDomainHost}/${shortCode}`;
+  const previewFullShortUrl = `https://${previewShortUrl}`;
+  const displayShortUrl = can.domains ? previewShortUrl : linkData.shortUrl;
+  const displayFullShortUrl = can.domains ? previewFullShortUrl : linkData.fullShortUrl;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text.startsWith('http') ? text : `https://${text}`);
@@ -128,6 +176,7 @@ export function LinkEditPage() {
         link_type: isRandomizer ? 'randomizer' : 'single',
         destination_url: isRandomizer ? undefined : destinationUrl,
         campaign_id: campaignId || null,
+        ...(can.domains ? { custom_domain_id: selectedDomainId || null } : {}),
         utm_source: utmSource || undefined,
         utm_medium: utmMedium || undefined,
         utm_campaign: utmCampaign || undefined,
@@ -217,16 +266,16 @@ export function LinkEditPage() {
               <h1 className="mb-2 text-center md:text-left text-[32px]">Edit Link</h1>
               <div className="flex items-center gap-2 justify-center md:justify-start">
                 <span className="text-primary font-medium">
-                  {linkData.shortUrl}
+                  {displayShortUrl}
                 </span>
                 <button
-                  onClick={() => copyToClipboard(linkData.shortUrl)}
+                  onClick={() => copyToClipboard(displayShortUrl)}
                   className="p-1 hover:bg-muted rounded"
                 >
                   <Copy className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => window.open(linkData.fullShortUrl, '_blank')}
+                  onClick={() => window.open(displayFullShortUrl, '_blank')}
                   className="p-1 hover:bg-muted rounded"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -253,6 +302,32 @@ export function LinkEditPage() {
               <p className="text-xs text-muted-foreground">Give this link a memorable name for easy identification</p>
             </div>
           </div>
+
+          {/* Short Link Domain */}
+          {can.domains && (
+            <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4">Short Link Domain</h2>
+              <div className="space-y-2">
+                <Label htmlFor="edit-domain">Domain</Label>
+                <select
+                  id="edit-domain"
+                  value={selectedDomainId}
+                  onChange={(e) => setSelectedDomainId(e.target.value)}
+                  className="w-full h-11 px-3 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
+                >
+                  {domainOptions.map((domain) => (
+                    <option key={domain.id || 'platform'} value={domain.id}>
+                      {domain.id ? domain.domain : `${domain.domain} (platform)`}
+                      {domain.isDefault ? ' — Default' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Preview: <span className="font-mono text-primary">{previewShortUrl}</span>
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Link Type Toggle */}
           <div className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg">

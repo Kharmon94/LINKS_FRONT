@@ -20,7 +20,7 @@ export interface LinkPayload {
   utm_campaign?: string;
   utm_term?: string;
   utm_content?: string;
-  custom_domain_id?: string;
+  custom_domain_id?: string | null;
   pool_entries_attributes?: PoolEntryInput[];
 }
 

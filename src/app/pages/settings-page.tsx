@@ -22,6 +22,8 @@ import {
   deleteDomain,
   listDomains,
   setDefaultDomain,
+  verifyDomain,
+  customDomainCnameTarget,
   type CustomDomainJson,
 } from '@/services/domains-api';
 import { createPortalSession } from '@/services/billing-api';
@@ -52,7 +54,7 @@ async function urlBase64ToUint8Array(base64String: string) {
 
 export function SettingsPage() {
   const { isAuthenticated, user, logout, checkAuth } = useAuth();
-  const { can } = usePermissions();
+  const { can, limits } = usePermissions();
   const navigate = useNavigate();
   
   const [name, setName] = useState(user?.name || '');
@@ -88,6 +90,9 @@ export function SettingsPage() {
   const [newDomain, setNewDomain] = useState('');
   const [domains, setDomains] = useState<CustomDomainJson[]>([]);
   const [domainsLoading, setDomainsLoading] = useState(false);
+  const [verifyingDomainId, setVerifyingDomainId] = useState<string | null>(null);
+
+  const cnameTarget = customDomainCnameTarget();
 
   useEffect(() => {
     if (!isAuthenticated || !can.manageDomains) return;
@@ -184,7 +189,6 @@ export function SettingsPage() {
   };
 
   const tier = (user?.subscriptionTier || 'free') as SubscriptionTier;
-  const limits = user?.limits;
 
   const handleLogout = () => {
     logout();
@@ -231,6 +235,23 @@ export function SettingsPage() {
       toast.success('Domain removed');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not remove domain');
+    }
+  };
+
+  const handleVerifyDomain = async (domainId: string) => {
+    setVerifyingDomainId(domainId);
+    try {
+      const updated = await verifyDomain(domainId);
+      setDomains((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+      if (updated.status === 'verified') {
+        toast.success(`${updated.domain} verified successfully`);
+      } else {
+        toast.error('Verification failed — check that the TXT record is published');
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not verify domain');
+    } finally {
+      setVerifyingDomainId(null);
     }
   };
 
@@ -392,9 +413,15 @@ export function SettingsPage() {
             <TabsContent value="domains">
               <div className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Custom Domains</h2>
-                <p className="text-sm text-muted-foreground mb-6">
+                <p className="text-sm text-muted-foreground mb-2">
                   Use your own domain for branded short links. Add a custom domain and configure DNS to get started.
                 </p>
+                {limits.domains.max != null && (
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Domains: {limits.domains.used} / {limits.domains.max}
+                  </p>
+                )}
+                {limits.domains.max == null && <div className="mb-6" />}
 
                 {/* Add Domain Form */}
                 <form onSubmit={handleAddDomain} className="space-y-4 mb-8 pb-8 border-b border-border">
@@ -474,61 +501,96 @@ export function SettingsPage() {
                         </div>
                       </div>
 
-                      {/* DNS Configuration (only for pending domains) */}
-                      {domain.status === 'pending' && (
-                        <div className="mt-4 pt-4 border-t border-border">
-                          <p className="text-sm font-medium mb-2">DNS Configuration</p>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            Add the following DNS records to verify your domain:
-                          </p>
-                          
-                          {/* A Record */}
-                          <div className="bg-background rounded p-3 mb-2">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium">Type: A Record</span>
-                              <button
-                                onClick={() => copyDNSRecord('76.76.21.21')}
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                      {/* DNS Configuration */}
+                      {(domain.status === 'pending' || domain.status === 'verified') && (
+                        <div className="mt-4 pt-4 border-t border-border space-y-4">
+                          {domain.status === 'pending' && (
+                            <div>
+                              <p className="text-sm font-medium mb-2">Step 1 — Verify ownership (required)</p>
+                              <p className="text-xs text-muted-foreground mb-3">
+                                Add this TXT record, then click Verify DNS. Propagation can take a few minutes.
+                              </p>
+                              <div className="bg-background rounded p-3 mb-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-medium">Type: TXT</span>
+                                  {domain.verificationToken && (
+                                    <button
+                                      type="button"
+                                      onClick={() => copyDNSRecord(domain.verificationToken!)}
+                                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                      Copy value
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-muted-foreground">Name:</span>{' '}
+                                    <code className="break-all">_links-verification.{domain.domain}</code>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Value:</span>{' '}
+                                    <code className="break-all">{domain.verificationToken || '—'}</code>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="rounded-full"
+                                disabled={verifyingDomainId === domain.id || !domain.verificationToken}
+                                onClick={() => void handleVerifyDomain(domain.id)}
                               >
-                                <Copy className="w-3 h-3" />
-                                Copy
-                              </button>
+                                {verifyingDomainId === domain.id ? 'Verifying...' : 'Verify DNS'}
+                              </Button>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div>
-                                <span className="text-muted-foreground">Name:</span> @
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Value:</span> 76.76.21.21
-                              </div>
-                            </div>
-                          </div>
+                          )}
 
-                          {/* CNAME Record */}
-                          <div className="bg-background rounded p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium">Type: CNAME Record</span>
-                              <button
-                                onClick={() => copyDNSRecord('cname.blackcollar.io')}
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                <Copy className="w-3 h-3" />
-                                Copy
-                              </button>
+                          <div>
+                            <p className="text-sm font-medium mb-2">
+                              Step 2 — Route traffic (required for redirects)
+                            </p>
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded p-3 mb-3 text-xs text-muted-foreground space-y-2">
+                              <p>
+                                <span className="font-medium text-foreground">2a — Platform TLS (ops):</span>{' '}
+                                After TXT verification, add <code>{domain.domain}</code> to the API Railway service
+                                under Networking → Custom Domain. TLS is issued once DNS propagates.
+                              </p>
+                              <p>
+                                <span className="font-medium text-foreground">2b — Customer DNS:</span>{' '}
+                                Point the domain (or www subdomain) at the shared target below. Apex domains
+                                often need ALIAS/ANAME instead of CNAME — check your DNS provider.
+                              </p>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div>
-                                <span className="text-muted-foreground">Name:</span> www
+                            <div className="bg-background rounded p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium">Type: CNAME (or ALIAS for apex)</span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyDNSRecord(cnameTarget)}
+                                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                  Copy target
+                                </button>
                               </div>
-                              <div>
-                                <span className="text-muted-foreground">Value:</span> cname.blackcollar.io
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-muted-foreground">Name:</span> @ or www
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Target:</span>{' '}
+                                  <code className="break-all">{cnameTarget}</code>
+                                </div>
                               </div>
                             </div>
+                            {domain.status === 'pending' && (
+                              <p className="text-xs text-muted-foreground mt-3">
+                                Complete Step 1 first. Routing (Step 2) is separate and requires the Railway
+                                custom-domain registration before redirects will work.
+                              </p>
+                            )}
                           </div>
-
-                          <p className="text-xs text-muted-foreground mt-3">
-                            DNS changes can take up to 48 hours to propagate. We'll automatically verify your domain once the records are detected.
-                          </p>
                         </div>
                       )}
                     </div>

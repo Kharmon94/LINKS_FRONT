@@ -6,7 +6,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
   platformAdmin: false,
   links: { read: true, create: true, update: true, destroy: true },
   campaigns: { read: false, create: false, update: false, destroy: false },
-  team: { read: false, invite: false, manage: false },
+  team: { read: false, invite: false, manage: false, removeMember: false },
   workspaces: { read: false, create: false, update: false, destroy: false },
   settings: { billing: false, domains: false },
   analytics: { read: true },
@@ -16,6 +16,7 @@ const DEFAULT_PERMISSIONS: UserPermissions = {
 const DEFAULT_LIMITS: UserLimits = {
   links: { used: 0, max: 1 },
   campaigns: { used: 0, max: 0 },
+  domains: { used: 0, max: null },
 };
 
 export function usePermissions() {
@@ -38,6 +39,8 @@ export function usePermissions() {
         readTeam: user?.permissions?.team.read ?? false,
         inviteTeam: user?.permissions?.team.invite ?? false,
         manageTeam: user?.permissions?.team.manage ?? false,
+        removeTeamMember:
+          user?.permissions?.team.removeMember ?? user?.permissions?.team.invite ?? false,
         readWorkspaces: user?.permissions?.workspaces.read ?? false,
         createWorkspaces: user?.permissions?.workspaces.create ?? false,
         updateWorkspaces: user?.permissions?.workspaces.update ?? false,
