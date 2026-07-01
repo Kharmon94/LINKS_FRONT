@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PublicTopNav } from '../components/nav/public-top-nav';
 import { PublicBottomNav } from '../components/nav/public-bottom-nav';
+import { MOBILE_BOTTOM_NAV_CLEARANCE_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
 import { Calendar, Clock, Video, CheckCircle2 } from 'lucide-react';
 
@@ -34,7 +35,7 @@ export function BookACallPage() {
       <PublicTopNav />
       <PublicBottomNav />
 
-      <main className="flex-1 pt-20 lg:pt-[73px] pb-20">
+      <main className={`flex-1 pt-20 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
         <section className="px-4 py-16 sm:py-24">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">

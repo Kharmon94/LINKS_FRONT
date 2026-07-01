@@ -36,11 +36,16 @@ export const MOBILE_BOTTOM_NAV_HEIGHT = '3.5rem';
 /** Extra gap below tab labels so the iOS home indicator sits beneath the options. */
 export const MOBILE_BOTTOM_NAV_SAFE_PADDING = '1.5rem';
 
-/** Inner row for mobile bottom tab bars — tab options sit above the home indicator. */
-export const MOBILE_BOTTOM_NAV_INNER_CLASS = `flex items-stretch justify-around px-1 pb-[calc(${MOBILE_BOTTOM_NAV_SAFE_PADDING}+env(safe-area-inset-bottom,0px))]`;
+/**
+ * Inner row for mobile bottom tab bars — tab options sit above the home indicator.
+ * Class strings must be static (no template interpolation) so Tailwind emits them.
+ */
+export const MOBILE_BOTTOM_NAV_INNER_CLASS =
+  'flex items-stretch justify-around px-1 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]';
 
 /** Apply to layout `<main>` so scrollable content clears the fixed bottom nav on mobile. */
-export const MOBILE_BOTTOM_NAV_CLEARANCE_CLASS = `pb-[calc(${MOBILE_BOTTOM_NAV_HEIGHT}+${MOBILE_BOTTOM_NAV_SAFE_PADDING}+env(safe-area-inset-bottom,0px)+0.5rem)] lg:pb-0`;
+export const MOBILE_BOTTOM_NAV_CLEARANCE_CLASS =
+  'pb-[calc(3.5rem+1.5rem+env(safe-area-inset-bottom,0px)+0.5rem)] lg:pb-0';
 
 export const MOBILE_BOTTOM_NAV_Z_CLASS = 'z-[100]';
 

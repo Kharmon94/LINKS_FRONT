@@ -1,5 +1,6 @@
 import { PublicTopNav } from '../components/nav/public-top-nav';
 import { PublicBottomNav } from '../components/nav/public-bottom-nav';
+import { MOBILE_BOTTOM_NAV_CLEARANCE_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
 import { Link } from 'react-router';
 import { 
@@ -52,7 +53,7 @@ export function UseCasesPage() {
       <PublicTopNav />
       <PublicBottomNav />
 
-      <main className="flex-1 pt-20 lg:pt-[73px] pb-20">
+      <main className={`flex-1 pt-20 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
         {/* Subtle background pattern for glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         

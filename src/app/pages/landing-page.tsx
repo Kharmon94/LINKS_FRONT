@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PublicTopNav } from '../components/nav/public-top-nav';
 import { PublicBottomNav } from '../components/nav/public-bottom-nav';
+import { MOBILE_BOTTOM_NAV_CLEARANCE_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -102,7 +103,7 @@ export function LandingPage() {
       <PublicBottomNav />
 
       {/* Hero Section with Multi-Step Form */}
-      <main className="flex-1 pt-20 lg:pt-[73px] pb-20 relative">
+      <main className={`flex-1 pt-20 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS} relative`}>
         {/* Gradient background matching dashboard */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { PublicTopNav } from '../components/nav/public-top-nav';
 import { PublicBottomNav } from '../components/nav/public-bottom-nav';
+import { MOBILE_BOTTOM_NAV_CLEARANCE_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
 import { Link } from 'react-router';
 import { Check, ArrowRight, Loader2 } from 'lucide-react';
@@ -114,7 +115,7 @@ export function PricingPage() {
       <PublicTopNav />
       <PublicBottomNav />
 
-      <main className="flex-1 px-4 py-24 sm:py-32 pt-20 lg:pt-[73px] pb-20">
+      <main className={`flex-1 px-4 py-24 sm:py-32 pt-20 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl mb-4">Simple, Transparent Pricing</h1>
