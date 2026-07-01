@@ -12,6 +12,7 @@ export type NavMoreItem = {
   path: string;
   label: string;
   icon: LucideIcon;
+  external?: boolean;
 };
 
 type NavMoreSheetProps = {
@@ -46,16 +47,34 @@ export function NavMoreSheet({
             const Icon = item.icon;
             const isActive = isNavPathActive(location.pathname, item.path);
 
+            const itemClassName = `flex items-center gap-3 px-4 py-3 rounded-full transition-colors ${
+              isActive
+                ? 'bg-black dark:bg-white text-white dark:text-black'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`;
+
+            if (item.external) {
+              return (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => onOpenChange(false)}
+                  className={itemClassName}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-light">{item.label}</span>
+                </a>
+              );
+            }
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => onOpenChange(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-full transition-colors ${
-                  isActive
-                    ? 'bg-black dark:bg-white text-white dark:text-black'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
+                className={itemClassName}
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-light">{item.label}</span>

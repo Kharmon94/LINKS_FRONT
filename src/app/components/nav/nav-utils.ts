@@ -34,6 +34,9 @@ export const MOBILE_BOTTOM_NAV_Z_CLASS = 'z-[100]';
 
 export const NAV_MORE_SHEET_Z_CLASS = 'z-[110]';
 
+/** Workspace picker must render above the More sheet on mobile. */
+export const WORKSPACE_PICKER_Z_CLASS = 'z-[120]';
+
 export const topNavLinkClass =
   'text-xs uppercase tracking-wide transition-colors hover:text-foreground';
 

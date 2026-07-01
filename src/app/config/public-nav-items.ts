@@ -1,14 +1,35 @@
-import { Home, Tag, LogIn, type LucideIcon } from 'lucide-react';
+import {
+  Home,
+  Tag,
+  LogIn,
+  Package,
+  Lightbulb,
+  Calendar,
+  type LucideIcon,
+} from 'lucide-react';
 
 export type PublicNavLink = {
   label: string;
   href: string;
 };
 
+export type PublicOverflowNavItem = {
+  path: string;
+  label: string;
+  icon: LucideIcon;
+  external?: boolean;
+};
+
+export type PublicLandingNavItem = PublicNavLink & {
+  icon: LucideIcon;
+  mobilePlacement: 'tab' | 'overflow';
+};
+
 export type PublicMobileTab = {
   label: string;
   path: string;
   icon: LucideIcon;
+  external?: boolean;
 };
 
 export const DEFAULT_PUBLIC_NAV_LINKS: PublicNavLink[] = [
@@ -17,15 +38,74 @@ export const DEFAULT_PUBLIC_NAV_LINKS: PublicNavLink[] = [
   { label: 'About', href: '#' },
 ];
 
-export const LANDING_PUBLIC_NAV_LINKS: PublicNavLink[] = [
-  { label: 'Products', href: 'https://www.blackcollar.io' },
-  { label: 'Use Cases', href: '/use-cases' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Book a Call', href: '/book-a-call' },
+/** Single source of truth for landing desktop + mobile public navigation. */
+export const LANDING_PUBLIC_NAV_ITEMS: PublicLandingNavItem[] = [
+  {
+    label: 'Products',
+    href: 'https://www.blackcollar.io',
+    icon: Package,
+    mobilePlacement: 'overflow',
+  },
+  {
+    label: 'Use Cases',
+    href: '/use-cases',
+    icon: Lightbulb,
+    mobilePlacement: 'overflow',
+  },
+  {
+    label: 'Pricing',
+    href: '/pricing',
+    icon: Tag,
+    mobilePlacement: 'tab',
+  },
+  {
+    label: 'Book a Call',
+    href: '/book-a-call',
+    icon: Calendar,
+    mobilePlacement: 'overflow',
+  },
 ];
 
-export const PUBLIC_MOBILE_TABS: PublicMobileTab[] = [
-  { label: 'Home', path: '/', icon: Home },
-  { label: 'Pricing', path: '/pricing', icon: Tag },
-  { label: 'Login', path: '/auth', icon: LogIn },
-];
+export const LANDING_PUBLIC_NAV_LINKS: PublicNavLink[] = LANDING_PUBLIC_NAV_ITEMS.map(
+  ({ label, href }) => ({ label, href }),
+);
+
+const PUBLIC_MOBILE_HOME_TAB: PublicMobileTab = {
+  label: 'Home',
+  path: '/',
+  icon: Home,
+};
+
+const PUBLIC_MOBILE_LOGIN_TAB: PublicMobileTab = {
+  label: 'Login',
+  path: '/auth',
+  icon: LogIn,
+};
+
+function isExternalHref(href: string): boolean {
+  return href.startsWith('http://') || href.startsWith('https://');
+}
+
+export function getPublicMobileTabItems(): PublicMobileTab[] {
+  const navTabs = LANDING_PUBLIC_NAV_ITEMS.filter(
+    (item) => item.mobilePlacement === 'tab',
+  ).map((item) => ({
+    label: item.label,
+    path: item.href,
+    icon: item.icon,
+    external: isExternalHref(item.href),
+  }));
+
+  return [PUBLIC_MOBILE_HOME_TAB, ...navTabs, PUBLIC_MOBILE_LOGIN_TAB];
+}
+
+export function getPublicOverflowNavItems(): PublicOverflowNavItem[] {
+  return LANDING_PUBLIC_NAV_ITEMS.filter(
+    (item) => item.mobilePlacement === 'overflow',
+  ).map((item) => ({
+    path: item.href,
+    label: item.label,
+    icon: item.icon,
+    external: isExternalHref(item.href),
+  }));
+}
