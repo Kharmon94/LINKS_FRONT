@@ -20,17 +20,19 @@ export function OAuthCompletePage() {
     }
     setStoredToken(decodeURIComponent(token));
     window.history.replaceState(null, '', window.location.pathname);
-    checkAuth()
-      .then(() => {
-        const dest =
-          sessionStorage.getItem('post_auth_redirect') ||
-          sessionStorage.getItem('oauth_return_to') ||
-          '/dashboard';
-        sessionStorage.removeItem('post_auth_redirect');
-        sessionStorage.removeItem('oauth_return_to');
-        navigate(dest, { replace: true });
-      })
-      .catch(() => setError('Could not complete sign-in'));
+    void checkAuth().then((ok) => {
+      if (!ok) {
+        setError('Could not complete sign-in');
+        return;
+      }
+      const dest =
+        sessionStorage.getItem('post_auth_redirect') ||
+        sessionStorage.getItem('oauth_return_to') ||
+        '/dashboard';
+      sessionStorage.removeItem('post_auth_redirect');
+      sessionStorage.removeItem('oauth_return_to');
+      navigate(dest, { replace: true });
+    });
   }, [checkAuth, navigate]);
 
   if (error) {

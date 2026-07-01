@@ -2,8 +2,8 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { ArrowLeft, LogOut, MoreHorizontal, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/auth-context';
 import {
-  ADMIN_NAV_ITEMS,
-  getAdminOverflowItems,
+  getAdminDesktopOverflowItems,
+  getAdminDesktopPrimaryItems,
 } from '@/app/config/admin-nav-items';
 import { NavThemeToggle } from './nav-theme-toggle';
 import {
@@ -17,7 +17,8 @@ export function AdminTopNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const overflowItems = getAdminOverflowItems();
+  const primaryItems = getAdminDesktopPrimaryItems();
+  const overflowItems = getAdminDesktopOverflowItems();
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -32,7 +33,7 @@ export function AdminTopNav() {
       <header className="hidden md:block fixed top-0 inset-x-0 z-[100] border-b border-border/30 bg-background/95 backdrop-blur-md">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center h-[73px] px-4 sm:px-6 lg:px-8 gap-4">
           <nav className="flex items-center gap-4 justify-start min-w-0 overflow-x-auto">
-            {ADMIN_NAV_ITEMS.slice(0, 6).map((item) => (
+            {primaryItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}

@@ -25,7 +25,7 @@ interface AuthContextType {
   loginWithGoogle: () => void;
   signInWithPassword: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
+  checkAuth: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,13 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (): Promise<boolean> => {
     const token = getStoredToken();
     if (!token) {
       setUser(null);
       setIsAuthenticated(false);
       setLoading(false);
-      return;
+      return false;
     }
     try {
       const data = await apiRequest<SessionResponse>('/api/auth/session', {
@@ -55,12 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.token) setStoredToken(data.token);
       setUser(data.user);
       setIsAuthenticated(true);
+      return true;
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setStoredToken(null);
       }
       setUser(null);
       setIsAuthenticated(false);
+      return false;
     } finally {
       setLoading(false);
     }

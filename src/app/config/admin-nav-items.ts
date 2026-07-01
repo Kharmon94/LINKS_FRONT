@@ -41,3 +41,14 @@ export function getAdminMobileTabItems(): AdminNavItem[] {
 export function getAdminOverflowItems(): AdminNavItem[] {
   return ADMIN_NAV_ITEMS.filter((item) => !item.showOnMobileTab);
 }
+
+/** First six items shown inline in the desktop admin top bar. */
+export function getAdminDesktopPrimaryItems(): AdminNavItem[] {
+  return ADMIN_NAV_ITEMS.slice(0, 6);
+}
+
+/** Remaining admin routes for the desktop More menu (excludes inline primary items). */
+export function getAdminDesktopOverflowItems(): AdminNavItem[] {
+  const primaryPaths = new Set(getAdminDesktopPrimaryItems().map((item) => item.path));
+  return ADMIN_NAV_ITEMS.filter((item) => !primaryPaths.has(item.path));
+}
