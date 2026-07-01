@@ -27,13 +27,13 @@ export function getBottomNavMoreActive(
 export const MOBILE_BOTTOM_NAV_HEIGHT = '3.5rem';
 
 /** Extra gap below tab labels so the iOS home indicator sits beneath the options. */
-export const MOBILE_BOTTOM_NAV_SAFE_PADDING = '0.5rem';
+export const MOBILE_BOTTOM_NAV_SAFE_PADDING = '1rem';
 
 /** Inner row for mobile bottom tab bars — tab options sit above the home indicator. */
 export const MOBILE_BOTTOM_NAV_INNER_CLASS = `flex items-stretch justify-around px-1 pb-[calc(${MOBILE_BOTTOM_NAV_SAFE_PADDING}+env(safe-area-inset-bottom,0px))]`;
 
 /** Apply to layout `<main>` so scrollable content clears the fixed bottom nav on mobile. */
-export const MOBILE_BOTTOM_NAV_CLEARANCE_CLASS = `pb-[calc(${MOBILE_BOTTOM_NAV_HEIGHT}+${MOBILE_BOTTOM_NAV_SAFE_PADDING}+env(safe-area-inset-bottom,0px)+1rem)] lg:pb-0`;
+export const MOBILE_BOTTOM_NAV_CLEARANCE_CLASS = `pb-[calc(${MOBILE_BOTTOM_NAV_HEIGHT}+${MOBILE_BOTTOM_NAV_SAFE_PADDING}+env(safe-area-inset-bottom,0px)+0.5rem)] lg:pb-0`;
 
 export const MOBILE_BOTTOM_NAV_Z_CLASS = 'z-[100]';
 
