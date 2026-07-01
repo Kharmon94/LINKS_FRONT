@@ -8,6 +8,11 @@ import {
 } from '@/app/config/app-nav-items';
 import { WorkspaceSwitcher } from '../workspace-switcher';
 import { NavMoreSheet } from './nav-more-sheet';
+import {
+  getBottomNavMoreActive,
+  getBottomNavTabActive,
+  MOBILE_BOTTOM_NAV_Z_CLASS,
+} from './nav-utils';
 
 export function AppBottomNav() {
   const location = useLocation();
@@ -18,18 +23,21 @@ export function AppBottomNav() {
   const tabItems = getMobileTabNavItems(ctx);
   const overflowItems = getOverflowNavItems(ctx);
 
-  const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(`${path}/`);
-
-  const moreActive = overflowItems.some((item) => isActive(item.path));
+  const overflowPaths = overflowItems.map((item) => item.path);
+  const moreActive = getBottomNavMoreActive(location.pathname, overflowPaths, moreOpen);
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-[100] bg-black text-white border-t border-white/10">
+      <nav
+        aria-hidden={moreOpen}
+        className={`md:hidden fixed bottom-0 inset-x-0 ${MOBILE_BOTTOM_NAV_Z_CLASS} bg-black text-white border-t border-white/10 transition-opacity ${
+          moreOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
+        }`}
+      >
         <div className="flex items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)]">
           {tabItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.path);
+            const active = getBottomNavTabActive(location.pathname, item.path, moreOpen);
             return (
               <Link
                 key={item.path}

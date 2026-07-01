@@ -325,7 +325,7 @@ export function SettingsPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-background relative mx-[0px] mt-[20px] mb-[0px]">
+      <div className="min-h-0 bg-background relative mx-[0px] mt-[20px] mb-[0px]">
         {/* Subtle background pattern for glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         

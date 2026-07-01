@@ -6,6 +6,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '../ui/sheet';
+import { isNavPathActive, NAV_MORE_SHEET_Z_CLASS } from './nav-utils';
 
 export type NavMoreItem = {
   path: string;
@@ -32,16 +33,18 @@ export function NavMoreSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+      <SheetContent
+        side="bottom"
+        overlayClassName={NAV_MORE_SHEET_Z_CLASS}
+        className={`rounded-t-2xl ${NAV_MORE_SHEET_Z_CLASS} pb-[calc(2rem+env(safe-area-inset-bottom,0px))]`}
+      >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
         </SheetHeader>
         <nav className="mt-4 space-y-1">
           {items.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              location.pathname === item.path ||
-              location.pathname.startsWith(`${item.path}/`);
+            const isActive = isNavPathActive(location.pathname, item.path);
 
             return (
               <Link

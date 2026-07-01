@@ -48,9 +48,9 @@ export function WorkspaceSwitcher({ variant = 'default' }: WorkspaceSwitcherProp
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-[120]" onClick={() => setIsOpen(false)} />
           <div
-            className={`absolute top-full mt-2 bg-card shadow-lg z-50 overflow-hidden rounded-lg border border-border/30 ${
+            className={`absolute top-full mt-2 bg-card shadow-lg z-[121] overflow-hidden rounded-lg border border-border/30 ${
               isCompact ? 'right-0 min-w-[220px]' : 'left-0 right-0'
             }`}
           >
