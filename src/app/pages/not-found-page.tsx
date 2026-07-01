@@ -1,10 +1,15 @@
 import { Link, useLocation } from 'react-router';
+import { PublicTopNav } from '../components/nav/public-top-nav';
+import { PublicBottomNav } from '../components/nav/public-bottom-nav';
 
 export function NotFoundPage() {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <PublicTopNav />
+      <PublicBottomNav />
+      <main className="flex-1 flex items-center justify-center p-6 pt-20 md:pt-[73px] pb-20">
       <div className="max-w-lg w-full">
         <h1 className="text-2xl font-semibold mb-2">Page not found</h1>
         <p className="text-muted-foreground mb-6">
@@ -19,6 +24,7 @@ export function NotFoundPage() {
           </Link>
         </div>
       </div>
+      </main>
     </div>
   );
 }

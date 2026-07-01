@@ -3,19 +3,18 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Header } from './header';
+import { AuthTopNav } from './nav/auth-top-nav';
 import { Footer } from './footer';
-import logo from '@/assets/13a610c2eb52d37dcdb23da9c6c27891d7b11cf3.png';
 
 export function AuthScreen() {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header />
+      <AuthTopNav backTo="/" backLabel="Home" />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-24 sm:py-32">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-24 sm:py-32 pt-24">
         {/* Centered Logo */}
         <div className="mb-8 sm:mb-12">
           

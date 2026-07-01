@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { setStoredToken } from '@/services/api';
 import { useAuth } from '../contexts/auth-context';
+import { AuthTopNav } from '../components/nav/auth-top-nav';
 
 export function OAuthCompletePage() {
   const navigate = useNavigate();
@@ -34,16 +35,22 @@ export function OAuthCompletePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <p className="text-destructive">{error}</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <AuthTopNav backTo="/auth" backLabel="Sign in" />
+        <main className="flex-1 flex items-center justify-center p-6 pt-24">
+          <p className="text-destructive">{error}</p>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-      <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
-      <p className="text-muted-foreground">Completing sign-in…</p>
+    <div className="min-h-screen bg-background flex flex-col">
+      <AuthTopNav backTo="/auth" backLabel="Sign in" />
+      <main className="flex-1 flex flex-col items-center justify-center gap-4 pt-24">
+        <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">Completing sign-in…</p>
+      </main>
     </div>
   );
 }

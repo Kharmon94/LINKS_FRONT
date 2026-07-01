@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { Header } from '../components/header';
+import { AuthTopNav } from '../components/nav/auth-top-nav';
 import { Footer } from '../components/footer';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/auth-context';
@@ -68,8 +68,8 @@ export function AcceptInvitePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <AuthTopNav backTo="/auth" backLabel="Sign in" />
+      <main className="flex-1 flex items-center justify-center px-4 py-12 pt-24">
         <div className="max-w-md w-full bg-card rounded-lg p-8 shadow-lg text-center">
           {loading ? (
             <p className="text-muted-foreground">Loading invitation...</p>

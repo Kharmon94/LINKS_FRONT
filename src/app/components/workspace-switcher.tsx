@@ -4,7 +4,11 @@ import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useWorkspace } from '../contexts/workspace-context';
 import { usePermissions } from '@/hooks/use-permissions';
 
-export function WorkspaceSwitcher() {
+type WorkspaceSwitcherProps = {
+  variant?: 'default' | 'compact';
+};
+
+export function WorkspaceSwitcher({ variant = 'default' }: WorkspaceSwitcherProps) {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const { workspaces, currentWorkspace, loading, switchWorkspace } = useWorkspace();
@@ -20,16 +24,24 @@ export function WorkspaceSwitcher() {
     await switchWorkspace(workspaceId);
   };
 
+  const isCompact = variant === 'compact';
+
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-muted/50 rounded-full hover:bg-muted transition-colors"
+        className={
+          isCompact
+            ? 'inline-flex items-center gap-2 px-3 py-2 rounded-full bg-muted/50 hover:bg-muted transition-colors max-w-[200px]'
+            : 'w-full flex items-center justify-between gap-2 px-4 py-3 bg-muted/50 rounded-full hover:bg-muted transition-colors'
+        }
       >
-        <div className="flex-1 text-left">
-          <p className="text-sm font-medium truncate">{currentWorkspace.name}</p>
-          <p className="text-xs text-muted-foreground">Workspace</p>
+        <div className={`text-left min-w-0 ${isCompact ? '' : 'flex-1'}`}>
+          <p className={`truncate ${isCompact ? 'text-xs font-medium' : 'text-sm font-medium'}`}>
+            {currentWorkspace.name}
+          </p>
+          {!isCompact && <p className="text-xs text-muted-foreground">Workspace</p>}
         </div>
         <ChevronsUpDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </button>
@@ -37,7 +49,11 @@ export function WorkspaceSwitcher() {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 right-0 mt-2 bg-card shadow-lg z-50 overflow-hidden">
+          <div
+            className={`absolute top-full mt-2 bg-card shadow-lg z-50 overflow-hidden rounded-lg border border-border/30 ${
+              isCompact ? 'right-0 min-w-[220px]' : 'left-0 right-0'
+            }`}
+          >
             <div className="p-2 space-y-1">
               {workspaces.map((workspace) => (
                 <button

@@ -49,9 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const data = await apiRequest<{ user: User }>('/api/auth/session', {
+      const data = await apiRequest<SessionResponse>('/api/auth/session', {
         method: 'GET',
       });
+      if (data.token) setStoredToken(data.token);
       setUser(data.user);
       setIsAuthenticated(true);
     } catch (e) {
@@ -70,13 +71,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkAuth]);
 
   useEffect(() => {
-    const refreshOnFocus = () => {
+    const refreshSession = () => {
       if (getStoredToken()) {
         void checkAuth();
       }
     };
-    window.addEventListener('focus', refreshOnFocus);
-    return () => window.removeEventListener('focus', refreshOnFocus);
+    window.addEventListener('focus', refreshSession);
+    window.addEventListener('pageshow', refreshSession);
+    return () => {
+      window.removeEventListener('focus', refreshSession);
+      window.removeEventListener('pageshow', refreshSession);
+    };
   }, [checkAuth]);
 
   const sendMagicLink = async (email: string): Promise<{ success: boolean; message: string }> => {

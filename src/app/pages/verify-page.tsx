@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react';
+import { AuthTopNav } from '../components/nav/auth-top-nav';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -102,7 +103,9 @@ export function VerifyPage() {
   const isSignIn = mode === 'sign_in';
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <AuthTopNav backTo="/auth" backLabel="Sign in" />
+      <main className="flex-1 flex items-center justify-center px-4 pt-24 pb-8">
       <div className="w-full max-w-md">
         {status === 'loading' && (
           <div className="text-center">
@@ -217,6 +220,7 @@ export function VerifyPage() {
           </div>
         )}
       </div>
+      </main>
     </div>
   );
 }

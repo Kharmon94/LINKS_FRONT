@@ -13,38 +13,31 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-export type AdminNavPlacement = 'primary' | 'overflow';
-
 export type AdminNavItem = {
   path: string;
   label: string;
   icon: LucideIcon;
-  placement: AdminNavPlacement;
   showOnMobileTab: boolean;
 };
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { path: '/admin/overview', label: 'Overview', icon: LayoutDashboard, placement: 'primary', showOnMobileTab: true },
-  { path: '/admin/users', label: 'Users', icon: Users, placement: 'primary', showOnMobileTab: true },
-  { path: '/admin/links', label: 'Links', icon: LinkIcon, placement: 'primary', showOnMobileTab: true },
-  { path: '/admin/campaigns', label: 'Campaigns', icon: Megaphone, placement: 'primary', showOnMobileTab: true },
-  { path: '/admin/workspaces', label: 'Workspaces', icon: FolderKanban, placement: 'overflow', showOnMobileTab: false },
-  { path: '/admin/domains', label: 'Domains', icon: Globe, placement: 'overflow', showOnMobileTab: false },
-  { path: '/admin/push', label: 'Web push', icon: BellRing, placement: 'overflow', showOnMobileTab: false },
-  { path: '/admin/health', label: 'Health', icon: Activity, placement: 'overflow', showOnMobileTab: false },
-  { path: '/admin/feature-flags', label: 'Feature Flags', icon: Flag, placement: 'overflow', showOnMobileTab: false },
-  { path: '/admin/teams', label: 'Teams', icon: UsersRound, placement: 'overflow', showOnMobileTab: false },
-  { path: '/admin/billing', label: 'Billing', icon: CreditCard, placement: 'overflow', showOnMobileTab: false },
+  { path: '/admin/overview', label: 'Overview', icon: LayoutDashboard, showOnMobileTab: true },
+  { path: '/admin/users', label: 'Users', icon: Users, showOnMobileTab: true },
+  { path: '/admin/links', label: 'Links', icon: LinkIcon, showOnMobileTab: true },
+  { path: '/admin/campaigns', label: 'Campaigns', icon: Megaphone, showOnMobileTab: false },
+  { path: '/admin/workspaces', label: 'Workspaces', icon: FolderKanban, showOnMobileTab: false },
+  { path: '/admin/domains', label: 'Domains', icon: Globe, showOnMobileTab: false },
+  { path: '/admin/push', label: 'Web push', icon: BellRing, showOnMobileTab: false },
+  { path: '/admin/health', label: 'Health', icon: Activity, showOnMobileTab: false },
+  { path: '/admin/feature-flags', label: 'Feature Flags', icon: Flag, showOnMobileTab: false },
+  { path: '/admin/teams', label: 'Teams', icon: UsersRound, showOnMobileTab: false },
+  { path: '/admin/billing', label: 'Billing', icon: CreditCard, showOnMobileTab: false },
 ];
 
-export function getPrimaryAdminNavItems(): AdminNavItem[] {
-  return ADMIN_NAV_ITEMS.filter((item) => item.placement === 'primary');
-}
-
-export function getOverflowAdminNavItems(): AdminNavItem[] {
-  return ADMIN_NAV_ITEMS.filter((item) => item.placement === 'overflow');
-}
-
-export function getMobileTabAdminNavItems(): AdminNavItem[] {
+export function getAdminMobileTabItems(): AdminNavItem[] {
   return ADMIN_NAV_ITEMS.filter((item) => item.showOnMobileTab);
+}
+
+export function getAdminOverflowItems(): AdminNavItem[] {
+  return ADMIN_NAV_ITEMS.filter((item) => !item.showOnMobileTab);
 }

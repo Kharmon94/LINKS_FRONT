@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Header } from '../components/header';
+import { PublicTopNav } from '../components/nav/public-top-nav';
+import { PublicBottomNav } from '../components/nav/public-bottom-nav';
 import { Footer } from '../components/footer';
 import { Calendar, Clock, Video, CheckCircle2 } from 'lucide-react';
 
@@ -30,14 +31,10 @@ export function BookACallPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header customNavItems={[
-        { label: 'Products', href: 'https://www.blackcollar.io' },
-        { label: 'Use Cases', href: '/use-cases' },
-        { label: 'Pricing', href: '/pricing' },
-        { label: 'Book a Call', href: '/book-a-call' },
-      ]} />
+      <PublicTopNav />
+      <PublicBottomNav />
 
-      <main className="flex-1 pt-20">
+      <main className="flex-1 pt-20 md:pt-[73px] pb-20">
         <section className="px-4 py-16 sm:py-24">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">

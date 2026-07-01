@@ -40,6 +40,6 @@ export function RequirePermission({
   allowed: boolean;
   children: React.ReactNode;
 }) {
-  if (!allowed) return <Navigate to="/dashboard" replace />;
+  if (!allowed) return <Navigate to="/links" replace />;
   return <>{children}</>;
 }

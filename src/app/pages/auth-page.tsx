@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Header } from '../components/header';
+import { AuthTopNav } from '../components/nav/auth-top-nav';
 import { Footer } from '../components/footer';
 import { useAuth } from '../contexts/auth-context';
 import { Mail, ArrowRight, Lock } from 'lucide-react';
@@ -85,13 +85,9 @@ export function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header customNavItems={[
-        { label: 'Products', href: 'https://www.blackcollar.io' },
-        { label: 'Use Cases', href: '/use-cases' },
-        { label: 'Pricing', href: '/pricing' },
-      ]} />
+      <AuthTopNav backTo="/" backLabel="Home" />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-24 sm:py-32">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-24 sm:py-32 pt-24">
         <div className="w-full max-w-md">
           {!isSubmitted ? (
             <div className="p-6 sm:p-8">

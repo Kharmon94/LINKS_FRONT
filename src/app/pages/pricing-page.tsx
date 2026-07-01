@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { Header } from '../components/header';
+import { PublicTopNav } from '../components/nav/public-top-nav';
+import { PublicBottomNav } from '../components/nav/public-bottom-nav';
 import { Footer } from '../components/footer';
 import { Link } from 'react-router';
 import { Check, ArrowRight, Loader2 } from 'lucide-react';
@@ -110,13 +111,10 @@ export function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header customNavItems={[
-        { label: 'Products', href: 'https://www.blackcollar.io' },
-        { label: 'Use Cases', href: '/use-cases' },
-        { label: 'Pricing', href: '/pricing' },
-      ]} />
+      <PublicTopNav />
+      <PublicBottomNav />
 
-      <main className="flex-1 px-4 py-24 sm:py-32">
+      <main className="flex-1 px-4 py-24 sm:py-32 pt-20 md:pt-[73px] pb-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl mb-4">Simple, Transparent Pricing</h1>

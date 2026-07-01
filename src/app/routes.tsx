@@ -156,7 +156,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "/analytics",
-        element: <ProtectedRoute><GlobalAnalyticsPage /></ProtectedRoute>,
+        element: <Navigate to="/dashboard" replace />,
       },
       {
         path: "/analytics/:linkId",
