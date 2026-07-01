@@ -3,7 +3,6 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
 } from '../ui/sheet';
 import { isNavPathActive, NAV_MORE_SHEET_Z_CLASS } from './nav-utils';
@@ -19,7 +18,6 @@ type NavMoreSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
-  showTitle?: boolean;
   items: NavMoreItem[];
   footer?: React.ReactNode;
 };
@@ -28,7 +26,6 @@ export function NavMoreSheet({
   open,
   onOpenChange,
   title = 'More',
-  showTitle = true,
   items,
   footer,
 }: NavMoreSheetProps) {
@@ -41,10 +38,8 @@ export function NavMoreSheet({
         overlayClassName={NAV_MORE_SHEET_Z_CLASS}
         className={`rounded-t-2xl ${NAV_MORE_SHEET_Z_CLASS} pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]`}
       >
-        <SheetHeader>
-          <SheetTitle className={showTitle ? undefined : 'sr-only'}>{title}</SheetTitle>
-        </SheetHeader>
-        <nav className={showTitle ? 'mt-4 space-y-1' : 'space-y-1'}>
+        <SheetTitle className="sr-only">{title}</SheetTitle>
+        <nav className="space-y-1 pt-2">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = isNavPathActive(location.pathname, item.path);

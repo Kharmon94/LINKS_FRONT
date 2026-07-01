@@ -95,7 +95,6 @@ export function PublicBottomNav() {
         open={moreOpen}
         onOpenChange={setMoreOpen}
         items={overflowItems}
-        showTitle={false}
       />
     </>
   );
