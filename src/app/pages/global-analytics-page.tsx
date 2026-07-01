@@ -5,7 +5,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { useAuth } from '../contexts/auth-context';
 import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
-import { BarChart3, TrendingUp, FolderKanban } from 'lucide-react';
+import { BarChart3, FolderKanban, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { getAnalyticsOverview, type OverviewAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { formatRelativeTime } from '@/lib/format-relative-time';
@@ -13,6 +13,29 @@ import { formatRelativeTime } from '@/lib/format-relative-time';
 function formatClickGrowth(growth: number): string {
   if (growth === 0) return 'No change this week';
   return `${growth > 0 ? '+' : ''}${growth}% this week`;
+}
+
+function ClickGrowthIndicator({ growth }: { growth: number }) {
+  if (growth === 0) {
+    return (
+      <p className="text-xs text-muted-foreground flex items-center">
+        <Minus className="w-3 h-3 mr-1" aria-hidden />
+        {formatClickGrowth(growth)}
+      </p>
+    );
+  }
+
+  const positive = growth > 0;
+  return (
+    <p className={`text-xs flex items-center ${positive ? 'text-green-500' : 'text-red-500'}`}>
+      {positive ? (
+        <TrendingUp className="w-3 h-3 mr-1" aria-hidden />
+      ) : (
+        <TrendingDown className="w-3 h-3 mr-1" aria-hidden />
+      )}
+      {formatClickGrowth(growth)}
+    </p>
+  );
 }
 
 export function GlobalAnalyticsPage() {
@@ -64,10 +87,7 @@ export function GlobalAnalyticsPage() {
                       <p className="text-xs text-muted-foreground">Total Clicks</p>
                     </div>
                     <p className="text-3xl font-bold mb-1">{stats.totalClicks.toLocaleString()}</p>
-                    <p className="text-xs text-green-500 flex items-center">
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      {formatClickGrowth(stats.clickGrowth)}
-                    </p>
+                    <ClickGrowthIndicator growth={stats.clickGrowth} />
                   </div>
 
                   <div className="bg-card rounded-lg p-5 shadow-lg">
