@@ -102,7 +102,7 @@ export function LandingPage() {
       <PublicBottomNav />
 
       {/* Hero Section with Multi-Step Form */}
-      <main className="flex-1 pt-20 md:pt-[73px] pb-20 relative">
+      <main className="flex-1 pt-20 lg:pt-[73px] pb-20 relative">
         {/* Gradient background matching dashboard */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         

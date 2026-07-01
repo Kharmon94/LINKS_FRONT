@@ -52,7 +52,7 @@ export function UseCasesPage() {
       <PublicTopNav />
       <PublicBottomNav />
 
-      <main className="flex-1 pt-20 md:pt-[73px] pb-20">
+      <main className="flex-1 pt-20 lg:pt-[73px] pb-20">
         {/* Subtle background pattern for glass effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         

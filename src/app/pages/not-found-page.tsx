@@ -9,7 +9,7 @@ export function NotFoundPage() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicTopNav />
       <PublicBottomNav />
-      <main className="flex-1 flex items-center justify-center p-6 pt-20 md:pt-[73px] pb-20">
+      <main className="flex-1 flex items-center justify-center p-6 pt-20 lg:pt-[73px] pb-20">
       <div className="max-w-lg w-full">
         <h1 className="text-2xl font-semibold mb-2">Page not found</h1>
         <p className="text-muted-foreground mb-6">

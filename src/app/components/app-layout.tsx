@@ -12,11 +12,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground w-full overflow-x-hidden">
       <AppTopNav />
-      <main className={`w-full min-w-0 pt-16 md:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
+      <main className={`w-full min-w-0 pt-16 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
         {children}
       </main>
       <AppBottomNav />
-      <Footer className={`md:pb-0 ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`} />
+      <Footer className={`lg:pb-0 ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`} />
       <Toaster richColors position="top-right" />
     </div>
   );

@@ -34,7 +34,7 @@ export function BookACallPage() {
       <PublicTopNav />
       <PublicBottomNav />
 
-      <main className="flex-1 pt-20 md:pt-[73px] pb-20">
+      <main className="flex-1 pt-20 lg:pt-[73px] pb-20">
         <section className="px-4 py-16 sm:py-24">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">

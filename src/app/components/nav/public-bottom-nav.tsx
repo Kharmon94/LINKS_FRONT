@@ -9,6 +9,7 @@ import { NavMoreSheet } from './nav-more-sheet';
 import {
   getBottomNavMoreActive,
   getBottomNavTabActive,
+  MOBILE_BOTTOM_NAV_INNER_CLASS,
   MOBILE_BOTTOM_NAV_Z_CLASS,
 } from './nav-utils';
 
@@ -31,11 +32,11 @@ export function PublicBottomNav() {
     <>
       <nav
         aria-hidden={moreOpen}
-        className={`md:hidden fixed bottom-0 inset-x-0 ${MOBILE_BOTTOM_NAV_Z_CLASS} bg-black text-white border-t border-white/10 transition-opacity ${
+        className={`lg:hidden fixed bottom-0 inset-x-0 ${MOBILE_BOTTOM_NAV_Z_CLASS} bg-black text-white border-t border-white/10 transition-opacity ${
           moreOpen ? 'pointer-events-none opacity-0' : 'opacity-100'
         }`}
       >
-        <div className="flex items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)]">
+        <div className={MOBILE_BOTTOM_NAV_INNER_CLASS}>
           {tabItems.map((tab) => {
             const Icon = tab.icon;
             const active = getBottomNavTabActive(location.pathname, tab.path, moreOpen);
