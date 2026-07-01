@@ -19,9 +19,12 @@ export function PublicBottomNav() {
 
   const tabItems = getPublicMobileTabItems();
   const overflowItems = getPublicOverflowNavItems();
-  const overflowPaths = overflowItems
-    .filter((item) => !item.external)
-    .map((item) => item.path);
+  const overflowPaths = [
+    ...overflowItems
+      .filter((item) => !item.external)
+      .map((item) => item.path),
+    '/auth',
+  ];
   const moreActive = getBottomNavMoreActive(
     location.pathname,
     overflowPaths,
@@ -88,7 +91,12 @@ export function PublicBottomNav() {
         </div>
       </nav>
 
-      <NavMoreSheet open={moreOpen} onOpenChange={setMoreOpen} items={overflowItems} />
+      <NavMoreSheet
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        items={overflowItems}
+        showTitle={false}
+      />
     </>
   );
 }

@@ -34,7 +34,7 @@ export const AUTH_PAGE_CONTENT_CLASS =
 export const MOBILE_BOTTOM_NAV_HEIGHT = '3.5rem';
 
 /** Extra gap below tab labels so the iOS home indicator sits beneath the options. */
-export const MOBILE_BOTTOM_NAV_SAFE_PADDING = '1rem';
+export const MOBILE_BOTTOM_NAV_SAFE_PADDING = '1.5rem';
 
 /** Inner row for mobile bottom tab bars — tab options sit above the home indicator. */
 export const MOBILE_BOTTOM_NAV_INNER_CLASS = `flex items-stretch justify-around px-1 pb-[calc(${MOBILE_BOTTOM_NAV_SAFE_PADDING}+env(safe-area-inset-bottom,0px))]`;

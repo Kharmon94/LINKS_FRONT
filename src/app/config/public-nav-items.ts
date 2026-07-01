@@ -50,7 +50,7 @@ export const LANDING_PUBLIC_NAV_ITEMS: PublicLandingNavItem[] = [
     label: 'Use Cases',
     href: '/use-cases',
     icon: Lightbulb,
-    mobilePlacement: 'overflow',
+    mobilePlacement: 'tab',
   },
   {
     label: 'Pricing',
@@ -62,7 +62,7 @@ export const LANDING_PUBLIC_NAV_ITEMS: PublicLandingNavItem[] = [
     label: 'Book a Call',
     href: '/book-a-call',
     icon: Calendar,
-    mobilePlacement: 'overflow',
+    mobilePlacement: 'tab',
   },
 ];
 
@@ -74,12 +74,6 @@ const PUBLIC_MOBILE_HOME_TAB: PublicMobileTab = {
   label: 'Home',
   path: '/',
   icon: Home,
-};
-
-const PUBLIC_MOBILE_LOGIN_TAB: PublicMobileTab = {
-  label: 'Login',
-  path: '/auth',
-  icon: LogIn,
 };
 
 function isExternalHref(href: string): boolean {
@@ -96,11 +90,11 @@ export function getPublicMobileTabItems(): PublicMobileTab[] {
     external: isExternalHref(item.href),
   }));
 
-  return [PUBLIC_MOBILE_HOME_TAB, ...navTabs, PUBLIC_MOBILE_LOGIN_TAB];
+  return [PUBLIC_MOBILE_HOME_TAB, ...navTabs];
 }
 
 export function getPublicOverflowNavItems(): PublicOverflowNavItem[] {
-  return LANDING_PUBLIC_NAV_ITEMS.filter(
+  const overflowItems = LANDING_PUBLIC_NAV_ITEMS.filter(
     (item) => item.mobilePlacement === 'overflow',
   ).map((item) => ({
     path: item.href,
@@ -108,4 +102,9 @@ export function getPublicOverflowNavItems(): PublicOverflowNavItem[] {
     icon: item.icon,
     external: isExternalHref(item.href),
   }));
+
+  return [
+    ...overflowItems,
+    { path: '/auth', label: 'Login', icon: LogIn },
+  ];
 }
