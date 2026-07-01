@@ -26,7 +26,7 @@ export function FeatureGate({
           This feature is not enabled for your account or plan. Contact support or upgrade to access it.
         </p>
         <Button asChild variant="outline">
-          <Link to="/dashboard">Back to dashboard</Link>
+          <Link to="/links">Back to links</Link>
         </Button>
       </div>
     </AppLayout>

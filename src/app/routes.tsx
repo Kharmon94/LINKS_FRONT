@@ -8,7 +8,6 @@ import { AdminLayout } from "./components/admin/admin-layout";
 import { LandingPage } from "./pages/landing-page";
 import { AuthPage } from "./pages/auth-page";
 import { VerifyPage } from "./pages/verify-page";
-import { DashboardPage } from "./pages/dashboard-page";
 import { LinksPage } from "./pages/links-page";
 import { LinkDetailPage } from "./pages/link-detail-page";
 import { LinkEditPage } from "./pages/link-edit-page";
@@ -121,7 +120,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "/dashboard",
-        element: <ProtectedRoute><DashboardPage /></ProtectedRoute>,
+        element: <ProtectedRoute><GlobalAnalyticsPage /></ProtectedRoute>,
       },
       {
         path: "/links",
