@@ -53,7 +53,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const currentWorkspace = useMemo(() => {
     if (!workspaces.length) return null;
     if (user?.activeWorkspaceId) {
-      return workspaces.find((w) => w.id === user.activeWorkspaceId) || workspaces[0];
+      return workspaces.find((w) => w.publicId === user.activeWorkspaceId) || workspaces[0];
     }
     return workspaces[0];
   }, [workspaces, user?.activeWorkspaceId]);

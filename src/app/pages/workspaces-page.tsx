@@ -8,8 +8,8 @@ import { Input } from '../components/ui/input';
 import { Briefcase, Plus, Users, Link as LinkIcon, Lock } from 'lucide-react';
 import { useWorkspace } from '../contexts/workspace-context';
 import { createWorkspace } from '@/services/workspaces-api';
+import { workspacePath } from '@/lib/resource-paths';
 import { ApiError } from '@/services/api';
-import { toast } from 'sonner';
 
 export function WorkspacesPage() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export function WorkspacesPage() {
         description: newWorkspaceDescription.trim(),
       });
       await refreshWorkspaces();
-      await switchWorkspace(created.id, { silent: true });
+      await switchWorkspace(created.publicId, { silent: true });
       setNewWorkspaceName('');
       setNewWorkspaceDescription('');
       setIsCreatingWorkspace(false);
@@ -113,7 +113,7 @@ export function WorkspacesPage() {
                 {workspaces.map((workspace) => (
                   <div
                     key={workspace.id}
-                    onClick={() => navigate(`/workspaces/${workspace.id}`)}
+                    onClick={() => navigate(workspacePath(workspace))}
                     className="bg-card/50 backdrop-blur-md shadow-lg p-5 cursor-pointer hover:bg-card/70 transition-all"
                   >
                     <div className="flex items-center gap-3 mb-3">

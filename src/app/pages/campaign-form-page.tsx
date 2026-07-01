@@ -15,6 +15,8 @@ import {
 } from '@/services/campaigns-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import { campaignPath } from '@/lib/resource-paths';
 
 export function CampaignFormPage() {
   const { campaignId } = useParams();
@@ -26,6 +28,9 @@ export function CampaignFormPage() {
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [loadedCampaign, setLoadedCampaign] = useState<Awaited<ReturnType<typeof getCampaign>> | null>(null);
+
+  usePublicIdRedirect('campaignId', loadedCampaign, campaignPath);
 
   useEffect(() => {
     if (isNew) return;
@@ -34,6 +39,7 @@ export function CampaignFormPage() {
       try {
         const campaign = await getCampaign(campaignId!);
         if (!cancelled) {
+          setLoadedCampaign(campaign);
           setFormData({ name: campaign.name, description: campaign.description });
         }
       } catch (err) {

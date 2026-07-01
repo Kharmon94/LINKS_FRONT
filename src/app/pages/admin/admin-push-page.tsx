@@ -4,6 +4,7 @@ import { BellRing, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAdminPushSubscription, fetchAdminPushSubscriptions } from '@/services/admin-api';
 import type { AdminPushSubscriptionRow, PaginationMeta } from '@/types';
+import { adminUserPath } from '@/lib/resource-paths';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
@@ -108,7 +109,7 @@ export function AdminPushPage() {
                 {rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
-                      <Link to={`/admin/users/${row.userId}`} className="hover:underline text-sm">{row.userEmail}</Link>
+                      <Link to={adminUserPath({ publicId: row.userId })} className="hover:underline text-sm">{row.userEmail}</Link>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{row.endpointPreview}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

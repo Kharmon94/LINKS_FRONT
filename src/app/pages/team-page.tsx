@@ -13,8 +13,9 @@ import {
   type TeamMemberJson,
   type TeamInvitationJson,
 } from '@/services/team-api';
+import { teamMemberPath } from '@/lib/resource-paths';
 import { ApiError } from '@/services/api';
-import { toast } from 'sonner';
+import { teamMemberPath } from '@/lib/resource-paths';
 
 export function TeamPage() {
   const navigate = useNavigate();
@@ -148,7 +149,7 @@ export function TeamPage() {
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      onClick={() => navigate(`/team/${member.id}`)}
+                      onClick={() => navigate(teamMemberPath(member))}
                       className="bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-4 cursor-pointer hover:bg-card/70 transition-all"
                     >
                       <div className="flex items-center justify-between gap-4">

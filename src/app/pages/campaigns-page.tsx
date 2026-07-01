@@ -9,6 +9,7 @@ import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { FolderKanban, Plus } from 'lucide-react';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
+import { campaignPath } from '@/lib/resource-paths';
 
 export function CampaignsPage() {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ export function CampaignsPage() {
                   <div
                     key={campaign.id}
                     className="bg-card/50 backdrop-blur-md rounded-lg p-5 shadow-lg hover:shadow-xl transition-all cursor-pointer bg-[#ffffff]"
-                    onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                    onClick={() => navigate(campaignPath(campaign))}
                   >
                     <div className="flex items-start gap-3 mb-3">
                       <div className="flex-1 min-w-0">
@@ -108,7 +109,7 @@ export function CampaignsPage() {
                       className="w-full mt-3 h-8 text-xs bg-black dark:bg-white text-white dark:text-black border-black dark:border-white hover:bg-black/90 dark:hover:bg-white/90 rounded-full"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/campaigns/${campaign.id}`);
+                        navigate(campaignPath(campaign));
                       }}
                     >
                       View Details

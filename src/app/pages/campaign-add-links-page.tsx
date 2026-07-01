@@ -15,6 +15,8 @@ import {
 } from '@/services/campaigns-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import { campaignPath } from '@/lib/resource-paths';
 
 export function CampaignAddLinksPage() {
   const { campaignId } = useParams();
@@ -26,6 +28,9 @@ export function CampaignAddLinksPage() {
   const [availableLinks, setAvailableLinks] = useState<LinkInCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [campaign, setCampaign] = useState<Awaited<ReturnType<typeof getCampaign>> | null>(null);
+
+  usePublicIdRedirect('campaignId', campaign, campaignPath);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,13 +41,14 @@ export function CampaignAddLinksPage() {
           listUnassignedLinks(),
         ]);
         if (!cancelled) {
+          setCampaign(campaign);
           setCampaignName(campaign.name);
           setAvailableLinks(links);
         }
       } catch (err) {
         if (!cancelled) {
           toast.error(err instanceof ApiError ? err.message : 'Failed to load links');
-          navigate(`/campaigns/${campaignId}`);
+          navigate(campaign ? campaignPath(campaign) : '/campaigns');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -72,7 +78,7 @@ export function CampaignAddLinksPage() {
     try {
       await assignLinksToCampaign(campaignId!, Array.from(selectedLinks));
       toast.success(`Added ${selectedLinks.size} link(s) to campaign`);
-      navigate(`/campaigns/${campaignId}`);
+      navigate(campaign ? campaignPath(campaign) : '/campaigns');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to assign links');
     } finally {
@@ -87,7 +93,7 @@ export function CampaignAddLinksPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
           <div className="max-w-3xl mx-auto px-4 py-8 relative">
-            <Button variant="ghost" onClick={() => navigate(`/campaigns/${campaignId}`)} className="mb-6">
+            <Button variant="ghost" onClick={() => navigate(campaign ? campaignPath(campaign) : '/campaigns')} className="mb-6">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Campaign
             </Button>
@@ -122,13 +128,13 @@ export function CampaignAddLinksPage() {
                           <div
                             key={link.id}
                             className="p-5 hover:bg-muted/20 transition-colors cursor-pointer"
-                            onClick={() => toggleLink(link.id)}
+                            onClick={() => toggleLink(link.publicId)}
                           >
                             <div className="flex items-start gap-4">
                               <div className="pt-1">
                                 <Checkbox
-                                  checked={selectedLinks.has(link.id)}
-                                  onCheckedChange={() => toggleLink(link.id)}
+                                  checked={selectedLinks.has(link.publicId)}
+                                  onCheckedChange={() => toggleLink(link.publicId)}
                                   className="rounded-sm"
                                 />
                               </div>
@@ -163,7 +169,7 @@ export function CampaignAddLinksPage() {
                     <div className="flex gap-3 w-full sm:w-auto">
                       <Button
                         variant="outline"
-                        onClick={() => navigate(`/campaigns/${campaignId}`)}
+                        onClick={() => navigate(campaign ? campaignPath(campaign) : '/campaigns')}
                         className="flex-1 sm:flex-none rounded-full"
                       >
                         Cancel

@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { ArrowLeft, UsersRound } from 'lucide-react';
 import { fetchAdminTeam } from '@/services/admin-api';
 import type { AdminTeam } from '@/types';
+import { adminTeamPath, adminUserPath } from '@/lib/resource-paths';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
 import { AdminRoleBadge } from '../../components/admin/admin-role-badge';
 import { AdminCardSkeleton, AdminErrorState } from '../../components/admin/admin-page-states';
 import { Badge } from '../../components/ui/badge';
@@ -30,6 +32,8 @@ export function AdminTeamDetailPage() {
   const [team, setTeam] = useState<AdminTeam | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  usePublicIdRedirect('teamId', team, adminTeamPath);
 
   const load = useCallback(async () => {
     if (!teamId) return;
@@ -99,7 +103,7 @@ export function AdminTeamDetailPage() {
               {team.members?.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell>
-                    <Link to={`/admin/users/${member.id}`} className="hover:underline">{member.email}</Link>
+                    <Link to={adminUserPath(member)} className="hover:underline">{member.email}</Link>
                     <p className="text-xs text-muted-foreground">{member.name}</p>
                   </TableCell>
                   <TableCell><AdminRoleBadge role={member.role} /></TableCell>

@@ -3,6 +3,7 @@ import type { TeamMemberJson } from './team-api';
 
 export interface WorkspaceJson {
   id: string;
+  publicId: string;
   name: string;
   description: string;
   linksCount: number;

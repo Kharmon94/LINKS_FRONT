@@ -20,6 +20,8 @@ import { getTeam, type TeamMemberJson } from '@/services/team-api';
 import { ApiError } from '@/services/api';
 import { useAuth } from '../contexts/auth-context';
 import { useWorkspace } from '../contexts/workspace-context';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import { workspacePath } from '@/lib/resource-paths';
 import { toast } from 'sonner';
 
 export function WorkspaceDetailPage() {
@@ -36,6 +38,8 @@ export function WorkspaceDetailPage() {
   const [editedName, setEditedName] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
   const [saving, setSaving] = useState(false);
+
+  usePublicIdRedirect('workspaceId', workspace, workspacePath);
 
   const refresh = useCallback(
     async ({ silent }: { silent: boolean }) => {

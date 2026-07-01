@@ -24,6 +24,8 @@ import { getLink, getLinkClicks, displayShortUrl } from '@/services/links-api';
 import { getLinkAnalytics, type EntityAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { ApiError } from '@/services/api';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import { linkEditPath, linkPath } from '@/lib/resource-paths';
 import type { LinkJson, ClickEventJson } from '@/types';
 
 export function LinkDetailPage() {
@@ -42,6 +44,8 @@ export function LinkDetailPage() {
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
   const [qrOpen, setQrOpen] = useState(false);
   const [nfcOpen, setNfcOpen] = useState(false);
+
+  usePublicIdRedirect('linkId', link, linkPath);
 
   const loadLinkData = useCallback(
     async ({ silent }: { silent: boolean }) => {
@@ -196,7 +200,7 @@ export function LinkDetailPage() {
                   NFC
                 </Button>
                 {can.updateLinks && (
-                  <Button onClick={() => navigate(`/links/${link.id}/edit`)}>
+                  <Button onClick={() => navigate(linkEditPath(link))}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Link
                   </Button>

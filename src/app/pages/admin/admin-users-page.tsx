@@ -4,6 +4,7 @@ import { Copy, MoreHorizontal, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { fetchAdminUsers } from '@/services/admin-api';
 import type { AdminUser, PaginationMeta } from '@/types';
+import { adminLinksForUserPath, adminUserPath } from '@/lib/resource-paths';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
@@ -119,7 +120,7 @@ export function AdminUsersPage() {
                           {u.name?.[0]?.toUpperCase() ?? u.email[0].toUpperCase()}
                         </div>
                         <div>
-                          <Link to={`/admin/users/${u.id}`} className="font-medium hover:underline">{u.email}</Link>
+                          <Link to={adminUserPath(u)} className="font-medium hover:underline">{u.email}</Link>
                           <p className="text-xs text-muted-foreground">{u.name}</p>
                         </div>
                       </div>
@@ -140,10 +141,10 @@ export function AdminUsersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link to={`/admin/users/${u.id}`}>View detail</Link>
+                            <Link to={adminUserPath(u)}>View detail</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
-                            <Link to={`/admin/links?user_id=${u.id}`}>View links</Link>
+                            <Link to={adminLinksForUserPath(u)}>View links</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => copyEmail(u.email)}>
                             <Copy className="w-4 h-4 mr-2" />Copy email

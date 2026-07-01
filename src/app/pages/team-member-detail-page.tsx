@@ -31,6 +31,8 @@ import {
   type MemberClickJson,
 } from '@/services/team-api';
 import { ApiError } from '@/services/api';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import { teamMemberPath } from '@/lib/resource-paths';
 import { toast } from 'sonner';
 
 export function TeamMemberDetailPage() {
@@ -42,6 +44,8 @@ export function TeamMemberDetailPage() {
   const [recentClicks, setRecentClicks] = useState<MemberClickJson[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  usePublicIdRedirect('memberId', member, teamMemberPath);
 
   const loadMemberData = useCallback(
     async ({ silent }: { silent: boolean }) => {

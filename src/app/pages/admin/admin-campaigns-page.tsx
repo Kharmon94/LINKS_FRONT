@@ -4,6 +4,7 @@ import { Megaphone, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAdminCampaign, fetchAdminCampaigns } from '@/services/admin-api';
 import type { AdminCampaignRow, PaginationMeta } from '@/types';
+import { adminUserPath } from '@/lib/resource-paths';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
@@ -110,7 +111,7 @@ export function AdminCampaignsPage() {
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell>
-                      <Link to={`/admin/users/${row.userId}`} className="hover:underline text-sm">{row.userEmail}</Link>
+                      <Link to={adminUserPath({ publicId: row.userId })} className="hover:underline text-sm">{row.userEmail}</Link>
                     </TableCell>
                     <TableCell>{row.linksCount}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

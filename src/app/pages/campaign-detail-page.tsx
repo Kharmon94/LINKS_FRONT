@@ -12,6 +12,13 @@ import { getCampaignAnalytics, type EntityAnalytics, type ClickEventJson } from 
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import {
+  campaignAddLinksPath,
+  campaignEditPath,
+  campaignPath,
+  linkPath,
+} from '@/lib/resource-paths';
 
 export function CampaignDetailPage() {
   const { campaignId } = useParams();
@@ -27,6 +34,8 @@ export function CampaignDetailPage() {
   const [isRecentClicksOpen, setIsRecentClicksOpen] = useState(true);
   const [isCampaignLinksOpen, setIsCampaignLinksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
+
+  usePublicIdRedirect('campaignId', campaign, campaignPath);
 
   const loadCampaignData = useCallback(
     async ({ silent }: { silent: boolean }) => {
@@ -136,7 +145,7 @@ export function CampaignDetailPage() {
               </div>
               {can.updateCampaigns && (
                 <Button
-                  onClick={() => navigate(`/campaigns/${campaignId}/edit`)}
+                  onClick={() => campaign && navigate(campaignEditPath(campaign))}
                   className="mx-auto md:ml-auto md:mr-0 md:shrink-0 rounded-full h-11 px-6"
                 >
                   Edit Campaign
@@ -251,7 +260,7 @@ export function CampaignDetailPage() {
                       {links.map((link: LinkInCampaign) => (
                         <div
                           key={link.id}
-                          onClick={() => navigate(`/links/${link.id}`)}
+                          onClick={() => navigate(linkPath(link))}
                           className="bg-card/50 backdrop-blur-md shadow-lg rounded-lg p-4 hover:shadow-xl transition-all cursor-pointer"
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -283,7 +292,7 @@ export function CampaignDetailPage() {
                     </div>
                     <div className="flex justify-center">
                       <Button
-                        onClick={() => navigate(`/campaigns/${campaignId}/add-links`)}
+                        onClick={() => campaign && navigate(campaignAddLinksPath(campaign))}
                         className="rounded-full h-11 px-6"
                       >
                         <Plus className="w-4 h-4 mr-2" />

@@ -29,7 +29,7 @@ export function WorkspaceSwitcher({ variant = 'default' }: WorkspaceSwitcherProp
 
   const handleWorkspaceChange = async (workspaceId: string) => {
     setIsOpen(false);
-    if (workspaceId === currentWorkspace.id) return;
+    if (workspaceId === currentWorkspace.publicId) return;
     await switchWorkspace(workspaceId);
   };
 
@@ -59,15 +59,15 @@ export function WorkspaceSwitcher({ variant = 'default' }: WorkspaceSwitcherProp
     <>
       {workspaces.map((workspace) => (
         <button
-          key={workspace.id}
+          key={workspace.publicId}
           type="button"
-          onClick={() => handleWorkspaceChange(workspace.id)}
+          onClick={() => handleWorkspaceChange(workspace.publicId)}
           className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-sm hover:bg-muted transition-colors text-left ${
-            currentWorkspace.id === workspace.id ? 'bg-muted/70' : ''
+            currentWorkspace.publicId === workspace.publicId ? 'bg-muted/70' : ''
           }`}
         >
           <span className="text-sm truncate">{workspace.name}</span>
-          {currentWorkspace.id === workspace.id && (
+          {currentWorkspace.publicId === workspace.publicId && (
             <Check className="w-4 h-4 text-primary shrink-0" />
           )}
         </button>

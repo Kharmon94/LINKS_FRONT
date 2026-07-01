@@ -10,6 +10,13 @@ import {
   updateAdminUser,
 } from '@/services/admin-api';
 import type { AdminBillingUserLookup, AdminUser, SubscriptionTier, UserRole } from '@/types';
+import {
+  adminLinkPath,
+  adminLinksForUserPath,
+  adminTeamPath,
+  adminUserPath,
+} from '@/lib/resource-paths';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
 import { useAuth } from '@/app/contexts/auth-context';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
 import { AdminTierBadge } from '../../components/admin/admin-tier-badge';
@@ -65,6 +72,8 @@ export function AdminUserDetailPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  usePublicIdRedirect('userId', user, adminUserPath);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -237,7 +246,7 @@ export function AdminUserDetailPage() {
                   <dt className="text-muted-foreground">Team</dt>
                   <dd className="flex items-center gap-2 mt-1">
                     <UsersRound className="w-4 h-4 text-muted-foreground" />
-                    <Link to={`/admin/teams/${user.teamId}`} className="text-primary hover:underline">
+                    <Link to={adminTeamPath({ publicId: user.teamId! })} className="text-primary hover:underline">
                       {user.teamName ?? 'View team'}
                     </Link>
                     {user.membershipRole && <AdminRoleBadge role={user.membershipRole} />}
@@ -353,7 +362,7 @@ export function AdminUserDetailPage() {
           <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Recent links</h2>
-              <Link to={`/admin/links?user_id=${user.id}`} className="text-sm text-primary hover:underline">View all</Link>
+              <Link to={adminLinksForUserPath(user)} className="text-sm text-primary hover:underline">View all</Link>
             </div>
             {(user.recentLinks?.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground">No links yet.</p>
@@ -375,7 +384,7 @@ export function AdminUserDetailPage() {
                       </TableCell>
                       <TableCell>{link.clicks}</TableCell>
                       <TableCell>
-                        <Link to={`/admin/links/${link.id}`} className="text-primary hover:underline">
+                        <Link to={adminLinkPath(link)} className="text-primary hover:underline">
                           View
                         </Link>
                       </TableCell>

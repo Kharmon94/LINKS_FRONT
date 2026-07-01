@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../../components/ui/chart';
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { fetchAdminUsers } from '@/services/admin-api';
+import { adminUserPath } from '@/lib/resource-paths';
 import { AdminTierBadge } from '../../components/admin/admin-tier-badge';
 import {
   Table,
@@ -141,7 +142,7 @@ export function AdminOverviewPage() {
             {recentUsers.map((u) => (
               <TableRow key={u.id}>
                 <TableCell>
-                  <Link to={`/admin/users/${u.id}`} className="hover:underline">{u.email}</Link>
+                  <Link to={adminUserPath(u)} className="hover:underline">{u.email}</Link>
                 </TableCell>
                 <TableCell><AdminTierBadge tier={u.subscriptionTier} /></TableCell>
                 <TableCell className="text-muted-foreground text-sm">

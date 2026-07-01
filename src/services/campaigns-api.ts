@@ -2,6 +2,7 @@ import { apiRequest } from './api';
 
 export interface CampaignJson {
   id: string;
+  publicId: string;
   name: string;
   description: string;
   linksCount: number;
@@ -12,6 +13,7 @@ export interface CampaignJson {
 
 export interface LinkInCampaign {
   id: string;
+  publicId: string;
   name: string;
   originalUrl: string;
   shortCode: string;

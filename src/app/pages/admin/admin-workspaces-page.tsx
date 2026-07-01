@@ -4,6 +4,7 @@ import { FolderKanban, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAdminWorkspace, fetchAdminWorkspaces } from '@/services/admin-api';
 import type { AdminWorkspaceRow, PaginationMeta } from '@/types';
+import { adminTeamPath } from '@/lib/resource-paths';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
@@ -110,7 +111,7 @@ export function AdminWorkspacesPage() {
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.name}</TableCell>
                     <TableCell>
-                      <Link to={`/admin/teams/${row.teamId}`} className="hover:underline text-sm">{row.teamName}</Link>
+                      <Link to={adminTeamPath({ publicId: row.teamId })} className="hover:underline text-sm">{row.teamName}</Link>
                     </TableCell>
                     <TableCell>{row.linksCount}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

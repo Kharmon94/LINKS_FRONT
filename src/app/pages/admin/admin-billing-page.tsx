@@ -10,6 +10,7 @@ import {
   updateAdminStripeMode,
 } from '@/services/admin-api';
 import type { AdminBillingOverview, AdminBillingUserLookup, AdminStripeMode } from '@/types';
+import { adminUserPath } from '@/lib/resource-paths';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
 import { AdminStatRowSkeleton, AdminErrorState } from '../../components/admin/admin-page-states';
 import { AdminConfirmDialog } from '../../components/admin/admin-confirm-dialog';
@@ -94,10 +95,10 @@ export function AdminBillingPage() {
   };
 
   const openPortal = async () => {
-    if (!lookupResult?.id) return;
+    if (!lookupResult?.publicId) return;
     setPortalLoading(true);
     try {
-      const data = await createAdminBillingPortalSession(lookupResult.id);
+      const data = await createAdminBillingPortalSession(lookupResult.publicId);
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to open portal');
@@ -107,10 +108,10 @@ export function AdminBillingPage() {
   };
 
   const handleCancel = async () => {
-    if (!lookupResult?.id) return;
+    if (!lookupResult?.publicId) return;
     setCancelLoading(true);
     try {
-      await cancelAdminSubscription(lookupResult.id);
+      await cancelAdminSubscription(lookupResult.publicId);
       toast.success('Subscription set to cancel at period end');
       setCancelOpen(false);
       const data = await lookupAdminBillingUser(lookupResult.email);
@@ -289,7 +290,7 @@ export function AdminBillingPage() {
               <p>Current period ends: {new Date(lookupResult.currentPeriodEnd).toLocaleDateString()}</p>
             )}
             <div className="flex flex-wrap gap-2 pt-1">
-              <Link to={`/admin/users/${lookupResult.id}`} className="text-primary underline text-sm">
+              <Link to={adminUserPath({ publicId: lookupResult.publicId })} className="text-primary underline text-sm">
                 View user profile
               </Link>
               {lookupResult.hasStripeCustomer && (

@@ -198,7 +198,7 @@ export function LinkCreatorForm({ onCreated, idPrefix = 'link-creator' }: LinkCr
         >
           <option value="">No campaign</option>
           {campaigns.map((campaign) => (
-            <option key={campaign.id} value={campaign.id}>
+            <option key={campaign.publicId} value={campaign.publicId}>
               {campaign.name}
             </option>
           ))}

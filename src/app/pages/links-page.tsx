@@ -17,6 +17,7 @@ import { CardListSkeleton } from '../components/page-states';
 import { listLinks, deleteLink, displayShortUrl } from '@/services/links-api';
 import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
 import { getAnalyticsOverview } from '@/services/analytics-api';
+import { linkPath } from '@/lib/resource-paths';
 import type { LinkJson, LinksListMeta } from '@/types';
 
 export function LinksPage() {
@@ -204,7 +205,7 @@ export function LinksPage() {
                       >
                         <option value="">All campaigns</option>
                         {campaigns.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                          <option key={c.publicId} value={c.publicId}>{c.name}</option>
                         ))}
                       </select>
                     </div>
@@ -279,7 +280,7 @@ export function LinksPage() {
                   {links.map((link) => (
                     <tr
                       key={link.id}
-                      onClick={() => navigate(`/links/${link.id}`)}
+                      onClick={() => navigate(linkPath(link))}
                       className="border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer"
                     >
                       <td className="px-6 py-4">
@@ -321,7 +322,7 @@ export function LinksPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={(e) => handleDelete(link.id, e)}
+                              onClick={(e) => handleDelete(link.publicId, e)}
                               aria-label="Delete link"
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
@@ -339,7 +340,7 @@ export function LinksPage() {
               {links.map((link) => (
                 <div
                   key={link.id}
-                  onClick={() => navigate(`/links/${link.id}`)}
+                  onClick={() => navigate(linkPath(link))}
                   className="p-4 space-y-2 cursor-pointer hover:bg-muted/30 transition-colors active:bg-muted/50"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -368,7 +369,7 @@ export function LinksPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => handleDelete(link.id, e)}
+                          onClick={(e) => handleDelete(link.publicId, e)}
                           aria-label="Delete link"
                         >
                           <Trash2 className="w-4 h-4 text-destructive" />

@@ -50,6 +50,7 @@ export interface UserLimits {
 
 export interface User {
   id: string;
+  publicId: string;
   email: string;
   name: string;
   subscriptionTier: SubscriptionTier;
@@ -73,6 +74,7 @@ export interface AdminUser extends User {
 
 export interface AdminTeam {
   id: string;
+  publicId: string;
   name: string;
   personal: boolean;
   memberCount: number;
@@ -102,6 +104,7 @@ export interface AdminTeamInvitation {
 
 export interface AdminTeamWorkspace {
   id: string;
+  publicId: string;
   name: string;
   description: string;
   linksCount: number;
@@ -110,6 +113,7 @@ export interface AdminTeamWorkspace {
 
 export interface AdminRecentLink {
   id: string;
+  publicId: string;
   name: string;
   shortCode: string;
   shortUrl: string;
@@ -199,6 +203,7 @@ export interface AdminBillingEvent {
 
 export interface AdminBillingUserLookup {
   id: string;
+  publicId: string;
   email: string;
   name: string;
   subscriptionTier: SubscriptionTier;
@@ -224,6 +229,7 @@ export interface AdminHealthStatus {
 
 export interface AdminCampaignRow {
   id: string;
+  publicId: string;
   name: string;
   userId: string;
   userEmail: string;
@@ -233,6 +239,7 @@ export interface AdminCampaignRow {
 
 export interface AdminWorkspaceRow {
   id: string;
+  publicId: string;
   name: string;
   teamId: string;
   teamName: string;
@@ -272,11 +279,13 @@ export interface PlanJson {
 
 export interface LinkCampaign {
   id: string;
+  publicId: string;
   name: string;
 }
 
 export interface LinkJson {
   id: string;
+  publicId: string;
   name: string;
   originalUrl: string;
   shortCode: string;
@@ -326,10 +335,12 @@ export interface LinksListMeta {
 
 export interface CampaignJson {
   id: string;
+  publicId: string;
   name: string;
   description: string;
   linksCount: number;
   totalClicks: number;
   createdAt: string;
   links?: LinkJson[];
+  workspaceId?: string | null;
 }

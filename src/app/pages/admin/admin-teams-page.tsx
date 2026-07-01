@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { UsersRound } from 'lucide-react';
 import { fetchAdminTeams } from '@/services/admin-api';
 import type { AdminTeam, PaginationMeta } from '@/types';
-import { useAdminQuery } from '@/app/hooks/use-admin-query';
+import { adminTeamPath } from '@/lib/resource-paths';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
@@ -123,7 +123,7 @@ export function AdminTeamsPage() {
                 {teams.map((team) => (
                   <TableRow key={team.id}>
                     <TableCell>
-                      <Link to={`/admin/teams/${team.id}`} className="hover:underline font-medium">
+                      <Link to={adminTeamPath(team)} className="hover:underline font-medium">
                         {team.name}
                       </Link>
                       {team.personal && (

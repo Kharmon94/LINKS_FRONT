@@ -4,6 +4,7 @@ import { Link as LinkIcon, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAdminLink, fetchAdminLinks } from '@/services/admin-api';
 import type { AdminLink, PaginationMeta } from '@/types';
+import { adminLinkPath, adminUserPath } from '@/lib/resource-paths';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
@@ -120,21 +121,21 @@ export function AdminLinksPage() {
                 {links.map((link) => (
                   <TableRow key={link.id}>
                     <TableCell>
-                      <Link to={`/admin/links/${link.id}`} className="font-mono hover:underline">{link.shortCode}</Link>
+                      <Link to={adminLinkPath(link)} className="font-mono hover:underline">{link.shortCode}</Link>
                     </TableCell>
                     <TableCell>{link.name}</TableCell>
                     <TableCell className="max-w-[200px] truncate text-muted-foreground" title={link.originalUrl}>
                       {link.originalUrl}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/admin/users/${link.userId}`} className="hover:underline text-sm">{link.userEmail}</Link>
+                      <Link to={adminUserPath({ publicId: link.userId })} className="hover:underline text-sm">{link.userEmail}</Link>
                     </TableCell>
                     <TableCell>{link.clicks}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {link.createdAt ? new Date(link.createdAt).toLocaleDateString() : '—'}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(link.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(link.publicId)}>
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     </TableCell>

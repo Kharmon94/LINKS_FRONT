@@ -4,6 +4,7 @@ import { Globe, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAdminCustomDomain, fetchAdminCustomDomains } from '@/services/admin-api';
 import type { AdminCustomDomainRow, PaginationMeta } from '@/types';
+import { adminUserPath } from '@/lib/resource-paths';
 import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
@@ -115,7 +116,7 @@ export function AdminDomainsPage() {
                       {row.isDefault && <Badge variant="outline" className="ml-2">Default</Badge>}
                     </TableCell>
                     <TableCell>
-                      <Link to={`/admin/users/${row.userId}`} className="hover:underline text-sm">{row.userEmail}</Link>
+                      <Link to={adminUserPath({ publicId: row.userId })} className="hover:underline text-sm">{row.userEmail}</Link>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(row.createdAt).toLocaleDateString()}

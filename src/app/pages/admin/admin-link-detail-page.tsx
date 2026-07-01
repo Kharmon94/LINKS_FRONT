@@ -4,6 +4,8 @@ import { ArrowLeft, Copy, ExternalLink, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteAdminLink, fetchAdminLink } from '@/services/admin-api';
 import type { AdminLink } from '@/types';
+import { adminLinkPath, adminUserPath } from '@/lib/resource-paths';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
 import { AdminConfirmDialog } from '../../components/admin/admin-confirm-dialog';
 import { AdminCardSkeleton, AdminErrorState } from '../../components/admin/admin-page-states';
 import { Button } from '../../components/ui/button';
@@ -24,6 +26,8 @@ export function AdminLinkDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  usePublicIdRedirect('linkId', link, adminLinkPath);
 
   const load = useCallback(async () => {
     if (!linkId) return;
@@ -121,7 +125,7 @@ export function AdminLinkDetailPage() {
 
         <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-6 space-y-3">
           <h2 className="font-semibold">Owner</h2>
-          <Link to={`/admin/users/${link.userId}`} className="block hover:underline">{link.userEmail}</Link>
+          <Link to={adminUserPath({ publicId: link.userId })} className="block hover:underline">{link.userEmail}</Link>
         </div>
       </div>
 

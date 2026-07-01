@@ -22,6 +22,9 @@ import { listCampaigns, type CampaignJson } from '@/services/campaigns-api';
 import { listDomains, type CustomDomainJson } from '@/services/domains-api';
 import { ApiError } from '@/services/api';
 import { toast } from 'sonner';
+import { usePublicIdRedirect } from '@/hooks/use-public-id-redirect';
+import { linkPath } from '@/lib/resource-paths';
+import type { LinkJson } from '@/types';
 import { Slider } from '../components/ui/slider';
 import {
   evenSplitWeights,
@@ -49,6 +52,9 @@ export function LinkEditPage() {
   const [saving, setSaving] = useState(false);
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [campaignId, setCampaignId] = useState('');
+  const [loadedLink, setLoadedLink] = useState<LinkJson | null>(null);
+
+  usePublicIdRedirect('linkId', loadedLink, linkPath);
 
   const [isRandomizer, setIsRandomizer] = useState(false);
   const [linkName, setLinkName] = useState('');
@@ -79,6 +85,7 @@ export function LinkEditPage() {
           can.readCampaigns ? listCampaigns() : Promise.resolve([]),
         ]);
         if (cancelled) return;
+        setLoadedLink(link);
         setLinkData({ shortUrl: link.shortUrl, fullShortUrl: link.fullShortUrl || `https://${link.shortUrl}` });
         setLinkName(link.name);
         setDestinationUrl(link.originalUrl);
@@ -190,7 +197,7 @@ export function LinkEditPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateLink(linkId!, {
+      const updated = await updateLink(linkId!, {
         name: linkName,
         link_type: isRandomizer ? 'randomizer' : 'single',
         destination_url: isRandomizer ? undefined : destinationUrl,
@@ -211,7 +218,7 @@ export function LinkEditPage() {
           : undefined,
       });
       toast.success('Link updated');
-      navigate(`/links/${linkId}`);
+      navigate(linkPath(updated));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to save link');
     } finally {
@@ -292,7 +299,7 @@ export function LinkEditPage() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate(`/links/${linkId}`)}
+            onClick={() => loadedLink && navigate(linkPath(loadedLink))}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -520,7 +527,7 @@ export function LinkEditPage() {
               >
                 <option value="">No Campaign</option>
                 {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.publicId} value={c.publicId}>
                     {c.name}
                   </option>
                 ))}
