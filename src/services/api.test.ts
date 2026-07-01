@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { apiRequest, setStoredToken, ApiError } from './api';
+import { apiRequest, ApiError } from './api';
+import { clearAuthStorage, setStoredToken } from '@/lib/auth-storage';
 
 describe('apiRequest', () => {
   beforeEach(() => {
-    setStoredToken(null);
+    clearAuthStorage();
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -22,5 +23,6 @@ describe('apiRequest', () => {
 
     await expect(apiRequest('/api/auth/session')).rejects.toBeInstanceOf(ApiError);
     expect(localStorage.getItem('auth_token')).toBeNull();
+    expect(localStorage.getItem('auth_user')).toBeNull();
   });
 });

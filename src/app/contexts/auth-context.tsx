@@ -1,6 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { User } from '@/types';
-import { apiRequest, setStoredToken, getStoredToken, apiBase, ApiError } from '@/services/api';
+import {
+  clearAuthStorage,
+  getStoredToken,
+  getStoredUser,
+  persistAuth,
+} from '@/lib/auth-storage';
+import { isJwtExpired } from '@/lib/jwt';
+import { apiRequest, apiBase, ApiError } from '@/services/api';
 import { signInWithPassword as apiSignIn } from '@/services/account-api';
 
 interface AuthContextType {
@@ -36,10 +43,52 @@ type SessionResponse = {
   token?: string;
 };
 
+async function fetchSession(maxAttempts = 3): Promise<SessionResponse> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      return await apiRequest<SessionResponse>('/api/auth/session', { method: 'GET' });
+    } catch (e) {
+      lastError = e;
+      if (e instanceof ApiError && e.status === 401) throw e;
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
+function readInitialAuthState(): {
+  user: User | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+} {
+  const token = getStoredToken();
+  if (!token || isJwtExpired(token)) {
+    if (token && isJwtExpired(token)) clearAuthStorage();
+    return { user: null, isAuthenticated: false, loading: false };
+  }
+
+  const cachedUser = getStoredUser();
+  if (cachedUser) {
+    return { user: cachedUser, isAuthenticated: true, loading: true };
+  }
+
+  return { user: null, isAuthenticated: false, loading: true };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initial = readInitialAuthState();
+  const [isAuthenticated, setIsAuthenticated] = useState(initial.isAuthenticated);
+  const [user, setUser] = useState<User | null>(initial.user);
+  const [loading, setLoading] = useState(initial.loading);
+
+  const applySession = useCallback((sessionUser: User, token: string) => {
+    persistAuth(token, sessionUser);
+    setUser(sessionUser);
+    setIsAuthenticated(true);
+  }, []);
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
     const token = getStoredToken();
@@ -49,41 +98,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return false;
     }
-    try {
-      const data = await apiRequest<SessionResponse>('/api/auth/session', {
-        method: 'GET',
-      });
-      if (data.token) setStoredToken(data.token);
-      setUser(data.user);
+
+    if (isJwtExpired(token)) {
+      clearAuthStorage();
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      return false;
+    }
+
+    const cachedUser = getStoredUser();
+    if (cachedUser) {
+      setUser(cachedUser);
       setIsAuthenticated(true);
+    }
+
+    try {
+      const data = await fetchSession();
+      const nextToken = data.token ?? token;
+      applySession(data.user, nextToken);
       return true;
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
-        setStoredToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
+        return false;
       }
+
+      // Transient failure (offline, cold PWA start): keep cached session alive.
+      if (cachedUser) {
+        setUser(cachedUser);
+        setIsAuthenticated(true);
+        return true;
+      }
+
       setUser(null);
       setIsAuthenticated(false);
       return false;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applySession]);
 
   useEffect(() => {
-    checkAuth();
+    void checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
     const refreshSession = () => {
-      if (getStoredToken()) {
+      const token = getStoredToken();
+      if (token && !isJwtExpired(token)) {
         void checkAuth();
       }
     };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshSession();
+    };
     window.addEventListener('focus', refreshSession);
     window.addEventListener('pageshow', refreshSession);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.removeEventListener('focus', refreshSession);
       window.removeEventListener('pageshow', refreshSession);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [checkAuth]);
 
@@ -124,9 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({ token }),
         });
         if (data.user && data.token) {
-          setStoredToken(data.token);
-          setUser(data.user);
-          setIsAuthenticated(true);
+          applySession(data.user, data.token);
           return { success: true, signedIn: true };
         }
         if (data.requiresPassword && data.email) {
@@ -143,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: msg };
       }
     },
-    []
+    [applySession]
   );
 
   const completeMagicLink = useCallback(
@@ -161,16 +236,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           body: JSON.stringify(body),
         });
-        if (data.token) setStoredToken(data.token);
-        setUser(data.user);
-        setIsAuthenticated(true);
+        applySession(data.user, data.token);
         return { success: true, user: data.user };
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
         return { success: false, error: msg };
       }
     },
-    []
+    [applySession]
   );
 
   const loginWithGoogle = () => {
@@ -191,9 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       const data = await apiSignIn(email, password);
-      if (data.token) setStoredToken(data.token);
-      setUser(data.user);
-      setIsAuthenticated(true);
+      applySession(data.user, data.token);
       return { success: true };
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : 'Network error. Please try again.';
@@ -207,7 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     } finally {
-      setStoredToken(null);
+      clearAuthStorage();
       setUser(null);
       setIsAuthenticated(false);
     }

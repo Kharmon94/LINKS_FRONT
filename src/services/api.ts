@@ -1,19 +1,19 @@
-const TOKEN_KEY = 'auth_token';
+import {
+  clearAuthStorage,
+  getStoredToken,
+  setStoredToken,
+} from '@/lib/auth-storage';
 
-export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setStoredToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
-}
+export { clearAuthStorage, getStoredToken, setStoredToken } from '@/lib/auth-storage';
 
 /** Base URL for Rails (no trailing slash). In dev with empty VITE_API_URL, use same-origin + Vite proxy. */
 export function apiBase(): string {
   const raw = import.meta.env.VITE_API_URL as string | undefined;
   if (raw && raw.length > 0) return raw.replace(/\/$/, '');
   if (import.meta.env.DEV) return '';
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('blackcollar.io')) {
+    return 'https://api.blackcollar.io';
+  }
   return 'http://localhost:3000';
 }
 
@@ -44,7 +44,7 @@ export async function apiRequest<T>(
   const res = await fetch(url, { ...init, headers });
 
   if (res.status === 401) {
-    setStoredToken(null);
+    clearAuthStorage();
     throw new ApiError('Unauthorized', 401);
   }
 

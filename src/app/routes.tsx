@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { AuthProvider } from "./contexts/auth-context";
 import { WorkspaceProvider } from "./contexts/workspace-context";
 import { ThemeProvider } from "./contexts/theme-context";
+import { PwaInstallPrompt } from "./components/pwa-install-prompt-modal";
 import { ProtectedRoute } from "./components/protected-route";
 import { AdminRoute } from "./components/admin-route";
 import { AdminLayout } from "./components/admin/admin-layout";
@@ -50,6 +51,7 @@ function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <WorkspaceProvider>
+          <PwaInstallPrompt />
           <Outlet />
         </WorkspaceProvider>
       </AuthProvider>

@@ -7,7 +7,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Link } from 'react-router';
 import { BarChart3, Zap, Shield, Copy, Link2, ArrowRight, ExternalLink, ArrowLeft } from 'lucide-react';
-import { apiRequest, setStoredToken, ApiError } from '@/services/api';
+import { apiRequest, ApiError } from '@/services/api';
+import { persistAuth, setStoredToken } from '@/lib/auth-storage';
+import type { User } from '@/types';
 
 export function LandingPage() {
   // Multi-step form state
@@ -53,6 +55,7 @@ export function LandingPage() {
       const data = await apiRequest<{
         short_url: string;
         short_code: string;
+        user?: User;
         token?: string;
       }>('/api/links/create-with-account', {
         method: 'POST',
@@ -64,7 +67,8 @@ export function LandingPage() {
         }),
       });
 
-      if (data.token) setStoredToken(data.token);
+      if (data.token && data.user) persistAuth(data.token, data.user);
+      else if (data.token) setStoredToken(data.token);
       setGeneratedLink(data.short_url || `links.blackcollar.io/${data.short_code}`);
       setIsSubmitted(true);
     } catch (err) {
