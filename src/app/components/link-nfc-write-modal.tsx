@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Nfc, Smartphone } from 'lucide-react';
+import { CheckCircle2, Copy, Nfc, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import {
@@ -104,6 +104,11 @@ export function LinkNfcWriteModal({ open, onOpenChange, url }: LinkNfcWriteModal
     setErrorMessage('');
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
@@ -128,7 +133,17 @@ export function LinkNfcWriteModal({ open, onOpenChange, url }: LinkNfcWriteModal
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               URL record
             </p>
-            <p className="break-all text-sm text-foreground">{url}</p>
+            <div className="flex items-start gap-2">
+              <p className="min-w-0 flex-1 break-all text-sm text-foreground">{url}</p>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(url)}
+                className="shrink-0 rounded p-1 hover:bg-muted"
+                aria-label="Copy URL"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {webNfcSupported ? (
