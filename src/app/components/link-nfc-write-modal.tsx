@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, ExternalLink, Nfc, Smartphone } from 'lucide-react';
+import { CheckCircle2, Nfc, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import {
@@ -11,7 +11,6 @@ import {
   DrawerTitle,
 } from './ui/drawer';
 import { isNfcWriteSupported, mapNfcWriteError, writeUrlToNfcTag } from '@/lib/nfc-write';
-import { isIosBrowser } from '@/lib/pwa-install';
 
 const NFC_TOOLS_APP_STORE_URL = 'https://apps.apple.com/app/nfc-tools/id1252962749';
 
@@ -31,7 +30,16 @@ function NfcToolsSteps() {
           1
         </span>
         <span className="pt-0.5">
-          Open <strong className="text-foreground">NFC Tools</strong> on your phone.
+          Open{' '}
+          <a
+            href={NFC_TOOLS_APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline"
+          >
+            NFC Tools
+          </a>{' '}
+          on your phone.
         </span>
       </li>
       <li className="flex gap-3">
@@ -61,7 +69,6 @@ export function LinkNfcWriteModal({ open, onOpenChange, url }: LinkNfcWriteModal
   const [writeState, setWriteState] = useState<WriteState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const webNfcSupported = isNfcWriteSupported();
-  const showIosAppStoreLink = isIosBrowser();
 
   useEffect(() => {
     if (!open) {
@@ -172,19 +179,9 @@ export function LinkNfcWriteModal({ open, onOpenChange, url }: LinkNfcWriteModal
               </Button>
             )
           ) : (
-            <>
-              {showIosAppStoreLink && (
-                <Button type="button" variant="outline" className="w-full" asChild>
-                  <a href={NFC_TOOLS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Get NFC Tools on the App Store
-                  </a>
-                </Button>
-              )}
-              <Button type="button" onClick={() => onOpenChange(false)} className="w-full">
-                Done
-              </Button>
-            </>
+            <Button type="button" onClick={() => onOpenChange(false)} className="w-full">
+              Done
+            </Button>
           )}
 
           {webNfcSupported && writeState === 'error' && (
