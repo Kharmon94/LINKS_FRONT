@@ -11,8 +11,7 @@ import {
   DrawerTitle,
 } from './ui/drawer';
 import { isNfcWriteSupported, mapNfcWriteError, writeUrlToNfcTag } from '@/lib/nfc-write';
-
-const NFC_TOOLS_APP_STORE_URL = 'https://apps.apple.com/app/nfc-tools/id1252962749';
+import { openNfcTools } from '@/lib/open-nfc-tools';
 
 type LinkNfcWriteModalProps = {
   open: boolean;
@@ -31,14 +30,13 @@ function NfcToolsSteps() {
         </span>
         <span className="pt-0.5">
           Open{' '}
-          <a
-            href={NFC_TOOLS_APP_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => openNfcTools()}
             className="font-semibold text-primary hover:underline"
           >
             NFC Tools
-          </a>{' '}
+          </button>{' '}
           on your phone.
         </span>
       </li>
