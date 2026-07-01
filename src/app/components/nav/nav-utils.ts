@@ -39,6 +39,18 @@ export const MOBILE_BOTTOM_NAV_Z_CLASS = 'z-[100]';
 
 export const NAV_MORE_SHEET_Z_CLASS = 'z-[110]';
 
+/** Desktop top-nav overflow dropdown — above the fixed header (z-[100]), below modals. */
+export const TOP_NAV_DROPDOWN_Z_CLASS = 'z-[110]';
+
+export const topNavDropdownContentProps = {
+  side: 'bottom' as const,
+  align: 'start' as const,
+  sideOffset: 8,
+  collisionPadding: 16,
+  avoidCollisions: false,
+  className: `${TOP_NAV_DROPDOWN_Z_CLASS} border-border/50`,
+};
+
 /** Workspace picker must render above the More sheet on mobile. */
 export const WORKSPACE_PICKER_Z_CLASS = 'z-[120]';
 

@@ -6,6 +6,7 @@ import {
   getAdminDesktopPrimaryItems,
 } from '@/app/config/admin-nav-items';
 import { NavThemeToggle } from './nav-theme-toggle';
+import { topNavDropdownContentProps, topNavLinkClass, topNavLinkInactiveClass } from './nav-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,11 +49,13 @@ export function AdminTopNav() {
             ))}
             {overflowItems.length > 0 && (
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+                <DropdownMenuTrigger
+                  className={`inline-flex items-center gap-2 ${topNavLinkClass} ${topNavLinkInactiveClass}`}
+                >
                   <MoreHorizontal className="w-4 h-4" />
                   More
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent {...topNavDropdownContentProps}>
                   {overflowItems.map((item) => (
                     <DropdownMenuItem key={item.path} asChild>
                       <Link to={item.path}>{item.label}</Link>

@@ -9,6 +9,7 @@ import {
 } from '@/app/config/app-nav-items';
 import { NavLogo } from './nav-logo';
 import { NavThemeToggle } from './nav-theme-toggle';
+import { topNavDropdownContentProps, topNavLinkClass, topNavLinkInactiveClass } from './nav-utils';
 import { WorkspaceSwitcher } from '../workspace-switcher';
 import {
   DropdownMenu,
@@ -60,11 +61,13 @@ export function AppTopNav() {
             ))}
             {overflowItems.length > 0 && (
               <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+                <DropdownMenuTrigger
+                  className={`inline-flex items-center gap-2 ${topNavLinkClass} ${topNavLinkInactiveClass}`}
+                >
                   <MoreHorizontal className="w-4 h-4" />
                   More
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent {...topNavDropdownContentProps}>
                   {overflowItems.map((item) => {
                     const Icon = item.icon;
                     return (
