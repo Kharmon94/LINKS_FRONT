@@ -15,6 +15,7 @@ export interface PlanTier {
 export interface PlansResponse {
   plans: PlanTier[];
   tiers: PlanTier[];
+  stripePublishableKey?: string | null;
 }
 
 export async function fetchPlans() {

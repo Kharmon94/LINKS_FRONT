@@ -159,6 +159,16 @@ export interface AdminBillingOverview {
   recentEvents: AdminBillingEvent[];
 }
 
+export interface StripeModeReadiness {
+  secretKey: boolean;
+  publishableKey: boolean;
+  webhookSecret: boolean;
+  proMonthlyPriceEnv: boolean;
+  proYearlyPriceEnv: boolean;
+  ready: boolean;
+  proPlanPrices: boolean;
+}
+
 export interface AdminStripeMode {
   live: boolean;
   source: 'database' | 'env';
@@ -167,6 +177,12 @@ export interface AdminStripeMode {
   testPublishableConfigured: boolean;
   livePublishableConfigured: boolean;
   publishableKey?: string | null;
+  currentModeReady?: boolean;
+  readiness?: {
+    currentModeReady: boolean;
+    test: StripeModeReadiness;
+    live: StripeModeReadiness;
+  };
 }
 
 export interface AdminBillingEvent {

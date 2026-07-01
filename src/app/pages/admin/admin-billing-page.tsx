@@ -205,6 +205,14 @@ export function AdminBillingPage() {
                 <span>Test publishable: {stripeMode.testPublishableConfigured ? 'configured' : 'missing'}</span>
                 <span>·</span>
                 <span>Live publishable: {stripeMode.livePublishableConfigured ? 'configured' : 'missing'}</span>
+                {stripeMode.currentModeReady != null && (
+                  <>
+                    <span>·</span>
+                    <span className={stripeMode.currentModeReady ? 'text-green-600' : 'text-destructive'}>
+                      Current mode {stripeMode.currentModeReady ? 'ready' : 'not ready'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
