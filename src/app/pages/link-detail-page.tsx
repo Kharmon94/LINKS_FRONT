@@ -6,8 +6,9 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_DETAIL_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
+import { LinkQrCodeModal } from '../components/link-qr-code-modal';
+import { LinkNfcWriteModal } from '../components/link-nfc-write-modal';
 import { toast } from 'sonner';
-import QRCode from 'qrcode';
 import {
   ArrowLeft,
   Copy,
@@ -39,6 +40,8 @@ export function LinkDetailPage() {
   const [isRecentClicksOpen, setIsRecentClicksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [nfcOpen, setNfcOpen] = useState(false);
 
   const loadLinkData = useCallback(
     async ({ silent }: { silent: boolean }) => {
@@ -126,31 +129,7 @@ export function LinkDetailPage() {
   }
 
   const fullShortUrl = displayShortUrl(link);
-
-  const handleExportQR = async () => {
-    try {
-      const dataUrl = await QRCode.toDataURL(fullShortUrl, { width: 512, margin: 2 });
-      const anchor = document.createElement('a');
-      anchor.href = dataUrl;
-      anchor.download = `${link.shortCode || 'link'}-qr.png`;
-      anchor.click();
-      toast.success('QR code downloaded');
-    } catch {
-      toast.error('Could not generate QR code');
-    }
-  };
-
-  const handleExportNFC = () => {
-    const payload = `URI:${fullShortUrl}`;
-    const blob = new Blob([payload], { type: 'text/plain' });
-    const anchor = document.createElement('a');
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `${link.shortCode || 'link'}.nfc`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
-    navigator.clipboard.writeText(fullShortUrl);
-    toast.success('NFC payload downloaded and URL copied');
-  };
+  const shortCode = link.shortCode || 'link';
 
   const formatTimestamp = (timestamp: string) =>
     new Date(timestamp).toLocaleString('en-US', {
@@ -208,11 +187,11 @@ export function LinkDetailPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={handleExportQR}>
+                <Button variant="outline" onClick={() => setQrOpen(true)}>
                   <QrCode className="w-4 h-4 mr-2" />
                   QR
                 </Button>
-                <Button variant="outline" onClick={handleExportNFC}>
+                <Button variant="outline" onClick={() => setNfcOpen(true)}>
                   <Nfc className="w-4 h-4 mr-2" />
                   NFC
                 </Button>
@@ -345,6 +324,14 @@ export function LinkDetailPage() {
             </div>
           </div>
         </div>
+
+        <LinkQrCodeModal
+          open={qrOpen}
+          onOpenChange={setQrOpen}
+          url={fullShortUrl}
+          filename={shortCode}
+        />
+        <LinkNfcWriteModal open={nfcOpen} onOpenChange={setNfcOpen} url={fullShortUrl} />
       </AppLayout>
     </FeatureGate>
   );
