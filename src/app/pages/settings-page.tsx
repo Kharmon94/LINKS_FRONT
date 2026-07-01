@@ -33,6 +33,7 @@ const TIER_LABELS: Record<SubscriptionTier, string> = {
   free: 'Free',
   starter: 'Starter',
   growth: 'Growth',
+  pro: 'Pro',
   enterprise: 'Enterprise',
 };
 
@@ -40,7 +41,8 @@ const TIER_FEATURES: Record<SubscriptionTier, string[]> = {
   free: ['1 link', 'Basic analytics'],
   starter: ['Up to 20 links', '2 campaigns', 'Tap analytics dashboard'],
   growth: ['Unlimited links & campaigns', 'Custom domain', 'Workspaces & team'],
-  enterprise: ['Everything in Growth', 'Dedicated support'],
+  pro: ['Unlimited links & campaigns', 'Custom domain', 'Workspaces & team', 'Advanced analytics'],
+  enterprise: ['Everything in Pro', 'Dedicated support'],
 };
 
 async function urlBase64ToUint8Array(base64String: string) {
@@ -792,7 +794,7 @@ export function SettingsPage() {
                     )}
                   </div>
                 </div>
-                {tier === 'free' || tier === 'starter' ? (
+                {tier === 'free' ? (
                   <Button size="lg" className="w-full mb-3" onClick={handleUpgrade}>
                     Upgrade plan
                   </Button>

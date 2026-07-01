@@ -1,4 +1,4 @@
-export type SubscriptionTier = 'free' | 'starter' | 'growth' | 'enterprise';
+export type SubscriptionTier = 'free' | 'starter' | 'growth' | 'pro' | 'enterprise';
 export type UserRole = 'owner' | 'admin' | 'member';
 
 export interface ResourcePermissions {
@@ -152,10 +152,18 @@ export interface AdminBillingOverview {
   mrrCents: number;
   mrrFormatted: string;
   mrrSource?: 'stripe' | 'fallback';
+  stripeMode?: 'test' | 'live';
   subscribersByTier: Record<SubscriptionTier, number>;
   paidSubscribers: number;
   stripeLinkedUsers: number;
   recentEvents: AdminBillingEvent[];
+}
+
+export interface AdminStripeMode {
+  live: boolean;
+  source: 'database' | 'env';
+  testConfigured: boolean;
+  liveConfigured: boolean;
 }
 
 export interface AdminBillingEvent {
@@ -185,7 +193,12 @@ export interface AdminBillingUserLookup {
 export interface AdminHealthStatus {
   database: { ok: boolean; latencyMs: number | null };
   redis: { ok: boolean; skipped?: boolean; latencyMs?: number | null };
-  stripe: { configured: boolean };
+  stripe: {
+    configured: boolean;
+    mode?: 'test' | 'live';
+    testConfigured?: boolean;
+    liveConfigured?: boolean;
+  };
   version: string | null;
   migrationVersion?: number;
 }

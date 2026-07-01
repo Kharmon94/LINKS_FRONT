@@ -5,9 +5,11 @@ import {
   cancelAdminSubscription,
   createAdminBillingPortalSession,
   fetchAdminBillingOverview,
+  fetchAdminStripeMode,
   lookupAdminBillingUser,
+  updateAdminStripeMode,
 } from '@/services/admin-api';
-import type { AdminBillingOverview, AdminBillingUserLookup } from '@/types';
+import type { AdminBillingOverview, AdminBillingUserLookup, AdminStripeMode } from '@/types';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
 import { AdminStatRowSkeleton, AdminErrorState } from '../../components/admin/admin-page-states';
 import { AdminConfirmDialog } from '../../components/admin/admin-confirm-dialog';
@@ -15,6 +17,8 @@ import { AdminTierBadge } from '../../components/admin/admin-tier-badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import { Switch } from '../../components/ui/switch';
+import { Label } from '../../components/ui/label';
 import {
   Table,
   TableBody,
@@ -41,6 +45,7 @@ function subscriptionStatusBadge(status?: string | null) {
 
 export function AdminBillingPage() {
   const [overview, setOverview] = useState<AdminBillingOverview | null>(null);
+  const [stripeMode, setStripeMode] = useState<AdminStripeMode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lookupEmail, setLookupEmail] = useState('');
@@ -49,13 +54,19 @@ export function AdminBillingPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [liveConfirmOpen, setLiveConfirmOpen] = useState(false);
+  const [modeUpdating, setModeUpdating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchAdminBillingOverview();
-      setOverview(data.overview);
+      const [overviewData, modeData] = await Promise.all([
+        fetchAdminBillingOverview(),
+        fetchAdminStripeMode(),
+      ]);
+      setOverview(overviewData.overview);
+      setStripeMode(modeData);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load billing overview');
     } finally {
@@ -111,6 +122,29 @@ export function AdminBillingPage() {
     }
   };
 
+  const applyStripeMode = async (live: boolean) => {
+    setModeUpdating(true);
+    try {
+      const mode = await updateAdminStripeMode(live);
+      setStripeMode(mode);
+      setOverview((prev) => (prev ? { ...prev, stripeMode: live ? 'live' : 'test' } : prev));
+      toast.success(live ? 'Stripe live mode enabled' : 'Stripe test mode enabled');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update Stripe mode');
+    } finally {
+      setModeUpdating(false);
+      setLiveConfirmOpen(false);
+    }
+  };
+
+  const handleModeToggle = (checked: boolean) => {
+    if (checked) {
+      setLiveConfirmOpen(true);
+      return;
+    }
+    void applyStripeMode(false);
+  };
+
   if (loading && !overview) {
     return (
       <div className="space-y-6">
@@ -138,7 +172,14 @@ export function AdminBillingPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Billing</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-semibold">Billing</h1>
+            {stripeMode && (
+              <Badge variant={stripeMode.live ? 'destructive' : 'secondary'}>
+                Stripe {stripeMode.live ? 'Live' : 'Test'}
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground text-sm">MRR, subscription lookup, and Stripe operations</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()}>
@@ -146,6 +187,34 @@ export function AdminBillingPage() {
           Refresh
         </Button>
       </div>
+
+      {stripeMode && (
+        <div className="bg-card rounded-lg border p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">Stripe mode</h2>
+              <p className="text-sm text-muted-foreground">
+                Controls which Stripe API keys checkout and admin billing use.
+                {stripeMode.source === 'database' ? ' Stored in database.' : ' Using env fallback.'}
+              </p>
+              <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                <span>Test keys: {stripeMode.testConfigured ? 'configured' : 'missing'}</span>
+                <span>·</span>
+                <span>Live keys: {stripeMode.liveConfigured ? 'configured' : 'missing'}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label htmlFor="stripe-live-mode" className="text-sm">Live mode</Label>
+              <Switch
+                id="stripe-live-mode"
+                checked={stripeMode.live}
+                disabled={modeUpdating || !stripeMode.liveConfigured}
+                onCheckedChange={handleModeToggle}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <AdminStatCard
@@ -257,6 +326,17 @@ export function AdminBillingPage() {
           </Table>
         )}
       </div>
+
+      <AdminConfirmDialog
+        open={liveConfirmOpen}
+        onOpenChange={setLiveConfirmOpen}
+        title="Enable Stripe live mode?"
+        description="Checkout and billing operations will use live Stripe keys. Real charges will be processed. Confirm only when you are ready for production billing."
+        confirmLabel="Enable live mode"
+        destructive
+        loading={modeUpdating}
+        onConfirm={() => void applyStripeMode(true)}
+      />
 
       <AdminConfirmDialog
         open={cancelOpen}

@@ -102,6 +102,17 @@ export async function cancelAdminSubscription(userId: string, immediate = false)
   });
 }
 
+export async function fetchAdminStripeMode() {
+  return apiRequest<import('@/types').AdminStripeMode>('/api/v1/admin/billing/stripe_mode');
+}
+
+export async function updateAdminStripeMode(live: boolean) {
+  return apiRequest<import('@/types').AdminStripeMode>('/api/v1/admin/billing/stripe_mode', {
+    method: 'PATCH',
+    body: JSON.stringify({ live }),
+  });
+}
+
 export async function fetchAdminHealth() {
   return apiRequest<{ health: AdminHealthStatus }>('/api/v1/admin/health');
 }

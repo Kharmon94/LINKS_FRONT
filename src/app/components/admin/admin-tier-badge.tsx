@@ -5,6 +5,7 @@ const tierColors: Record<SubscriptionTier, string> = {
   free: 'bg-muted text-muted-foreground',
   starter: 'bg-blue-500/10 text-blue-500',
   growth: 'bg-emerald-500/10 text-emerald-500',
+  pro: 'bg-amber-500/10 text-amber-600',
   enterprise: 'bg-purple-500/10 text-purple-500',
 };
 

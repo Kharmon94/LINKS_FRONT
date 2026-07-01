@@ -44,7 +44,7 @@ import {
   TableRow,
 } from '../../components/ui/table';
 
-const TIERS: SubscriptionTier[] = ['free', 'starter', 'growth', 'enterprise'];
+const TIERS: SubscriptionTier[] = ['free', 'starter', 'growth', 'pro', 'enterprise'];
 
 export function AdminUserDetailPage() {
   const { userId } = useParams();

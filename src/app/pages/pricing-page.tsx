@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { PublicTopNav } from '../components/nav/public-top-nav';
 import { PublicBottomNav } from '../components/nav/public-bottom-nav';
@@ -26,11 +26,25 @@ const STATIC_PLANS: PlanJson[] = [
     tier: 'enterprise',
     name: 'Enterprise',
     prices: null,
-    features: ['Everything in Growth', 'Dedicated strategy and support', 'Custom NFC deployments'],
+    features: ['Everything in Pro', 'Dedicated strategy and support', 'Custom NFC deployments'],
     checkout: false,
     salesLed: true,
   },
 ];
+
+const PRO_FALLBACK: PlanJson = {
+  tier: 'pro',
+  name: 'Pro',
+  prices: { monthly: 50, yearly: 500 },
+  features: [
+    'Unlimited links & campaigns',
+    'Custom domain',
+    'Workspaces & team',
+    'Advanced analytics',
+    'Randomizer split testing',
+  ],
+  checkout: true,
+};
 
 export function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -55,23 +69,9 @@ export function PricingPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const plans = [
-    STATIC_PLANS[0],
-    ...(['starter', 'growth'] as const).map((tier) => {
-      const fromApi = apiPlans.find((p) => p.tier === tier);
-      if (fromApi) return fromApi;
-      return {
-        tier,
-        name: tier.charAt(0).toUpperCase() + tier.slice(1),
-        prices: tier === 'starter' ? { monthly: 15, yearly: 150 } : { monthly: 150, yearly: 1500 },
-        features: tier === 'starter'
-          ? ['Up to 20 links', '2 campaigns', 'Tap analytics dashboard']
-          : ['Unlimited links & campaigns', 'Custom domain', 'Workspaces & team'],
-        checkout: true,
-      } satisfies PlanJson;
-    }),
-    STATIC_PLANS[1],
-  ];
+  const proPlan = apiPlans.find((p) => p.tier === 'pro') ?? PRO_FALLBACK;
+
+  const plans = [STATIC_PLANS[0], proPlan, STATIC_PLANS[1]];
 
   const handlePlanClick = async (plan: PlanJson) => {
     if (plan.salesLed) {
@@ -144,13 +144,13 @@ export function PricingPage() {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {plans.map((plan) => (
                 <div
                   key={plan.tier}
-                  className={`relative bg-card/50 backdrop-blur-md rounded-2xl p-6 border ${plan.tier === 'growth' ? 'border-primary shadow-lg' : 'border-border'}`}
+                  className={`relative bg-card/50 backdrop-blur-md rounded-2xl p-6 border ${plan.tier === 'pro' ? 'border-primary shadow-lg' : 'border-border'}`}
                 >
-                  {plan.tier === 'growth' && (
+                  {plan.tier === 'pro' && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black text-xs px-3 py-1 rounded-full">
                       Most Popular
                     </span>
@@ -167,7 +167,7 @@ export function PricingPage() {
                   </ul>
                   <Button
                     className="w-full rounded-full"
-                    variant={plan.tier === 'growth' ? 'default' : 'outline'}
+                    variant={plan.tier === 'pro' ? 'default' : 'outline'}
                     disabled={checkoutTier === plan.tier}
                     onClick={() => void handlePlanClick(plan)}
                   >
