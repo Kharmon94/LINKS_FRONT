@@ -1,12 +1,14 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { User } from '@/types';
 import {
   clearAuthStorage,
   getStoredToken,
   getStoredUser,
   persistAuth,
+  readStoredAuthState,
 } from '@/lib/auth-storage';
 import { isJwtExpired } from '@/lib/jwt';
+import { isStandalonePwa } from '@/lib/pwa-install';
 import { apiRequest, apiBase, ApiError } from '@/services/api';
 import { signInWithPassword as apiSignIn } from '@/services/account-api';
 
@@ -43,7 +45,7 @@ type SessionResponse = {
   token?: string;
 };
 
-async function fetchSession(maxAttempts = 3): Promise<SessionResponse> {
+async function fetchSession(maxAttempts = isStandalonePwa() ? 5 : 3): Promise<SessionResponse> {
   let lastError: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
@@ -52,37 +54,19 @@ async function fetchSession(maxAttempts = 3): Promise<SessionResponse> {
       lastError = e;
       if (e instanceof ApiError && e.status === 401) throw e;
       if (attempt < maxAttempts - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
       }
     }
   }
   throw lastError;
 }
 
-function readInitialAuthState(): {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-} {
-  const token = getStoredToken();
-  if (!token || isJwtExpired(token)) {
-    if (token && isJwtExpired(token)) clearAuthStorage();
-    return { user: null, isAuthenticated: false, loading: false };
-  }
-
-  const cachedUser = getStoredUser();
-  if (cachedUser) {
-    return { user: cachedUser, isAuthenticated: true, loading: true };
-  }
-
-  return { user: null, isAuthenticated: false, loading: true };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const initial = readInitialAuthState();
+  const initial = readStoredAuthState();
   const [isAuthenticated, setIsAuthenticated] = useState(initial.isAuthenticated);
   const [user, setUser] = useState<User | null>(initial.user);
   const [loading, setLoading] = useState(initial.loading);
+  const initialAuthDone = useRef(false);
 
   const applySession = useCallback((sessionUser: User, token: string) => {
     persistAuth(token, sessionUser);
@@ -132,6 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true;
       }
 
+      // Token without cached profile — stay signed in until the server rejects the token.
+      if (token && !isJwtExpired(token)) {
+        setIsAuthenticated(true);
+        return true;
+      }
+
       setUser(null);
       setIsAuthenticated(false);
       return false;
@@ -141,11 +131,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession]);
 
   useEffect(() => {
-    void checkAuth();
+    void checkAuth().finally(() => {
+      initialAuthDone.current = true;
+    });
   }, [checkAuth]);
 
   useEffect(() => {
     const refreshSession = () => {
+      if (!initialAuthDone.current) return;
       const token = getStoredToken();
       if (token && !isJwtExpired(token)) {
         void checkAuth();

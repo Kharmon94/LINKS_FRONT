@@ -4,21 +4,31 @@ type JwtPayload = {
   iat?: number;
 };
 
+function decodeBase64Url(segment: string): string {
+  let normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = normalized.length % 4;
+  if (pad) normalized += '='.repeat(4 - pad);
+  return atob(normalized);
+}
+
 export function parseJwtPayload(token: string): JwtPayload | null {
   try {
     const segment = token.split('.')[1];
     if (!segment) return null;
-    const normalized = segment.replace(/-/g, '+').replace(/_/g, '/');
-    const json = atob(normalized);
+    const json = decodeBase64Url(segment);
     return JSON.parse(json) as JwtPayload;
   } catch {
     return null;
   }
 }
 
-/** True when the token is missing, malformed, or past expiry (with optional skew). */
-export function isJwtExpired(token: string, skewSeconds = 60): boolean {
+/** True when the token payload has a definite expiry in the past (with optional skew). */
+export function isJwtExpired(
+  token: string,
+  skewSeconds = 60,
+  nowMs: number = Date.now(),
+): boolean {
   const payload = parseJwtPayload(token);
-  if (!payload?.exp) return true;
-  return payload.exp <= Math.floor(Date.now() / 1000) + skewSeconds;
+  if (!payload?.exp) return false;
+  return payload.exp <= Math.floor(nowMs / 1000) + skewSeconds;
 }

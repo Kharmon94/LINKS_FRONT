@@ -12,6 +12,10 @@ import {
 } from './ui/drawer';
 import { isNfcWriteSupported, mapNfcWriteError, writeUrlToNfcTag } from '@/lib/nfc-write';
 import { openNfcTools } from '@/lib/open-nfc-tools';
+import {
+  MOBILE_DRAWER_BOTTOM_PADDING_CLASS,
+  MOBILE_DRAWER_MAX_HEIGHT_CLASS,
+} from './nav/nav-utils';
 
 type LinkNfcWriteModalProps = {
   open: boolean;
@@ -109,8 +113,8 @@ export function LinkNfcWriteModal({ open, onOpenChange, url }: LinkNfcWriteModal
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
+      <DrawerContent className={`${MOBILE_DRAWER_MAX_HEIGHT_CLASS} flex flex-col overflow-hidden`}>
+        <DrawerHeader className="shrink-0">
           <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
             {webNfcSupported ? (
               <Nfc className="h-5 w-5 text-primary" />
@@ -126,53 +130,55 @@ export function LinkNfcWriteModal({ open, onOpenChange, url }: LinkNfcWriteModal
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="space-y-4 px-4 pb-2">
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              URL record
-            </p>
-            <div className="flex items-start gap-2">
-              <p className="min-w-0 flex-1 break-all text-sm text-foreground">{url}</p>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(url)}
-                className="shrink-0 rounded p-1 hover:bg-muted"
-                aria-label="Copy URL"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="space-y-4 px-4 pb-2">
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                URL record
+              </p>
+              <div className="flex items-start gap-2">
+                <p className="min-w-0 flex-1 break-all text-sm text-foreground">{url}</p>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(url)}
+                  className="shrink-0 rounded p-1 hover:bg-muted"
+                  aria-label="Copy URL"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
             </div>
+
+            {webNfcSupported ? (
+              <>
+                {writeState === 'writing' && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center">
+                    <Nfc className="mx-auto mb-2 h-8 w-8 animate-pulse text-primary" />
+                    <p className="font-medium text-foreground">Ready to scan</p>
+                    <p className="text-sm text-muted-foreground">Approach an NFC tag</p>
+                  </div>
+                )}
+
+                {writeState === 'success' && (
+                  <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-foreground">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                    Tag programmed successfully.
+                  </div>
+                )}
+
+                {writeState === 'error' && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    {errorMessage}
+                  </div>
+                )}
+              </>
+            ) : (
+              <NfcToolsSteps />
+            )}
           </div>
-
-          {webNfcSupported ? (
-            <>
-              {writeState === 'writing' && (
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center">
-                  <Nfc className="mx-auto mb-2 h-8 w-8 animate-pulse text-primary" />
-                  <p className="font-medium text-foreground">Ready to scan</p>
-                  <p className="text-sm text-muted-foreground">Approach an NFC tag</p>
-                </div>
-              )}
-
-              {writeState === 'success' && (
-                <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-foreground">
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
-                  Tag programmed successfully.
-                </div>
-              )}
-
-              {writeState === 'error' && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-                  {errorMessage}
-                </div>
-              )}
-            </>
-          ) : (
-            <NfcToolsSteps />
-          )}
         </div>
 
-        <DrawerFooter>
+        <DrawerFooter className={`shrink-0 ${MOBILE_DRAWER_BOTTOM_PADDING_CLASS}`}>
           {webNfcSupported ? (
             writeState === 'success' ? (
               <Button type="button" onClick={() => onOpenChange(false)} className="w-full">

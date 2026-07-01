@@ -4,6 +4,7 @@ import { WorkspaceProvider } from "./contexts/workspace-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import { PwaInstallPrompt } from "./components/pwa-install-prompt-modal";
 import { ProtectedRoute } from "./components/protected-route";
+import { GuestRoute } from "./components/guest-route";
 import { AdminRoute } from "./components/admin-route";
 import { AdminLayout } from "./components/admin/admin-layout";
 import { LandingPage } from "./pages/landing-page";
@@ -65,11 +66,19 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        Component: LandingPage,
+        element: (
+          <GuestRoute>
+            <LandingPage />
+          </GuestRoute>
+        ),
       },
       {
         path: "/auth",
-        Component: AuthPage,
+        element: (
+          <GuestRoute respectReturnTo>
+            <AuthPage />
+          </GuestRoute>
+        ),
       },
       {
         path: "/auth/verify",

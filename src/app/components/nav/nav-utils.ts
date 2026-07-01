@@ -66,6 +66,17 @@ export const topNavDropdownContentProps = {
 /** Workspace picker must render above the More sheet on mobile. */
 export const WORKSPACE_PICKER_Z_CLASS = 'z-[120]';
 
+/** Modals and bottom drawers — above mobile bottom nav and More sheet. */
+export const MODAL_OVERLAY_Z_CLASS = 'z-[120]';
+
+/** Bottom drawer body clearance on mobile (nav height + safe area). */
+export const MOBILE_DRAWER_BOTTOM_PADDING_CLASS =
+  'pb-[calc(3.5rem+0.375rem+env(safe-area-inset-bottom,0px))] lg:pb-4';
+
+/** Max height for bottom drawers on mobile so content clears the tab bar. */
+export const MOBILE_DRAWER_MAX_HEIGHT_CLASS =
+  'max-h-[calc(100dvh-env(safe-area-inset-top,0px)-3.5rem-0.375rem)] lg:max-h-[80vh]';
+
 export const topNavLinkClass =
   'text-xs uppercase tracking-wide transition-colors hover:text-foreground';
 

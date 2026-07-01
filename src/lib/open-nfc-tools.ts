@@ -23,18 +23,30 @@ export function buildAndroidIntentUrl(
 }
 
 type DeepLinkFallbackDeps = {
-  assignLocation: (url: string) => void;
+  /** Launch the app URL; return cleanup (e.g. remove probe iframe). */
+  launchAppUrl: (url: string) => () => void;
   openWindow: (url: string) => void;
   addVisibilityListener: (handler: () => void) => () => void;
   isDocumentHidden: () => boolean;
   scheduleFallback: (callback: () => void, delayMs: number) => () => void;
 };
 
+/**
+ * Probe a custom URL scheme via a hidden iframe so iOS Safari / standalone PWA
+ * does not navigate the main window (which triggers "address is invalid" alerts).
+ */
+export function launchAppUrlViaHiddenIframe(url: string): () => void {
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(iframe);
+  iframe.src = url;
+  return () => iframe.remove();
+}
+
 function defaultDeepLinkDeps(): DeepLinkFallbackDeps {
   return {
-    assignLocation: (url) => {
-      window.location.assign(url);
-    },
+    launchAppUrl: launchAppUrlViaHiddenIframe,
     openWindow: (url) => {
       window.open(url, '_blank', 'noopener,noreferrer');
     },
@@ -77,12 +89,13 @@ export function tryOpenDeepLinkWithStoreFallback(
     }
   }, delayMs);
 
+  const removeAppLaunch = deps.launchAppUrl(appUrl);
+
   function cleanup() {
     removeVisibilityListener();
     cancelTimeout();
+    removeAppLaunch();
   }
-
-  deps.assignLocation(appUrl);
 }
 
 export function openNfcTools(): void {

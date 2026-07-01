@@ -25,4 +25,15 @@ describe('jwt', () => {
     const token = makeToken({ exp: Math.floor(Date.now() / 1000) + 3600 });
     expect(isJwtExpired(token)).toBe(false);
   });
+
+  it('parses unpadded base64url payloads', () => {
+    const token = makeToken({ sub: '7', exp: Math.floor(Date.now() / 1000) + 3600 });
+    expect(parseJwtPayload(token)?.sub).toBe('7');
+    expect(isJwtExpired(token)).toBe(false);
+  });
+
+  it('does not treat missing exp as expired', () => {
+    const token = makeToken({ sub: '42' });
+    expect(isJwtExpired(token)).toBe(false);
+  });
 });
