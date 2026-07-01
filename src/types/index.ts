@@ -164,6 +164,9 @@ export interface AdminStripeMode {
   source: 'database' | 'env';
   testConfigured: boolean;
   liveConfigured: boolean;
+  testPublishableConfigured: boolean;
+  livePublishableConfigured: boolean;
+  publishableKey?: string | null;
 }
 
 export interface AdminBillingEvent {

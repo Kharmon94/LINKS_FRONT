@@ -197,10 +197,14 @@ export function AdminBillingPage() {
                 Controls which Stripe API keys checkout and admin billing use.
                 {stripeMode.source === 'database' ? ' Stored in database.' : ' Using env fallback.'}
               </p>
-              <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                <span>Test keys: {stripeMode.testConfigured ? 'configured' : 'missing'}</span>
+              <div className="flex flex-wrap gap-x-2 gap-y-1 mt-2 text-xs text-muted-foreground">
+                <span>Test secret: {stripeMode.testConfigured ? 'configured' : 'missing'}</span>
                 <span>·</span>
-                <span>Live keys: {stripeMode.liveConfigured ? 'configured' : 'missing'}</span>
+                <span>Live secret: {stripeMode.liveConfigured ? 'configured' : 'missing'}</span>
+                <span>·</span>
+                <span>Test publishable: {stripeMode.testPublishableConfigured ? 'configured' : 'missing'}</span>
+                <span>·</span>
+                <span>Live publishable: {stripeMode.livePublishableConfigured ? 'configured' : 'missing'}</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
