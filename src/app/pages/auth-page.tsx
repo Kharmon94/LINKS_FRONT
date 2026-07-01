@@ -3,6 +3,14 @@ import { useSearchParams, useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { AuthTopNav } from '../components/nav/auth-top-nav';
 import { AUTH_PAGE_CONTENT_CLASS, AUTH_PAGE_MAIN_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
@@ -16,8 +24,11 @@ export function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [magicLinkEmail, setMagicLinkEmail] = useState('');
+  const [magicLinkOpen, setMagicLinkOpen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [magicLinkError, setMagicLinkError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const { sendMagicLink, loginWithGoogle, signInWithPassword } = useAuth();
@@ -60,31 +71,38 @@ export function AuthPage() {
     }
   };
 
+  const openMagicLinkModal = () => {
+    setMagicLinkError('');
+    setMagicLinkEmail(email.trim());
+    setMagicLinkOpen(true);
+  };
+
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setMagicLinkError('');
 
-    if (!email.trim()) {
-      setError('Enter your email address above first.');
-      document.getElementById('email')?.focus();
-      document.getElementById('email')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const address = magicLinkEmail.trim();
+    if (!address) {
+      setMagicLinkError('Enter your email address.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await sendMagicLink(email);
+      const result = await sendMagicLink(address);
       setLoading(false);
 
       if (result.success) {
+        setEmail(address);
+        setMagicLinkOpen(false);
         setIsSubmitted(true);
       } else {
-        setError(result.message || 'Failed to send magic link');
+        setMagicLinkError(result.message || 'Failed to send magic link');
       }
     } catch {
       setLoading(false);
-      setError('Something went wrong. Please try again.');
+      setMagicLinkError('Something went wrong. Please try again.');
     }
   };
 
@@ -181,22 +199,70 @@ export function AuthPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
-                <Button 
-                  type="submit" 
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full h-11 sm:h-12 rounded-full" 
-                  size="lg"
-                >
-                  {loading ? 'Sending...' : 'Send Magic Link'}
-                  {!loading && <ArrowRight className="w-5 h-5 ml-2" />}
-                </Button>
-              </form>
+              <Button
+                type="button"
+                disabled={loading}
+                variant="outline"
+                className="w-full h-11 sm:h-12 rounded-full"
+                size="lg"
+                onClick={openMagicLinkModal}
+              >
+                Send Magic Link
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              <Dialog open={magicLinkOpen} onOpenChange={setMagicLinkOpen}>
+                <DialogContent className="sm:max-w-md rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Send magic link</DialogTitle>
+                    <DialogDescription>
+                      We&apos;ll email you a sign-in link. First time? Set a password once. After that, the email link signs you in.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-link-email">Email address</Label>
+                      <Input
+                        id="magic-link-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        className="h-11 rounded-full bg-muted border-0 focus:ring-0 focus:outline-none"
+                        value={magicLinkEmail}
+                        onChange={(e) => setMagicLinkEmail(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    {magicLinkError && (
+                      <p className="text-sm text-red-500 text-center">{magicLinkError}</p>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={() => setMagicLinkOpen(false)}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
+                      >
+                        {loading ? 'Sending…' : 'Send link'}
+                        {!loading && <Mail className="w-4 h-4 ml-2" />}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  First time? Use a magic link to set your password once. Returning users can sign in with the password they chose.
+                  First time? Set a password once. After that, the email link signs you in.
                 </p>
               </div>
 
@@ -223,7 +289,7 @@ export function AuthPage() {
 
               <div className="bg-muted/30 rounded-lg p-4 mb-6 text-left">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Click the link in the email to continue. First-time users will set a password; returning users enter their existing password.
+                  Click the link in the email to continue. First time? Set a password once. After that, the email link signs you in.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Can't find it? Check your spam folder.
@@ -235,6 +301,8 @@ export function AuthPage() {
                 className="rounded-full"
                 onClick={() => {
                   setIsSubmitted(false);
+                  setMagicLinkError('');
+                  openMagicLinkModal();
                 }}
               >
                 Use a different email

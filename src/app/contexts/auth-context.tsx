@@ -12,9 +12,10 @@ interface AuthContextType {
     token: string
   ) => Promise<{
     success: boolean;
+    signedIn?: boolean;
     email?: string;
     name?: string;
-    mode?: 'sign_in' | 'set_password';
+    mode?: 'set_password';
     error?: string;
   }>;
   completeMagicLink: (
@@ -104,27 +105,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: string
     ): Promise<{
       success: boolean;
+      signedIn?: boolean;
       email?: string;
       name?: string;
-      mode?: 'sign_in' | 'set_password';
+      mode?: 'set_password';
       error?: string;
     }> => {
       try {
         const data = await apiRequest<{
+          user?: User;
+          token?: string;
           requiresPassword?: boolean;
           email?: string;
           name?: string;
-          mode?: 'sign_in' | 'set_password';
+          mode?: 'set_password';
         }>('/api/auth/verify', {
           method: 'POST',
           body: JSON.stringify({ token }),
         });
+        if (data.user && data.token) {
+          setStoredToken(data.token);
+          setUser(data.user);
+          setIsAuthenticated(true);
+          return { success: true, signedIn: true };
+        }
         if (data.requiresPassword && data.email) {
           return {
             success: true,
             email: data.email,
             name: data.name,
-            mode: data.mode === 'sign_in' ? 'sign_in' : 'set_password',
+            mode: 'set_password',
           };
         }
         return { success: false, error: 'Invalid link response.' };
