@@ -23,6 +23,13 @@ export function getBottomNavMoreActive(
   return overflowPaths.some((path) => isNavPathActive(pathname, path));
 }
 
+/** Auth / verify pages — keep actions above iOS home indicator and browser chrome. */
+export const AUTH_PAGE_MAIN_CLASS =
+  'flex-1 w-full overflow-y-auto px-4 pt-20 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]';
+
+export const AUTH_PAGE_CONTENT_CLASS =
+  'mx-auto w-full max-w-md py-8 sm:py-12';
+
 /** Fixed mobile bottom tab bar content height (~56px). */
 export const MOBILE_BOTTOM_NAV_HEIGHT = '3.5rem';
 

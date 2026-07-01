@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { AuthTopNav } from '../components/nav/auth-top-nav';
+import { AUTH_PAGE_CONTENT_CLASS, AUTH_PAGE_MAIN_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/auth-context';
@@ -67,10 +68,10 @@ export function AcceptInvitePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-[100dvh] flex flex-col bg-background">
       <AuthTopNav backTo="/auth" backLabel="Sign in" />
-      <main className="flex-1 flex items-center justify-center px-4 py-12 pt-24">
-        <div className="max-w-md w-full bg-card rounded-lg p-8 shadow-lg text-center">
+      <main className={AUTH_PAGE_MAIN_CLASS}>
+        <div className={`${AUTH_PAGE_CONTENT_CLASS} bg-card rounded-lg p-8 shadow-lg text-center`}>
           {loading ? (
             <p className="text-muted-foreground">Loading invitation...</p>
           ) : error ? (
@@ -92,7 +93,7 @@ export function AcceptInvitePage() {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer className="hidden sm:block" />
     </div>
   );
 }

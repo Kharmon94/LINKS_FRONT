@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { AuthTopNav } from '../components/nav/auth-top-nav';
+import { AUTH_PAGE_CONTENT_CLASS, AUTH_PAGE_MAIN_CLASS } from '../components/nav/nav-utils';
 import { Footer } from '../components/footer';
 import { useAuth } from '../contexts/auth-context';
 import { Mail, ArrowRight, Lock } from 'lucide-react';
@@ -62,6 +63,14 @@ export function AuthPage() {
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!email.trim()) {
+      setError('Enter your email address above first.');
+      document.getElementById('email')?.focus();
+      document.getElementById('email')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -84,11 +93,11 @@ export function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
       <AuthTopNav backTo="/" backLabel="Home" />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-24 sm:py-32 pt-24">
-        <div className="w-full max-w-md">
+      <main className={AUTH_PAGE_MAIN_CLASS}>
+        <div className={AUTH_PAGE_CONTENT_CLASS}>
           {!isSubmitted ? (
             <div className="p-6 sm:p-8">
               <div className="text-center mb-8">
@@ -175,7 +184,7 @@ export function AuthPage() {
               <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
                 <Button 
                   type="submit" 
-                  disabled={loading || !email}
+                  disabled={loading}
                   variant="outline"
                   className="w-full h-11 sm:h-12 rounded-full" 
                   size="lg"
@@ -235,7 +244,7 @@ export function AuthPage() {
         </div>
       </main>
 
-      <Footer />
+      <Footer className="hidden sm:block" />
       <Toaster richColors position="top-right" />
     </div>
   );

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../contexts/auth-context';
 import { Loader2, CheckCircle, XCircle, Lock } from 'lucide-react';
 import { AuthTopNav } from '../components/nav/auth-top-nav';
+import { AUTH_PAGE_CONTENT_CLASS, AUTH_PAGE_MAIN_CLASS } from '../components/nav/nav-utils';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -103,10 +104,10 @@ export function VerifyPage() {
   const isSignIn = mode === 'sign_in';
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
       <AuthTopNav backTo="/auth" backLabel="Sign in" />
-      <main className="flex-1 flex items-center justify-center px-4 pt-24 pb-8">
-      <div className="w-full max-w-md">
+      <main className={AUTH_PAGE_MAIN_CLASS}>
+      <div className={AUTH_PAGE_CONTENT_CLASS}>
         {status === 'loading' && (
           <div className="text-center">
             <Loader2 className="w-16 h-16 mx-auto mb-6 animate-spin text-muted-foreground" />
