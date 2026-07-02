@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  consumePendingPushSubscribe,
   detectPwaInstallPlatform,
+  hasPwaInstallConfirmed,
   hasSeenPwaInstallPrompt,
   isAuthenticatedAppRoute,
+  isPwaOnboardingComplete,
+  markPwaInstallConfirmed,
   markPwaInstallPromptSeen,
+  markPwaOnboardingComplete,
+  setInstallBannerActive,
+  setPendingPushSubscribe,
+  shouldShowInstallBanner,
 } from './pwa-install';
 
 describe('pwa-install', () => {
@@ -11,11 +19,45 @@ describe('pwa-install', () => {
     localStorage.clear();
   });
 
-  it('tracks dismissed prompt per user', () => {
+  it('tracks confirmed install per user', () => {
+    expect(hasPwaInstallConfirmed('user-1')).toBe(false);
+    markPwaInstallConfirmed('user-1');
+    expect(hasPwaInstallConfirmed('user-1')).toBe(true);
+    expect(hasPwaInstallConfirmed('user-2')).toBe(false);
+  });
+
+  it('keeps deprecated dismiss helpers aligned with confirmed install', () => {
     expect(hasSeenPwaInstallPrompt('user-1')).toBe(false);
     markPwaInstallPromptSeen('user-1');
     expect(hasSeenPwaInstallPrompt('user-1')).toBe(true);
-    expect(hasSeenPwaInstallPrompt('user-2')).toBe(false);
+  });
+
+  it('clears install banner when install is confirmed', () => {
+    setInstallBannerActive(true);
+    expect(shouldShowInstallBanner()).toBe(true);
+    markPwaInstallConfirmed('user-1');
+    expect(shouldShowInstallBanner()).toBe(false);
+  });
+
+  it('tracks onboarding completion per device', () => {
+    expect(isPwaOnboardingComplete()).toBe(false);
+    markPwaOnboardingComplete();
+    expect(isPwaOnboardingComplete()).toBe(true);
+  });
+
+  it('tracks install banner active state', () => {
+    expect(shouldShowInstallBanner()).toBe(false);
+    setInstallBannerActive(true);
+    expect(shouldShowInstallBanner()).toBe(true);
+    setInstallBannerActive(false);
+    expect(shouldShowInstallBanner()).toBe(false);
+  });
+
+  it('stores and consumes pending push subscribe flag', () => {
+    expect(consumePendingPushSubscribe()).toBe(false);
+    setPendingPushSubscribe();
+    expect(consumePendingPushSubscribe()).toBe(true);
+    expect(consumePendingPushSubscribe()).toBe(false);
   });
 
   it('detects platform from user agent', () => {
@@ -38,5 +80,6 @@ describe('pwa-install', () => {
     expect(isAuthenticatedAppRoute('/auth/oauth-complete')).toBe(false);
     expect(isAuthenticatedAppRoute('/')).toBe(false);
     expect(isAuthenticatedAppRoute('/pricing')).toBe(false);
+    expect(isAuthenticatedAppRoute('/pwa/onboarding')).toBe(false);
   });
 });

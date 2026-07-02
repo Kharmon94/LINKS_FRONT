@@ -29,6 +29,11 @@ import {
 } from '@/services/domains-api';
 import { createPortalSession } from '@/services/billing-api';
 import type { SubscriptionTier } from '@/types';
+import {
+  enablePushNotifications,
+  isPushSupported,
+  unsubscribeFromPush,
+} from '@/lib/push-notifications';
 
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   free: 'Free',
@@ -45,15 +50,6 @@ const TIER_FEATURES: Record<SubscriptionTier, string[]> = {
   pro: ['Unlimited links & campaigns', 'Custom domain', 'Workspaces & team', 'Advanced analytics'],
   enterprise: ['Everything in Pro', 'Dedicated support'],
 };
-
-async function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray;
-}
 
 export function SettingsPage() {
   const { isAuthenticated, user, logout, checkAuth } = useAuth();
@@ -264,7 +260,7 @@ export function SettingsPage() {
   };
 
   // Push notifications (PWA)
-  const [pushSupported] = useState(() => 'Notification' in window && 'serviceWorker' in navigator);
+  const [pushSupported] = useState(() => isPushSupported());
   const [pushPermission, setPushPermission] = useState<NotificationPermission>(
     pushSupported ? Notification.permission : 'denied'
   );
@@ -274,30 +270,15 @@ export function SettingsPage() {
     if (!pushSupported) return;
     setPushBusy(true);
     try {
-      const perm = await Notification.requestPermission();
-      setPushPermission(perm);
-      if (perm !== 'granted') return;
-
-      const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) return;
-
-      const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
-      if (!publicKey) {
-        toast.error('Missing VAPID public key');
+      const ok = await enablePushNotifications();
+      setPushPermission(Notification.permission);
+      if (ok) {
+        toast.success('Push notifications enabled');
+      } else if (Notification.permission !== 'granted') {
         return;
+      } else {
+        toast.error('Missing VAPID public key or could not subscribe');
       }
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: await urlBase64ToUint8Array(publicKey),
-      });
-
-      await apiRequest('/api/v1/push/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ subscription: sub.toJSON() }),
-      });
-      toast.success('Push notifications enabled');
     } catch {
       toast.error('Could not enable push notifications');
     } finally {
@@ -309,15 +290,7 @@ export function SettingsPage() {
     if (!pushSupported) return;
     setPushBusy(true);
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        await apiRequest('/api/v1/push/unsubscribe', {
-          method: 'DELETE',
-          body: JSON.stringify({ endpoint: sub.endpoint }),
-        });
-        await sub.unsubscribe();
-      }
+      await unsubscribeFromPush();
       toast.success('Push notifications disabled');
     } catch {
       toast.error('Could not disable push notifications');

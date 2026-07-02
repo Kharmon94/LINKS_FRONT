@@ -9,12 +9,14 @@ import {
 } from './nav/nav-utils';
 import { Footer } from './footer';
 import { Toaster } from './ui/sonner';
+import { usePwaInstall } from '@/app/contexts/pwa-install-context';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const { bannerVisible } = usePwaInstall();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? (JSON.parse(saved) as boolean) : false;
@@ -32,7 +34,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         onToggle={() => setSidebarCollapsed((value) => !value)}
       />
       <main
-        className={`w-full min-w-0 pt-16 lg:pt-[73px] transition-all duration-300 ${
+        className={`w-full min-w-0 transition-all duration-300 ${
+          bannerVisible ? 'pt-[6.5rem] lg:pt-[6.75rem]' : 'pt-16 lg:pt-[73px]'
+        } ${
           sidebarCollapsed ? DESKTOP_SIDEBAR_COLLAPSED_MARGIN_CLASS : DESKTOP_SIDEBAR_EXPANDED_MARGIN_CLASS
         } ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}
       >

@@ -9,6 +9,7 @@ import {
 } from '@/lib/auth-storage';
 import { isJwtExpired } from '@/lib/jwt';
 import { isStandalonePwa } from '@/lib/pwa-install';
+import { consumeAndSubscribePush } from '@/lib/push-notifications';
 import { apiRequest, apiBase, ApiError } from '@/services/api';
 import { signInWithPassword as apiSignIn } from '@/services/account-api';
 
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistAuth(token, sessionUser);
     setUser(sessionUser);
     setIsAuthenticated(true);
+    void consumeAndSubscribePush();
   }, []);
 
   const checkAuth = useCallback(async (): Promise<boolean> => {

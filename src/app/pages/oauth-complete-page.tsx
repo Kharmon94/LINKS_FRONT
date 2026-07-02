@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Loader2 } from 'lucide-react';
+import { consumeAndSubscribePush } from '@/lib/push-notifications';
 import { setStoredToken } from '@/services/api';
 import { useAuth } from '../contexts/auth-context';
 import { AuthTopNav } from '../components/nav/auth-top-nav';
@@ -20,11 +21,12 @@ export function OAuthCompletePage() {
     }
     setStoredToken(decodeURIComponent(token));
     window.history.replaceState(null, '', window.location.pathname);
-    void checkAuth().then((ok) => {
+    void checkAuth().then(async (ok) => {
       if (!ok) {
         setError('Could not complete sign-in');
         return;
       }
+      await consumeAndSubscribePush();
       const dest =
         sessionStorage.getItem('post_auth_redirect') ||
         sessionStorage.getItem('oauth_return_to') ||

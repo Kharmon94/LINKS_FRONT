@@ -2,7 +2,11 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { AuthProvider } from "./contexts/auth-context";
 import { WorkspaceProvider } from "./contexts/workspace-context";
 import { ThemeProvider } from "./contexts/theme-context";
+import { PwaInstallBanner } from "./components/pwa-install-banner";
 import { PwaInstallPrompt } from "./components/pwa-install-prompt-modal";
+import { PwaOnboardingGate } from "./components/pwa-onboarding-gate";
+import { PwaInstallProvider } from "./contexts/pwa-install-context";
+import { PwaOnboardingPage } from "./pages/pwa-onboarding-page";
 import { ProtectedRoute } from "./components/protected-route";
 import { GuestRoute } from "./components/guest-route";
 import { AdminRoute } from "./components/admin-route";
@@ -53,8 +57,13 @@ function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <WorkspaceProvider>
-          <PwaInstallPrompt />
-          <Outlet />
+          <PwaInstallProvider>
+            <PwaInstallBanner />
+            <PwaInstallPrompt />
+            <PwaOnboardingGate>
+              <Outlet />
+            </PwaOnboardingGate>
+          </PwaInstallProvider>
         </WorkspaceProvider>
       </AuthProvider>
     </ThemeProvider>
@@ -88,6 +97,10 @@ export const router = createBrowserRouter([
       {
         path: "/auth/oauth-complete",
         Component: OAuthCompletePage,
+      },
+      {
+        path: "/pwa/onboarding",
+        Component: PwaOnboardingPage,
       },
       {
         path: "/accept-invite/:token",

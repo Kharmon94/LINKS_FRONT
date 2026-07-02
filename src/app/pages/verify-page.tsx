@@ -7,6 +7,7 @@ import { AUTH_PAGE_CONTENT_CLASS, AUTH_PAGE_MAIN_CLASS } from '../components/nav
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { consumeAndSubscribePush } from '@/lib/push-notifications';
 
 export function VerifyPage() {
   const [searchParams] = useSearchParams();
@@ -22,6 +23,7 @@ export function VerifyPage() {
   const token = searchParams.get('token');
 
   const redirectAfterAuth = () => {
+    void consumeAndSubscribePush();
     const dest =
       sessionStorage.getItem('post_auth_redirect') ||
       (() => {
