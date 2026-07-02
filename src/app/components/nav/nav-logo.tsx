@@ -10,12 +10,13 @@ type NavLogoProps = {
 };
 
 export function NavLogo({ to = '/links', className = 'h-10 w-auto' }: NavLogoProps) {
-  const { isDark } = useTheme();
+  const { isDark, mounted } = useTheme();
+  const showDarkLogo = !mounted || isDark;
 
   return (
     <Link to={to} className="flex items-center shrink-0">
       <img
-        src={isDark ? logoWhite : logoBlack}
+        src={showDarkLogo ? logoWhite : logoBlack}
         alt="Blackcollar.io"
         className={className}
       />
@@ -37,12 +38,13 @@ export function NavLogoMark({ to = '/links', className = 'h-9 w-9' }: NavLogoPro
 }
 
 export function PublicNavLogo({ className = 'h-10 w-auto' }: { className?: string }) {
-  const { isDark } = useTheme();
+  const { isDark, mounted } = useTheme();
+  const showDarkLogo = !mounted || isDark;
 
   return (
     <Link to="/" className="flex items-center shrink-0">
       <img
-        src={isDark ? logoWhite : logoBlack}
+        src={showDarkLogo ? logoWhite : logoBlack}
         alt="Blackcollar.io"
         className={className}
       />

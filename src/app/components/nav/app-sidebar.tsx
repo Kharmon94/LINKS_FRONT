@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ChevronLeft, ChevronRight, LogOut, Moon, Sun } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/auth-context';
 import { useTheme } from '../../contexts/theme-context';
+import { themeModeIcon, themeModeLabel } from '@/lib/theme-mode-utils';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
   getDesktopSidebarFooterItems,
@@ -21,7 +22,7 @@ export function AppSidebar({ collapsed, onToggle, bannerVisible = false }: AppSi
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, cycleTheme, mounted } = useTheme();
   const { permissions, platformAdmin } = usePermissions();
 
   const ctx = { permissions, platformAdmin };
@@ -47,6 +48,9 @@ export function AppSidebar({ collapsed, onToggle, bannerVisible = false }: AppSi
   const actionButtonClass = `w-full flex items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
     collapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'
   }`;
+
+  const ThemeIcon = mounted ? themeModeIcon(theme) : themeModeIcon('system');
+  const themeLabel = themeModeLabel(theme);
 
   return (
     <>
@@ -109,21 +113,12 @@ export function AppSidebar({ collapsed, onToggle, bannerVisible = false }: AppSi
 
             <button
               type="button"
-              onClick={toggleTheme}
+              onClick={cycleTheme}
               className={actionButtonClass}
-              title={collapsed ? (isDark ? 'Light Mode' : 'Dark Mode') : undefined}
+              title={collapsed ? themeLabel : undefined}
             >
-              {isDark ? (
-                <>
-                  <Sun className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span className="font-medium">Light Mode</span>}
-                </>
-              ) : (
-                <>
-                  <Moon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span className="font-medium">Dark Mode</span>}
-                </>
-              )}
+              <ThemeIcon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span className="font-medium">{themeLabel}</span>}
             </button>
 
             <button

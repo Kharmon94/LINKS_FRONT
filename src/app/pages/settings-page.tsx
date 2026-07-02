@@ -5,9 +5,11 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 import { useAuth } from '../contexts/auth-context';
+import { useTheme } from '../contexts/theme-context';
 import { usePermissions } from '@/hooks/use-permissions';
-import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle, HelpCircle } from 'lucide-react';
+import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle, HelpCircle, Sun, Moon, Monitor } from 'lucide-react';
 import { apiRequest, ApiError } from '@/services/api';
 import { NotificationPreferenceRow } from '../components/notification-preference-row';
 import { toast } from 'sonner';
@@ -29,6 +31,7 @@ import {
 } from '@/services/domains-api';
 import { createPortalSession } from '@/services/billing-api';
 import type { SubscriptionTier } from '@/types';
+import type { ThemePreference } from '@/lib/theme-mode-utils';
 import {
   enablePushNotifications,
   isPushSupported,
@@ -53,6 +56,7 @@ const TIER_FEATURES: Record<SubscriptionTier, string[]> = {
 
 export function SettingsPage() {
   const { isAuthenticated, user, logout, checkAuth } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { can, limits } = usePermissions();
   const navigate = useNavigate();
   
@@ -381,6 +385,35 @@ export function SettingsPage() {
                     </Button>
                   </div>
                 </form>
+
+                <div className="mt-8 pt-8 border-t border-border">
+                  <h2 className="text-xl font-semibold mb-2">Appearance</h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Choose how Links looks on this device.
+                  </p>
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    value={theme}
+                    onValueChange={(value) => {
+                      if (value) setTheme(value as ThemePreference);
+                    }}
+                    className="w-full max-w-md"
+                  >
+                    <ToggleGroupItem value="light" aria-label="Light theme" className="flex-1 gap-2">
+                      <Sun className="w-4 h-4" />
+                      Light
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="system" aria-label="System theme" className="flex-1 gap-2">
+                      <Monitor className="w-4 h-4" />
+                      System
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="dark" aria-label="Dark theme" className="flex-1 gap-2">
+                      <Moon className="w-4 h-4" />
+                      Dark
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
               </div>
             </TabsContent>
 

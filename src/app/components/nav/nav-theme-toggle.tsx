@@ -1,21 +1,23 @@
-import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../contexts/theme-context';
+import { themeModeIcon, themeModeLabel } from '@/lib/theme-mode-utils';
 
 type NavThemeToggleProps = {
   className?: string;
 };
 
 export function NavThemeToggle({ className = 'p-2 rounded-sm hover:bg-accent/50 transition-colors' }: NavThemeToggleProps) {
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, cycleTheme, mounted } = useTheme();
+  const ThemeIcon = mounted ? themeModeIcon(theme) : themeModeIcon('system');
+  const label = themeModeLabel(theme);
 
   return (
     <button
       type="button"
-      onClick={toggleTheme}
+      onClick={cycleTheme}
       className={className}
-      aria-label="Toggle theme"
+      aria-label={`Theme: ${label}. Tap to change.`}
     >
-      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      <ThemeIcon className="w-5 h-5" />
     </button>
   );
 }

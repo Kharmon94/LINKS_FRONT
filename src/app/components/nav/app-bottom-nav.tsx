@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router';
-import { LogOut, Moon, MoreHorizontal, Sun } from 'lucide-react';
+import { LogOut, MoreHorizontal } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/auth-context';
 import { useTheme } from '../../contexts/theme-context';
+import { themeModeIcon, themeModeLabel } from '@/lib/theme-mode-utils';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
   getMobileMoreNavItems,
@@ -23,7 +24,7 @@ export function AppBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { theme, cycleTheme } = useTheme();
   const { permissions, platformAdmin } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -44,9 +45,9 @@ export function AppBottomNav() {
       {
         kind: 'action',
         id: 'theme',
-        label: isDark ? 'Light Mode' : 'Dark Mode',
-        icon: isDark ? Sun : Moon,
-        onClick: toggleTheme,
+        label: `Theme: ${themeModeLabel(theme)}`,
+        icon: themeModeIcon(theme),
+        onClick: cycleTheme,
       },
       {
         kind: 'action',
@@ -58,7 +59,7 @@ export function AppBottomNav() {
         },
       },
     ],
-    [isDark, logout, moreLinkItems, navigate, toggleTheme],
+    [cycleTheme, logout, moreLinkItems, navigate, theme],
   );
 
   return (
