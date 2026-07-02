@@ -8,14 +8,16 @@ import {
   getDesktopSidebarNavItems,
 } from '@/app/config/app-nav-items';
 import { WorkspaceSwitcher } from '../workspace-switcher';
+import { NavLogo } from './nav-logo';
 import { isNavPathActive } from './nav-utils';
 
 type AppSidebarProps = {
   collapsed: boolean;
   onToggle: () => void;
+  bannerVisible?: boolean;
 };
 
-export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
+export function AppSidebar({ collapsed, onToggle, bannerVisible = false }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -49,11 +51,19 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   return (
     <>
       <aside
-        className={`hidden lg:block fixed top-[73px] left-0 bottom-0 bg-card/50 backdrop-blur-md shadow-sm z-10 transition-all duration-300 ${
-          collapsed ? 'w-16' : 'w-64'
-        }`}
+        className={`hidden lg:block fixed left-0 bottom-0 bg-card/50 backdrop-blur-md shadow-sm z-10 transition-all duration-300 ${
+          bannerVisible ? 'top-12' : 'top-0'
+        } ${collapsed ? 'w-16' : 'w-64'}`}
       >
         <div className="flex flex-col h-full overflow-y-auto">
+          <div
+            className={`flex shrink-0 items-center border-b border-border/30 ${
+              collapsed ? 'justify-center p-3' : 'px-4 py-4'
+            }`}
+          >
+            <NavLogo className={collapsed ? 'h-8 w-8 object-contain' : 'h-10 w-auto'} />
+          </div>
+
           <nav className={`flex-1 space-y-1 ${collapsed ? 'p-2' : 'p-4'}`}>
             {primaryItems.map((item) => {
               const Icon = item.icon;
@@ -128,9 +138,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       <button
         type="button"
         onClick={onToggle}
-        className={`hidden lg:flex fixed top-[75px] z-50 items-center justify-center w-8 h-8 bg-card hover:bg-muted rounded-full shadow-lg transition-all duration-300 ${
-          collapsed ? 'left-[52px]' : 'left-[248px]'
-        }`}
+        className={`hidden lg:flex fixed z-50 items-center justify-center w-8 h-8 bg-card hover:bg-muted rounded-full shadow-lg transition-all duration-300 ${
+          bannerVisible ? 'top-[7.5rem]' : 'top-[4.5rem]'
+        } ${collapsed ? 'left-[52px]' : 'left-[248px]'}`}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >

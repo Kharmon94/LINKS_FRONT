@@ -30,7 +30,7 @@ export function PwaInstallBanner() {
     <button
       type="button"
       onClick={openInstallModal}
-      className="fixed left-0 right-0 top-16 z-50 flex w-full items-center gap-3 border-b border-primary/20 bg-primary px-4 py-2.5 text-left text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+      className="fixed left-0 right-0 top-16 lg:top-0 z-50 flex w-full items-center gap-3 border-b border-primary/20 bg-primary px-4 py-2.5 text-left text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
       aria-label="Install Links for the best experience"
     >
       <Smartphone className="h-4 w-4 shrink-0" />

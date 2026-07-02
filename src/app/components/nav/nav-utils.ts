@@ -58,6 +58,22 @@ export const MOBILE_BOTTOM_NAV_CLEARANCE_CLASS =
 
 export const MOBILE_BOTTOM_NAV_Z_CLASS = 'z-[100]';
 
+/** Shell for fixed mobile bottom tab bars — theme-aware in light and dark mode. */
+export const MOBILE_BOTTOM_NAV_SHELL_CLASS =
+  'bg-background/95 backdrop-blur-md text-foreground border-t border-border/30';
+
+export function mobileBottomNavIconClass(active: boolean): string {
+  return `w-5 h-5 ${active ? 'text-foreground' : 'text-muted-foreground'}`;
+}
+
+export function mobileBottomNavLabelClass(active: boolean, truncate = true): string {
+  const sizeClass = truncate ? 'truncate max-w-full px-1' : '';
+  const stateClass = active
+    ? 'text-foreground underline underline-offset-4'
+    : 'text-muted-foreground';
+  return `text-[10px] uppercase tracking-wide ${sizeClass} ${stateClass}`.trim();
+}
+
 export const NAV_MORE_SHEET_Z_CLASS = 'z-[110]';
 
 /** Desktop top-nav overflow dropdown — above the fixed header (z-[100]), below modals. */
