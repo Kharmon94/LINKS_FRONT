@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AppTopNav } from './nav/app-top-nav';
 import { AppBottomNav } from './nav/app-bottom-nav';
 import { AppSidebar } from './nav/app-sidebar';
 import {
@@ -28,7 +27,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground w-full overflow-x-hidden">
-      <AppTopNav />
       <AppSidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
@@ -36,7 +34,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       />
       <main
         className={`w-full min-w-0 transition-all duration-300 ${
-          bannerVisible ? 'pt-[6.5rem] lg:pt-12' : 'pt-16 lg:pt-0'
+          bannerVisible ? 'pt-12' : 'pt-0'
         } ${
           sidebarCollapsed ? DESKTOP_SIDEBAR_COLLAPSED_MARGIN_CLASS : DESKTOP_SIDEBAR_EXPANDED_MARGIN_CLASS
         } ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}
