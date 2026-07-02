@@ -148,7 +148,8 @@ export function PwaInstallPrompt() {
   const [platform, setPlatform] = useState<PwaInstallPlatform>('other');
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
-  const installDetected = phase === 'success' || Boolean(user?.pwaInstalledAt);
+  const installDetected =
+    phase === 'success' || Boolean(user?.pwaInstalledAt) || justInstalled;
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
@@ -191,6 +192,14 @@ export function PwaInstallPrompt() {
       return;
     }
 
+    const freshInstallWhileOpen =
+      modalOpen && (justInstalled || user.pwaInstalledAt || phase === 'success');
+
+    if (freshInstallWhileOpen) {
+      setPhase('success');
+      return;
+    }
+
     if (
       !shouldOfferPwaInstall() ||
       !isAuthenticatedAppRoute(location.pathname) ||
@@ -204,7 +213,18 @@ export function PwaInstallPrompt() {
     setPlatform(detectPwaInstallPlatform());
     setPhase('waiting');
     setModalOpen(true);
-  }, [isAuthenticated, loading, user, location.pathname, isStandalone, manualOpen, setModalOpen]);
+  }, [
+    isAuthenticated,
+    loading,
+    user,
+    location.pathname,
+    isStandalone,
+    manualOpen,
+    setModalOpen,
+    modalOpen,
+    justInstalled,
+    phase,
+  ]);
 
   const handleDismiss = () => {
     dismissToBanner();
@@ -236,7 +256,7 @@ export function PwaInstallPrompt() {
       open={modalOpen}
       onOpenChange={(next) => {
         if (!next) {
-          if (installDetected) {
+          if (phase === 'success') {
             handleDone();
           } else {
             handleDismiss();
@@ -247,46 +267,45 @@ export function PwaInstallPrompt() {
       }}
     >
       <DialogContent className="sm:max-w-md rounded-2xl">
-        <DialogHeader>
-          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
-            <Smartphone className="h-5 w-5 text-primary" />
-          </div>
-          <DialogTitle>Add Links to your home screen</DialogTitle>
-          <DialogDescription>
-            Install the app for faster access, full-screen view, and staying signed in when you
-            reopen it.
-          </DialogDescription>
-        </DialogHeader>
+        {phase === 'success' ? (
+          <>
+            <DialogHeader>
+              <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-green-500/10">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+              </div>
+              <DialogTitle>Added to Home Screen</DialogTitle>
+              <DialogDescription>
+                Open Links from your home screen to get started.
+              </DialogDescription>
+            </DialogHeader>
 
-        <InstallSteps platform={platform} />
+            <DialogFooter>
+              <Button type="button" onClick={handleDone} className="w-full">
+                Done
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+                <Smartphone className="h-5 w-5 text-primary" />
+              </div>
+              <DialogTitle>Add Links to your home screen</DialogTitle>
+              <DialogDescription>
+                Install the app for faster access, full-screen view, and staying signed in when you
+                reopen it.
+              </DialogDescription>
+            </DialogHeader>
 
-        <div
-          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
-            installDetected
-              ? 'bg-green-500/10 text-foreground'
-              : 'bg-muted/60 text-muted-foreground'
-          }`}
-        >
-          {installDetected ? (
-            <>
-              <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
-              <span>Added to Home Screen! Open Links from your home screen.</span>
-            </>
-          ) : (
-            <>
+            <InstallSteps platform={platform} />
+
+            <div className="flex items-center gap-3 rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
               <span>Follow the steps above to add Links to your home screen</span>
-            </>
-          )}
-        </div>
+            </div>
 
-        <DialogFooter className="gap-2 sm:gap-0 sm:flex-col sm:items-stretch">
-          {installDetected ? (
-            <Button type="button" onClick={handleDone} className="w-full">
-              Done
-            </Button>
-          ) : (
-            <>
+            <DialogFooter className="gap-2 sm:gap-0 sm:flex-col sm:items-stretch">
               {installEvent && (
                 <Button type="button" onClick={() => void handleInstall()} className="w-full">
                   <Plus className="h-4 w-4" />
@@ -301,9 +320,9 @@ export function PwaInstallPrompt() {
               >
                 Not now
               </Button>
-            </>
-          )}
-        </DialogFooter>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
