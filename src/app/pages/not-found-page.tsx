@@ -20,8 +20,8 @@ export function NotFoundPage() {
           <Link className="underline underline-offset-4" to="/">
             Go home
           </Link>
-          <Link className="underline underline-offset-4" to="/dashboard">
-            Dashboard
+          <Link className="underline underline-offset-4" to="/links">
+            Links
           </Link>
         </div>
       </div>

@@ -245,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fromProtected ||
       (window.location.pathname !== '/auth' && window.location.pathname !== '/'
         ? `${window.location.pathname}${window.location.search}`
-        : '/dashboard');
+        : '/links');
     sessionStorage.setItem('oauth_return_to', dest);
     const base = apiBase();
     window.location.href = `${base}/users/auth/google_oauth2`;

@@ -8,9 +8,7 @@ import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { LinkCreatorForm } from '../components/link-creator-form';
 import { Plus, Search, Filter, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CardListSkeleton } from '../components/page-states';
@@ -35,8 +33,6 @@ export function LinksPage() {
   const [campaignFilter, setCampaignFilter] = useState('');
   const [campaigns, setCampaigns] = useState<CampaignJson[]>([]);
   const [accountTotalClicks, setAccountTotalClicks] = useState<number | null>(null);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [creatorFormKey, setCreatorFormKey] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -150,10 +146,7 @@ export function LinksPage() {
             <div className="flex justify-center">
               <Button
                 size="lg"
-                onClick={() => {
-                  setCreatorFormKey((key) => key + 1);
-                  setCreateModalOpen(true);
-                }}
+                onClick={() => navigate('/links/new')}
                 className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -424,22 +417,6 @@ export function LinksPage() {
           )}
         </div>
       </div>
-
-      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create Link</DialogTitle>
-          </DialogHeader>
-          <LinkCreatorForm
-            key={creatorFormKey}
-            idPrefix="links-modal"
-            onCreated={() => {
-              setCreateModalOpen(false);
-              void refreshLinks();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </AppLayout>
     </FeatureGate>
   );

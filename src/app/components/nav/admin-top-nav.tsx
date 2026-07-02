@@ -73,7 +73,7 @@ export function AdminTopNav() {
 
           <div className="flex items-center gap-3 justify-end">
             <Link
-              to="/dashboard"
+              to="/links"
               className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />

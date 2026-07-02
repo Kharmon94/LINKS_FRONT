@@ -1,13 +1,14 @@
-import { Link, useLocation } from 'react-router';
-import { MoreHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { LogOut, Moon, MoreHorizontal, Sun } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useAuth } from '../../contexts/auth-context';
+import { useTheme } from '../../contexts/theme-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
+  getMobileMoreNavItems,
   getMobileTabNavItems,
-  getOverflowNavItems,
 } from '@/app/config/app-nav-items';
-import { WorkspaceSwitcher } from '../workspace-switcher';
-import { NavMoreSheet } from './nav-more-sheet';
+import { NavMoreSheet, type NavMoreSheetItem } from './nav-more-sheet';
 import {
   getBottomNavMoreActive,
   getBottomNavTabActive,
@@ -17,15 +18,45 @@ import {
 
 export function AppBottomNav() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const { permissions, platformAdmin } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
 
   const ctx = { permissions, platformAdmin };
   const tabItems = getMobileTabNavItems(ctx);
-  const overflowItems = getOverflowNavItems(ctx);
+  const moreLinkItems = getMobileMoreNavItems(ctx);
+  const morePaths = moreLinkItems.map((item) => item.path);
+  const moreActive = getBottomNavMoreActive(location.pathname, morePaths, moreOpen);
 
-  const overflowPaths = overflowItems.map((item) => item.path);
-  const moreActive = getBottomNavMoreActive(location.pathname, overflowPaths, moreOpen);
+  const moreSheetItems = useMemo<NavMoreSheetItem[]>(
+    () => [
+      ...moreLinkItems.map((item) => ({
+        kind: 'link' as const,
+        path: item.path,
+        label: item.label,
+        icon: item.icon,
+      })),
+      {
+        kind: 'action',
+        id: 'theme',
+        label: isDark ? 'Light Mode' : 'Dark Mode',
+        icon: isDark ? Sun : Moon,
+        onClick: toggleTheme,
+      },
+      {
+        kind: 'action',
+        id: 'logout',
+        label: 'Logout',
+        icon: LogOut,
+        onClick: () => {
+          void logout().then(() => navigate('/'));
+        },
+      },
+    ],
+    [isDark, logout, moreLinkItems, navigate, toggleTheme],
+  );
 
   return (
     <>
@@ -56,31 +87,24 @@ export function AppBottomNav() {
               </Link>
             );
           })}
-          {overflowItems.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setMoreOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-1 py-2 min-w-0"
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className="flex flex-1 flex-col items-center justify-center gap-1 py-2 min-w-0"
+          >
+            <MoreHorizontal className={`w-5 h-5 ${moreActive ? 'text-white' : 'text-white/50'}`} />
+            <span
+              className={`text-[10px] uppercase tracking-wide ${
+                moreActive ? 'text-white underline underline-offset-4' : 'text-white/50'
+              }`}
             >
-              <MoreHorizontal className={`w-5 h-5 ${moreActive ? 'text-white' : 'text-white/50'}`} />
-              <span
-                className={`text-[10px] uppercase tracking-wide ${
-                  moreActive ? 'text-white underline underline-offset-4' : 'text-white/50'
-                }`}
-              >
-                More
-              </span>
-            </button>
-          )}
+              More
+            </span>
+          </button>
         </div>
       </nav>
 
-      <NavMoreSheet
-        open={moreOpen}
-        onOpenChange={setMoreOpen}
-        items={overflowItems}
-        footer={<WorkspaceSwitcher />}
-      />
+      <NavMoreSheet open={moreOpen} onOpenChange={setMoreOpen} items={moreSheetItems} />
     </>
   );
 }

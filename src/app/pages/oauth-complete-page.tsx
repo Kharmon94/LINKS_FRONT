@@ -28,7 +28,7 @@ export function OAuthCompletePage() {
       const dest =
         sessionStorage.getItem('post_auth_redirect') ||
         sessionStorage.getItem('oauth_return_to') ||
-        '/dashboard';
+        '/links';
       sessionStorage.removeItem('post_auth_redirect');
       sessionStorage.removeItem('oauth_return_to');
       navigate(dest, { replace: true });

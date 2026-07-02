@@ -47,7 +47,7 @@ export function AuthPage() {
   }, [searchParams]);
 
   const redirectAfterAuth = () => {
-    const dest = sessionStorage.getItem('post_auth_redirect') || '/dashboard';
+    const dest = sessionStorage.getItem('post_auth_redirect') || '/links';
     sessionStorage.removeItem('post_auth_redirect');
     navigate(dest);
   };

@@ -24,7 +24,7 @@ function resolveAuthenticatedDestination(respectReturnTo: boolean, returnTo: str
       return stored;
     }
   }
-  return '/dashboard';
+  return '/links';
 }
 
 export function GuestRoute({ children, respectReturnTo = false }: GuestRouteProps) {

@@ -8,7 +8,7 @@ type NavLogoProps = {
   className?: string;
 };
 
-export function NavLogo({ to = '/dashboard', className = 'h-10 w-auto' }: NavLogoProps) {
+export function NavLogo({ to = '/links', className = 'h-10 w-auto' }: NavLogoProps) {
   const { isDark } = useTheme();
 
   return (

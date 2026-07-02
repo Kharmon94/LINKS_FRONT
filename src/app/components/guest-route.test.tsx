@@ -48,10 +48,10 @@ describe('GuestRoute', () => {
     expect(screen.getByText('Guest content')).toBeInTheDocument();
   });
 
-  it('redirects authenticated users on / to /dashboard', () => {
+  it('redirects authenticated users on / to /links', () => {
     useAuthMock.mockReturnValue({ isAuthenticated: true, loading: false });
     renderGuestRoute('/');
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Links')).toBeInTheDocument();
   });
 
   it('redirects authenticated users to returnTo when enabled', () => {

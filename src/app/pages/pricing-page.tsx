@@ -79,7 +79,7 @@ export function PricingPage() {
       return;
     }
     if (plan.tier === 'free') {
-      navigate(isAuthenticated ? '/dashboard' : '/auth');
+      navigate(isAuthenticated ? '/links' : '/auth');
       return;
     }
     if (!isAuthenticated) {

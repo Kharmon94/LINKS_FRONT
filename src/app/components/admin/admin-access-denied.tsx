@@ -16,7 +16,7 @@ export function AdminAccessDenied() {
         </p>
         <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
           <Button variant="outline" asChild>
-            <Link to="/dashboard">Back to dashboard</Link>
+            <Link to="/links">Back to Links</Link>
           </Button>
           <Button variant="ghost" onClick={() => void logout()}>
             Sign out

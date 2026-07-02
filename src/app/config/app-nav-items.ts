@@ -28,18 +28,18 @@ export type AppNavItem = {
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
-    path: '/dashboard',
-    label: 'Dashboard',
-    icon: BarChart3,
-    show: ({ permissions }) => permissions.analytics.read,
-    placement: 'primary',
-    showOnMobileTab: true,
-  },
-  {
     path: '/links',
     label: 'Links',
     icon: LinkIcon,
     show: ({ permissions }) => permissions.links.read,
+    placement: 'primary',
+    showOnMobileTab: true,
+  },
+  {
+    path: '/dashboard',
+    label: 'Analytics',
+    icon: BarChart3,
+    show: ({ permissions }) => permissions.analytics.read,
     placement: 'primary',
     showOnMobileTab: true,
   },
@@ -56,8 +56,8 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: 'Team',
     icon: Users,
     show: ({ permissions }) => permissions.team.read,
-    placement: 'overflow',
-    showOnMobileTab: false,
+    placement: 'primary',
+    showOnMobileTab: true,
   },
   {
     path: '/workspaces',
@@ -72,8 +72,8 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: 'Settings',
     icon: Settings,
     show: () => true,
-    placement: 'primary',
-    showOnMobileTab: true,
+    placement: 'overflow',
+    showOnMobileTab: false,
   },
   {
     path: '/admin/overview',
@@ -97,6 +97,18 @@ export function getOverflowNavItems(ctx: AppNavContext): AppNavItem[] {
   return getVisibleNavItems(ctx).filter((item) => item.placement === 'overflow');
 }
 
+export function getDesktopSidebarNavItems(ctx: AppNavContext): AppNavItem[] {
+  return getPrimaryNavItems(ctx);
+}
+
+export function getDesktopSidebarFooterItems(ctx: AppNavContext): AppNavItem[] {
+  return getOverflowNavItems(ctx);
+}
+
 export function getMobileTabNavItems(ctx: AppNavContext): AppNavItem[] {
   return getVisibleNavItems(ctx).filter((item) => item.showOnMobileTab);
+}
+
+export function getMobileMoreNavItems(ctx: AppNavContext): AppNavItem[] {
+  return getOverflowNavItems(ctx);
 }

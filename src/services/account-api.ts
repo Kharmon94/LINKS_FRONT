@@ -2,10 +2,12 @@ import { apiRequest } from '@/services/api';
 import type { User } from '@/types';
 
 export interface NotificationPreferences {
-  email_notifications: boolean;
-  weekly_reports: boolean;
-  marketing_emails: boolean;
-  link_alerts: boolean;
+  push_link_alerts: boolean;
+  push_weekly_reports: boolean;
+  push_marketing: boolean;
+  email_link_alerts: boolean;
+  email_weekly_reports: boolean;
+  email_marketing: boolean;
 }
 
 export async function updateAccount(data: { name: string }) {

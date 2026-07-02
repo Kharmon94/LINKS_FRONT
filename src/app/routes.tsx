@@ -11,6 +11,7 @@ import { LandingPage } from "./pages/landing-page";
 import { AuthPage } from "./pages/auth-page";
 import { VerifyPage } from "./pages/verify-page";
 import { LinksPage } from "./pages/links-page";
+import { LinkCreatePage } from "./pages/link-create-page";
 import { LinkDetailPage } from "./pages/link-detail-page";
 import { LinkEditPage } from "./pages/link-edit-page";
 import { CampaignsPage } from "./pages/campaigns-page";
@@ -136,6 +137,10 @@ export const router = createBrowserRouter([
       {
         path: "/links",
         element: <ProtectedRoute><LinksPage /></ProtectedRoute>,
+      },
+      {
+        path: "/links/new",
+        element: <ProtectedRoute><LinkCreatePage /></ProtectedRoute>,
       },
       {
         path: "/links/:linkId",

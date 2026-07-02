@@ -13,15 +13,24 @@ export function getBottomNavTabActive(
   return isNavPathActive(pathname, path);
 }
 
-/** More tab is active when the sheet is open or the current route is in overflow. */
+/** More tab is active when the sheet is open or the current route is in the More sheet. */
 export function getBottomNavMoreActive(
   pathname: string,
-  overflowPaths: string[],
+  moreLinkPaths: string[],
   moreOpen: boolean,
 ): boolean {
   if (moreOpen) return true;
-  return overflowPaths.some((path) => isNavPathActive(pathname, path));
+  return moreLinkPaths.some((path) => isNavPathActive(pathname, path));
 }
+
+/** Expanded desktop sidebar width (Tailwind w-64). */
+export const DESKTOP_SIDEBAR_WIDTH_EXPANDED = '16rem';
+
+/** Collapsed desktop sidebar width (Tailwind w-16). */
+export const DESKTOP_SIDEBAR_WIDTH_COLLAPSED = '4rem';
+
+export const DESKTOP_SIDEBAR_EXPANDED_MARGIN_CLASS = 'lg:ml-64';
+export const DESKTOP_SIDEBAR_COLLAPSED_MARGIN_CLASS = 'lg:ml-16';
 
 /** Auth / verify pages — keep actions above iOS home indicator and browser chrome. */
 export const AUTH_PAGE_MAIN_CLASS =

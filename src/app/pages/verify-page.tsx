@@ -27,7 +27,7 @@ export function VerifyPage() {
       (() => {
         const p = new URLSearchParams(window.location.search);
         const r = p.get('returnTo');
-        return r ? decodeURIComponent(r) : '/dashboard';
+        return r ? decodeURIComponent(r) : '/links';
       })();
     sessionStorage.removeItem('post_auth_redirect');
     setTimeout(() => {

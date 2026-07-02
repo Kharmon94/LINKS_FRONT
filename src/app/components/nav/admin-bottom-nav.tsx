@@ -68,7 +68,11 @@ export function AdminBottomNav() {
         </div>
       </nav>
 
-      <NavMoreSheet open={moreOpen} onOpenChange={setMoreOpen} items={overflowItems} />
+      <NavMoreSheet
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        items={overflowItems.map((item) => ({ kind: 'link' as const, ...item }))}
+      />
     </>
   );
 }

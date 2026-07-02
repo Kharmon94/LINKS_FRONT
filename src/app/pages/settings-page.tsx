@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle, HelpCircle } from 'lucide-react';
 import { apiRequest, ApiError } from '@/services/api';
+import { NotificationPreferenceRow } from '../components/notification-preference-row';
 import { toast } from 'sonner';
 import {
   updateAccount,
@@ -672,15 +673,13 @@ export function SettingsPage() {
                 {!notifPrefs ? (
                   <p className="text-muted-foreground text-sm">Loading preferences...</p>
                 ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <h3 className="font-medium">Push Notifications</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Receive real-time alerts on this device (requires install + permission)
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold mb-1">Push Notifications</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Receive real-time alerts on this device (requires install + permission)
+                    </p>
+                    <div className="flex items-center gap-2 mb-4">
                       <Button
                         type="button"
                         variant="outline"
@@ -699,57 +698,53 @@ export function SettingsPage() {
                         Enable
                       </Button>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <h3 className="font-medium">Email Notifications</h3>
-                      <p className="text-sm text-muted-foreground">Receive email updates about your links</p>
+                    <div className={pushPermission !== 'granted' ? 'opacity-50 pointer-events-none' : undefined}>
+                      <NotificationPreferenceRow
+                        title="Link Alerts"
+                        description="Get notified when links reach click milestones"
+                        checked={notifPrefs.push_link_alerts}
+                        disabled={notifSaving || pushPermission !== 'granted'}
+                        onCheckedChange={(value) => void handleNotifToggle('push_link_alerts', value)}
+                      />
+                      <NotificationPreferenceRow
+                        title="Daily/Weekly Analytics"
+                        description="Receive periodic analytics summaries on this device"
+                        checked={notifPrefs.push_weekly_reports}
+                        disabled={notifSaving || pushPermission !== 'granted'}
+                        onCheckedChange={(value) => void handleNotifToggle('push_weekly_reports', value)}
+                      />
+                      <NotificationPreferenceRow
+                        title="Marketing Notifications"
+                        description="Product updates and tips via push"
+                        checked={notifPrefs.push_marketing}
+                        disabled={notifSaving || pushPermission !== 'granted'}
+                        onCheckedChange={(value) => void handleNotifToggle('push_marketing', value)}
+                      />
                     </div>
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5"
-                      checked={notifPrefs.email_notifications}
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-4">Email</h3>
+                    <NotificationPreferenceRow
+                      title="Link Alerts"
+                      description="Get notified when links reach click milestones"
+                      checked={notifPrefs.email_link_alerts}
                       disabled={notifSaving}
-                      onChange={(e) => void handleNotifToggle('email_notifications', e.target.checked)}
+                      onCheckedChange={(value) => void handleNotifToggle('email_link_alerts', value)}
                     />
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <h3 className="font-medium">Weekly Reports</h3>
-                      <p className="text-sm text-muted-foreground">Get weekly analytics summaries (sent via scheduled job)</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5"
-                      checked={notifPrefs.weekly_reports}
+                    <NotificationPreferenceRow
+                      title="Marketing Emails"
+                      description="Receive product updates and tips"
+                      checked={notifPrefs.email_marketing}
                       disabled={notifSaving}
-                      onChange={(e) => void handleNotifToggle('weekly_reports', e.target.checked)}
+                      onCheckedChange={(value) => void handleNotifToggle('email_marketing', value)}
                     />
-                  </div>
-                  <div className="flex items-center justify-between py-3 border-b border-border">
-                    <div>
-                      <h3 className="font-medium">Marketing Emails</h3>
-                      <p className="text-sm text-muted-foreground">Receive product updates and tips</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5"
-                      checked={notifPrefs.marketing_emails}
+                    <NotificationPreferenceRow
+                      title="Daily/Weekly Analytics"
+                      description="Get weekly analytics summaries via email"
+                      checked={notifPrefs.email_weekly_reports}
                       disabled={notifSaving}
-                      onChange={(e) => void handleNotifToggle('marketing_emails', e.target.checked)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between py-3">
-                    <div>
-                      <h3 className="font-medium">Link Alerts</h3>
-                      <p className="text-sm text-muted-foreground">Get notified when links reach click milestones (scheduled job)</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="w-5 h-5"
-                      checked={notifPrefs.link_alerts}
-                      disabled={notifSaving}
-                      onChange={(e) => void handleNotifToggle('link_alerts', e.target.checked)}
+                      onCheckedChange={(value) => void handleNotifToggle('email_weekly_reports', value)}
                     />
                   </div>
                 </div>

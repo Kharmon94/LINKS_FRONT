@@ -94,7 +94,7 @@ export function PublicBottomNav() {
       <NavMoreSheet
         open={moreOpen}
         onOpenChange={setMoreOpen}
-        items={overflowItems}
+        items={overflowItems.map((item) => ({ kind: 'link' as const, ...item }))}
       />
     </>
   );
