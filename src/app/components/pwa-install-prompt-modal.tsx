@@ -37,6 +37,8 @@ type BeforeInstallPromptEvent = Event & {
 
 type ModalPhase = 'waiting' | 'success';
 
+const POLL_INTERVAL_MS = 2000;
+
 function InstallSteps({ platform }: { platform: PwaInstallPlatform }) {
   if (platform === 'ios') {
     return (
@@ -131,7 +133,7 @@ function InstallSteps({ platform }: { platform: PwaInstallPlatform }) {
 
 export function PwaInstallPrompt() {
   const location = useLocation();
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading, user, refreshUser } = useAuth();
   const {
     isStandalone,
     justInstalled,
@@ -146,6 +148,8 @@ export function PwaInstallPrompt() {
   const [platform, setPlatform] = useState<PwaInstallPlatform>('other');
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
+  const installDetected = phase === 'success' || Boolean(user?.pwaInstalledAt);
+
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
@@ -156,10 +160,24 @@ export function PwaInstallPrompt() {
   }, []);
 
   useEffect(() => {
-    if (justInstalled && modalOpen) {
+    if ((justInstalled || user?.pwaInstalledAt) && modalOpen) {
       setPhase('success');
     }
-  }, [justInstalled, modalOpen]);
+  }, [justInstalled, user?.pwaInstalledAt, modalOpen]);
+
+  useEffect(() => {
+    if (!modalOpen || phase !== 'waiting' || installDetected) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshUser();
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [modalOpen, phase, installDetected, refreshUser]);
 
   useEffect(() => {
     if (manualOpen) {
@@ -176,7 +194,7 @@ export function PwaInstallPrompt() {
     if (
       !shouldOfferPwaInstall() ||
       !isAuthenticatedAppRoute(location.pathname) ||
-      hasPwaInstallConfirmed(user.id) ||
+      hasPwaInstallConfirmed(user.id, user) ||
       shouldShowInstallBanner()
     ) {
       setModalOpen(false);
@@ -211,10 +229,6 @@ export function PwaInstallPrompt() {
     }
   };
 
-  const handleIosConfirm = () => {
-    setPhase('success');
-  };
-
   if (isStandalone) return null;
 
   return (
@@ -222,7 +236,7 @@ export function PwaInstallPrompt() {
       open={modalOpen}
       onOpenChange={(next) => {
         if (!next) {
-          if (phase === 'success') {
+          if (installDetected) {
             handleDone();
           } else {
             handleDismiss();
@@ -233,36 +247,50 @@ export function PwaInstallPrompt() {
       }}
     >
       <DialogContent className="sm:max-w-md rounded-2xl">
-        {phase === 'waiting' ? (
-          <>
-            <DialogHeader>
-              <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
-                <Smartphone className="h-5 w-5 text-primary" />
-              </div>
-              <DialogTitle>Add Links to your home screen</DialogTitle>
-              <DialogDescription>
-                Install the app for faster access, full-screen view, and staying signed in when you
-                reopen it.
-              </DialogDescription>
-            </DialogHeader>
+        <DialogHeader>
+          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+            <Smartphone className="h-5 w-5 text-primary" />
+          </div>
+          <DialogTitle>Add Links to your home screen</DialogTitle>
+          <DialogDescription>
+            Install the app for faster access, full-screen view, and staying signed in when you
+            reopen it.
+          </DialogDescription>
+        </DialogHeader>
 
-            <InstallSteps platform={platform} />
+        <InstallSteps platform={platform} />
 
-            <div className="flex items-center gap-3 rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+        <div
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm ${
+            installDetected
+              ? 'bg-green-500/10 text-foreground'
+              : 'bg-muted/60 text-muted-foreground'
+          }`}
+        >
+          {installDetected ? (
+            <>
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+              <span>Added to Home Screen! Open Links from your home screen.</span>
+            </>
+          ) : (
+            <>
               <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
               <span>Follow the steps above to add Links to your home screen</span>
-            </div>
+            </>
+          )}
+        </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 sm:flex-col sm:items-stretch">
+        <DialogFooter className="gap-2 sm:gap-0 sm:flex-col sm:items-stretch">
+          {installDetected ? (
+            <Button type="button" onClick={handleDone} className="w-full">
+              Done
+            </Button>
+          ) : (
+            <>
               {installEvent && (
                 <Button type="button" onClick={() => void handleInstall()} className="w-full">
                   <Plus className="h-4 w-4" />
                   Install app
-                </Button>
-              )}
-              {platform === 'ios' && (
-                <Button type="button" onClick={handleIosConfirm} className="w-full">
-                  I&apos;ve added to Home Screen
                 </Button>
               )}
               <Button
@@ -273,27 +301,9 @@ export function PwaInstallPrompt() {
               >
                 Not now
               </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-green-500/10">
-                <CheckCircle2 className="h-6 w-6 text-green-500" />
-              </div>
-              <DialogTitle>Added to Home Screen</DialogTitle>
-              <DialogDescription>
-                Open Links from your home screen to get started.
-              </DialogDescription>
-            </DialogHeader>
-
-            <DialogFooter>
-              <Button type="button" onClick={handleDone} className="w-full">
-                Done
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

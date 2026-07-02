@@ -26,6 +26,24 @@ describe('pwa-install', () => {
     expect(hasPwaInstallConfirmed('user-2')).toBe(false);
   });
 
+  it('treats server pwaInstalledAt as confirmed', () => {
+    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: null })).toBe(false);
+    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
+      true
+    );
+    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
+      true
+    );
+    expect(hasPwaInstallConfirmed('user-2', { pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
+      true
+    );
+  });
+
+  it('falls back to localStorage when server field is absent', () => {
+    markPwaInstallConfirmed('user-1');
+    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: null })).toBe(true);
+  });
+
   it('keeps deprecated dismiss helpers aligned with confirmed install', () => {
     expect(hasSeenPwaInstallPrompt('user-1')).toBe(false);
     markPwaInstallPromptSeen('user-1');

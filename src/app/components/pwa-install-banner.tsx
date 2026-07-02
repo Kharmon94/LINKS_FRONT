@@ -21,7 +21,7 @@ export function PwaInstallBanner() {
     !bannerVisible ||
     !shouldOfferPwaInstall() ||
     !isAuthenticatedAppRoute(location.pathname) ||
-    hasPwaInstallConfirmed(user.id)
+    hasPwaInstallConfirmed(user.id, user)
   ) {
     return null;
   }

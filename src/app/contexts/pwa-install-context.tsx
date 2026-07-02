@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { usePwaStandalone } from '@/hooks/use-pwa-standalone';
+import { usePwaStandaloneConfirm } from '@/hooks/use-pwa-standalone-confirm';
 import {
   setInstallBannerActive,
   shouldShowInstallBanner,
@@ -29,6 +30,7 @@ interface PwaInstallContextValue {
 const PwaInstallContext = createContext<PwaInstallContextValue | undefined>(undefined);
 
 export function PwaInstallProvider({ children }: { children: ReactNode }) {
+  usePwaStandaloneConfirm();
   const { isStandalone, justInstalled } = usePwaStandalone();
   const [bannerActive, setBannerActive] = useState(() => shouldShowInstallBanner());
   const [modalOpen, setModalOpen] = useState(false);

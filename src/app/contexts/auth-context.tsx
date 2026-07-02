@@ -37,6 +37,8 @@ interface AuthContextType {
   signInWithPassword: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
+  refreshUser: () => Promise<User | null>;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +77,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     void consumeAndSubscribePush();
   }, []);
+
+  const refreshUser = useCallback(async (): Promise<User | null> => {
+    const token = getStoredToken();
+    if (!token || isJwtExpired(token)) return null;
+
+    try {
+      const data = await fetchSession(1);
+      const nextToken = data.token ?? token;
+      applySession(data.user, nextToken);
+      return data.user;
+    } catch {
+      return user;
+    }
+  }, [applySession, user]);
 
   const checkAuth = useCallback(async (): Promise<boolean> => {
     const token = getStoredToken();
@@ -292,6 +308,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPassword,
         logout,
         checkAuth,
+        refreshUser,
+        setUser,
       }}
     >
       {children}

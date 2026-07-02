@@ -34,7 +34,11 @@ export function shouldOfferPwaInstall(): boolean {
   return window.matchMedia('(max-width: 1024px)').matches;
 }
 
-export function hasPwaInstallConfirmed(userId: string): boolean {
+export function hasPwaInstallConfirmed(
+  userId: string,
+  user?: { pwaInstalledAt?: string | null } | null
+): boolean {
+  if (user?.pwaInstalledAt) return true;
   try {
     return localStorage.getItem(`${PROMPT_KEY_PREFIX}${userId}`) === '1';
   } catch {

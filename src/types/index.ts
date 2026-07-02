@@ -57,6 +57,7 @@ export interface User {
   role: UserRole;
   admin?: boolean;
   activeWorkspaceId?: string | null;
+  pwaInstalledAt?: string | null;
   permissions?: UserPermissions;
   limits?: UserLimits;
 }

@@ -4,6 +4,7 @@ import { UsersRound } from 'lucide-react';
 import { fetchAdminTeams } from '@/services/admin-api';
 import type { AdminTeam, PaginationMeta } from '@/types';
 import { adminTeamPath } from '@/lib/resource-paths';
+import { useAdminQuery } from '@/app/hooks/use-admin-query';
 import { AdminSearchInput } from '../../components/admin/admin-search-input';
 import { AdminPagination } from '../../components/admin/admin-pagination';
 import { AdminStatCard } from '../../components/admin/admin-stat-card';
