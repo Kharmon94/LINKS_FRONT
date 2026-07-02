@@ -29,8 +29,12 @@ interface PwaInstallContextValue {
 
 const PwaInstallContext = createContext<PwaInstallContextValue | undefined>(undefined);
 
-export function PwaInstallProvider({ children }: { children: ReactNode }) {
+function PwaInstallConfirmEffect() {
   usePwaStandaloneConfirm();
+  return null;
+}
+
+export function PwaInstallProvider({ children }: { children: ReactNode }) {
   const { isStandalone, justInstalled } = usePwaStandalone();
   const [bannerActive, setBannerActive] = useState(() => shouldShowInstallBanner());
   const [modalOpen, setModalOpen] = useState(false);
@@ -90,7 +94,12 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return <PwaInstallContext.Provider value={value}>{children}</PwaInstallContext.Provider>;
+  return (
+    <PwaInstallContext.Provider value={value}>
+      <PwaInstallConfirmEffect />
+      {children}
+    </PwaInstallContext.Provider>
+  );
 }
 
 export function usePwaInstall() {
