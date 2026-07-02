@@ -8,7 +8,7 @@ import {
   getDesktopSidebarNavItems,
 } from '@/app/config/app-nav-items';
 import { WorkspaceSwitcher } from '../workspace-switcher';
-import { NavLogo } from './nav-logo';
+import { NavLogo, NavLogoMark } from './nav-logo';
 import { isNavPathActive } from './nav-utils';
 
 type AppSidebarProps = {
@@ -61,7 +61,11 @@ export function AppSidebar({ collapsed, onToggle, bannerVisible = false }: AppSi
               collapsed ? 'justify-center p-3' : 'px-4 py-4'
             }`}
           >
-            <NavLogo className={collapsed ? 'h-8 w-8 object-contain' : 'h-10 w-auto'} />
+            {collapsed ? (
+              <NavLogoMark className="h-9 w-9" />
+            ) : (
+              <NavLogo className="h-10 w-auto" />
+            )}
           </div>
 
           <nav className={`flex-1 space-y-1 ${collapsed ? 'p-2' : 'p-4'}`}>
