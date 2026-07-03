@@ -43,6 +43,11 @@ export function hasPwaInstallConfirmed(userId: string): boolean {
   }
 }
 
+/** User previously completed install flow (local confirm only, not server field). */
+export function isReturningPwaUser(userId: string): boolean {
+  return hasPwaInstallConfirmed(userId);
+}
+
 export function isPwaInstallDetectedOnServer(
   user?: { pwaInstalledAt?: string | null } | null
 ): boolean {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { AppLayout } from '../components/app-layout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -62,7 +62,35 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { can, limits } = usePermissions();
   const navigate = useNavigate();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const validTabs = ['profile', 'domains', 'security', 'notifications', 'billing', 'help'] as const;
+  const initialTab =
+    tabParam && validTabs.includes(tabParam as (typeof validTabs)[number])
+      ? tabParam
+      : 'profile';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (
+      tabParam &&
+      validTabs.includes(tabParam as (typeof validTabs)[number]) &&
+      tabParam !== activeTab
+    ) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam, activeTab]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'profile') {
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', value);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
+
   const [name, setName] = useState(user?.name || '');
   const [email] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -316,7 +344,7 @@ export function SettingsPage() {
         <div className="px-4 py-8 max-w-4xl mx-auto relative">
           <h1 className="mb-8 text-[32px] text-center">Account Settings</h1>
 
-          <Tabs defaultValue="profile" className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 mb-8 h-auto gap-2 bg-card/50 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] p-2">
               <TabsTrigger value="profile" className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 py-2 px-1 md:px-2 md:py-3 rounded-full data-[state=active]:bg-black dark:data-[state=active]:bg-white data-[state=active]:text-white dark:data-[state=active]:text-black">
                 <User className="w-4 h-4" />

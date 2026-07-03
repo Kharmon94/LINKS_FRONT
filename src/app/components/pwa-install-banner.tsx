@@ -1,17 +1,14 @@
 import { ChevronRight, Smartphone, X } from 'lucide-react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/app/contexts/auth-context';
 import { usePwaInstall } from '@/app/contexts/pwa-install-context';
-import {
-  hasPwaInstallConfirmed,
-  isAuthenticatedAppRoute,
-  shouldOfferPwaInstall,
-} from '@/lib/pwa-install';
+import { isAuthenticatedAppRoute } from '@/lib/pwa-install';
 
 export function PwaInstallBanner() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAuthenticated, loading, user } = useAuth();
-  const { bannerVisible, isStandalone, openInstallModal, dismissInstallBanner } = usePwaInstall();
+  const { bannerVisible, isStandalone, dismissInstallBanner } = usePwaInstall();
 
   if (
     loading ||
@@ -19,9 +16,7 @@ export function PwaInstallBanner() {
     !user ||
     isStandalone ||
     !bannerVisible ||
-    !shouldOfferPwaInstall() ||
-    !isAuthenticatedAppRoute(location.pathname) ||
-    hasPwaInstallConfirmed(user.id)
+    !isAuthenticatedAppRoute(location.pathname)
   ) {
     return null;
   }
@@ -30,7 +25,7 @@ export function PwaInstallBanner() {
     <div className="fixed left-0 right-0 top-0 z-50 flex w-full items-center gap-3 border-b border-primary/20 bg-primary px-4 py-2.5 text-primary-foreground shadow-md">
       <button
         type="button"
-        onClick={openInstallModal}
+        onClick={() => navigate('/settings?tab=help')}
         className="flex min-w-0 flex-1 items-center gap-3 text-left transition-colors hover:opacity-90"
         aria-label="Install Links for the best experience"
       >

@@ -10,6 +10,7 @@ import {
   isInstallBannerDismissedForSession,
   isPwaInstallDetectedOnServer,
   isPwaOnboardingComplete,
+  isReturningPwaUser,
   markPwaInstallConfirmed,
   markPwaInstallPromptSeen,
   markPwaOnboardingComplete,
@@ -29,6 +30,13 @@ describe('pwa-install', () => {
     markPwaInstallConfirmed('user-1');
     expect(hasPwaInstallConfirmed('user-1')).toBe(true);
     expect(hasPwaInstallConfirmed('user-2')).toBe(false);
+  });
+
+  it('identifies returning PWA users from local confirm only', () => {
+    expect(isReturningPwaUser('user-1')).toBe(false);
+    markPwaInstallConfirmed('user-1');
+    expect(isReturningPwaUser('user-1')).toBe(true);
+    expect(isReturningPwaUser('user-2')).toBe(false);
   });
 
   it('does not treat server pwaInstalledAt as prompt suppression', () => {

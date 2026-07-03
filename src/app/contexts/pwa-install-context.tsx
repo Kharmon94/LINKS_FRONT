@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -14,7 +15,9 @@ import {
   clearPwaInstallConfirmed,
   dismissInstallBannerForSession,
   isInstallBannerDismissedForSession,
+  isReturningPwaUser,
   setInstallBannerActive,
+  shouldOfferPwaInstall,
   shouldShowInstallBanner,
 } from '@/lib/pwa-install';
 import { resetPwaInstall } from '@/services/pwa-api';
@@ -22,6 +25,7 @@ import { resetPwaInstall } from '@/services/pwa-api';
 interface PwaInstallContextValue {
   isStandalone: boolean;
   justInstalled: boolean;
+  isReinstallSession: boolean;
   bannerVisible: boolean;
   modalOpen: boolean;
   manualOpen: boolean;
@@ -50,6 +54,32 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [reinstallSessionLatch, setReinstallSessionLatch] = useState(false);
+  const proactiveResetDoneRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || reinstallSessionLatch) return;
+    if (isReturningPwaUser(user.id) || Boolean(user.pwaInstalledAt)) {
+      setReinstallSessionLatch(true);
+    }
+  }, [user, reinstallSessionLatch]);
+
+  const isReinstallSession = reinstallSessionLatch;
+
+  useEffect(() => {
+    if (!user || isStandalone || !isReinstallSession || proactiveResetDoneRef.current) {
+      return;
+    }
+    proactiveResetDoneRef.current = true;
+    void (async () => {
+      try {
+        await resetPwaInstall();
+        await refreshUser();
+      } catch {
+        // banner still guides user to Settings Help
+      }
+    })();
+  }, [user, isStandalone, isReinstallSession, refreshUser]);
 
   const refreshBannerState = useCallback(() => {
     setBannerActive(shouldShowInstallBanner());
@@ -103,7 +133,12 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     () => ({
       isStandalone,
       justInstalled,
-      bannerVisible: bannerActive && !sessionBannerDismissed && !isStandalone,
+      isReinstallSession,
+      bannerVisible:
+        (bannerActive || isReinstallSession) &&
+        !sessionBannerDismissed &&
+        !isStandalone &&
+        shouldOfferPwaInstall(),
       modalOpen,
       manualOpen,
       openInstallModal,
@@ -117,6 +152,7 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     [
       isStandalone,
       justInstalled,
+      isReinstallSession,
       bannerActive,
       sessionBannerDismissed,
       modalOpen,

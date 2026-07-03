@@ -139,6 +139,7 @@ export function PwaInstallPrompt() {
   const {
     isStandalone,
     justInstalled,
+    isReinstallSession,
     modalOpen,
     manualOpen,
     dismissToBanner,
@@ -149,10 +150,13 @@ export function PwaInstallPrompt() {
   const [phase, setPhase] = useState<ModalPhase>('waiting');
   const [platform, setPlatform] = useState<PwaInstallPlatform>('other');
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installResetReady, setInstallResetReady] = useState(false);
   const resetDoneRef = useRef(false);
 
   const installDetected =
-    phase === 'success' || isPwaInstallDetectedOnServer(user) || justInstalled;
+    phase === 'success' ||
+    justInstalled ||
+    (installResetReady && isPwaInstallDetectedOnServer(user));
 
   useEffect(() => {
     const onBeforeInstallPrompt = (event: Event) => {
@@ -164,14 +168,18 @@ export function PwaInstallPrompt() {
   }, []);
 
   useEffect(() => {
-    if ((justInstalled || isPwaInstallDetectedOnServer(user)) && modalOpen) {
+    if (
+      (justInstalled || (installResetReady && isPwaInstallDetectedOnServer(user))) &&
+      modalOpen
+    ) {
       setPhase('success');
     }
-  }, [justInstalled, user?.pwaInstalledAt, modalOpen, user]);
+  }, [justInstalled, user?.pwaInstalledAt, modalOpen, user, installResetReady]);
 
   useEffect(() => {
     if (!modalOpen) {
       resetDoneRef.current = false;
+      setInstallResetReady(false);
       return;
     }
     if (phase !== 'waiting' || resetDoneRef.current) {
@@ -182,15 +190,18 @@ export function PwaInstallPrompt() {
     void (async () => {
       try {
         await resetPwaInstall();
-        await refreshUser();
+        const refreshedUser = await refreshUser();
+        if (refreshedUser && !refreshedUser.pwaInstalledAt) {
+          setInstallResetReady(true);
+        }
       } catch {
-        // polling still works if reset fails; user may see stale success
+        // polling waits until reset succeeds
       }
     })();
   }, [modalOpen, phase, refreshUser]);
 
   useEffect(() => {
-    if (!modalOpen || phase !== 'waiting' || installDetected) {
+    if (!modalOpen || phase !== 'waiting' || installDetected || !installResetReady) {
       return;
     }
 
@@ -201,7 +212,24 @@ export function PwaInstallPrompt() {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [modalOpen, phase, installDetected, refreshUser]);
+  }, [modalOpen, phase, installDetected, installResetReady, refreshUser]);
+
+  useEffect(() => {
+    if (!modalOpen || phase !== 'waiting' || installDetected || !installResetReady) {
+      return;
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshUser();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [modalOpen, phase, installDetected, installResetReady, refreshUser]);
 
   useEffect(() => {
     if (manualOpen) {
@@ -216,7 +244,10 @@ export function PwaInstallPrompt() {
     }
 
     const freshInstallWhileOpen =
-      modalOpen && (justInstalled || isPwaInstallDetectedOnServer(user) || phase === 'success');
+      modalOpen &&
+      (justInstalled ||
+        (installResetReady && isPwaInstallDetectedOnServer(user)) ||
+        phase === 'success');
 
     if (freshInstallWhileOpen) {
       setPhase('success');
@@ -227,7 +258,8 @@ export function PwaInstallPrompt() {
       !shouldOfferPwaInstall() ||
       !isAuthenticatedAppRoute(location.pathname) ||
       hasPwaInstallConfirmed(user.id) ||
-      shouldShowInstallBanner()
+      shouldShowInstallBanner() ||
+      isReinstallSession
     ) {
       setModalOpen(false);
       return;
@@ -247,6 +279,8 @@ export function PwaInstallPrompt() {
     modalOpen,
     justInstalled,
     phase,
+    installResetReady,
+    isReinstallSession,
   ]);
 
   const handleDismiss = () => {

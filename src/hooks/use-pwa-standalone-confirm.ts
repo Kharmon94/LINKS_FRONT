@@ -14,7 +14,7 @@ export function usePwaStandaloneConfirm() {
   const confirmingRef = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !user || user.pwaInstalledAt) return;
+    if (!isAuthenticated || !user) return;
 
     const shouldConfirm = isStandalonePwa() || justInstalled;
     if (!shouldConfirm || confirmingRef.current) return;
