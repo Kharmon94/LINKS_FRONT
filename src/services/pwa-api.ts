@@ -6,3 +6,9 @@ export async function confirmPwaInstall() {
     method: 'POST',
   });
 }
+
+export async function resetPwaInstall() {
+  return apiRequest<{ user: User }>('/api/v1/pwa/reset_install', {
+    method: 'POST',
+  });
+}

@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 import { useAuth } from '../contexts/auth-context';
 import { useTheme } from '../contexts/theme-context';
 import { usePermissions } from '@/hooks/use-permissions';
-import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle, HelpCircle, Sun, Moon, Monitor } from 'lucide-react';
+import { User, Key, Bell, CreditCard, Globe, Check, X, Copy, AlertCircle, HelpCircle, Sun, Moon, Monitor, Smartphone } from 'lucide-react';
 import { apiRequest, ApiError } from '@/services/api';
 import { NotificationPreferenceRow } from '../components/notification-preference-row';
 import { toast } from 'sonner';
@@ -37,6 +37,8 @@ import {
   isPushSupported,
   unsubscribeFromPush,
 } from '@/lib/push-notifications';
+import { shouldOfferPwaInstall } from '@/lib/pwa-install';
+import { usePwaInstall } from '../contexts/pwa-install-context';
 
 const TIER_LABELS: Record<SubscriptionTier, string> = {
   free: 'Free',
@@ -56,6 +58,7 @@ const TIER_FEATURES: Record<SubscriptionTier, string[]> = {
 
 export function SettingsPage() {
   const { isAuthenticated, user, logout, checkAuth } = useAuth();
+  const { isStandalone, startPwaInstallFlow } = usePwaInstall();
   const { theme, setTheme } = useTheme();
   const { can, limits } = usePermissions();
   const navigate = useNavigate();
@@ -192,6 +195,7 @@ export function SettingsPage() {
   };
 
   const tier = (user?.subscriptionTier || 'free') as SubscriptionTier;
+  const showInstallApp = shouldOfferPwaInstall() && !isStandalone;
 
   const handleLogout = () => {
     logout();
@@ -762,6 +766,17 @@ export function SettingsPage() {
             <TabsContent value="help">
               <div className="bg-card/50 backdrop-blur-md rounded-lg p-6">
                 <h2 className="text-xl font-semibold mb-4">Help</h2>
+                {showInstallApp && (
+                  <div className="mb-6 pb-6 border-b border-border">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Add Links to your home screen for faster access and full-screen use.
+                    </p>
+                    <Button onClick={() => void startPwaInstallFlow()}>
+                      <Smartphone className="w-4 h-4 mr-2" />
+                      Install app
+                    </Button>
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground mb-4">
                   Restart the product tour to see a walkthrough of key features again.
                 </p>

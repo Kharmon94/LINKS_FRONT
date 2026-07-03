@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  clearPwaInstallConfirmed,
   consumePendingPushSubscribe,
   detectPwaInstallPlatform,
+  dismissInstallBannerForSession,
   hasPwaInstallConfirmed,
   hasSeenPwaInstallPrompt,
   isAuthenticatedAppRoute,
+  isInstallBannerDismissedForSession,
+  isPwaInstallDetectedOnServer,
   isPwaOnboardingComplete,
   markPwaInstallConfirmed,
   markPwaInstallPromptSeen,
@@ -17,31 +21,29 @@ import {
 describe('pwa-install', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
-  it('tracks confirmed install per user', () => {
+  it('tracks confirmed install per user via localStorage only', () => {
     expect(hasPwaInstallConfirmed('user-1')).toBe(false);
     markPwaInstallConfirmed('user-1');
     expect(hasPwaInstallConfirmed('user-1')).toBe(true);
     expect(hasPwaInstallConfirmed('user-2')).toBe(false);
   });
 
-  it('treats server pwaInstalledAt as confirmed', () => {
-    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: null })).toBe(false);
-    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
-      true
-    );
-    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
-      true
-    );
-    expect(hasPwaInstallConfirmed('user-2', { pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
+  it('does not treat server pwaInstalledAt as prompt suppression', () => {
+    expect(hasPwaInstallConfirmed('user-1')).toBe(false);
+    expect(isPwaInstallDetectedOnServer({ pwaInstalledAt: null })).toBe(false);
+    expect(isPwaInstallDetectedOnServer({ pwaInstalledAt: '2026-07-02T12:00:00Z' })).toBe(
       true
     );
   });
 
-  it('falls back to localStorage when server field is absent', () => {
+  it('clears local install confirmation', () => {
     markPwaInstallConfirmed('user-1');
-    expect(hasPwaInstallConfirmed('user-1', { pwaInstalledAt: null })).toBe(true);
+    expect(hasPwaInstallConfirmed('user-1')).toBe(true);
+    clearPwaInstallConfirmed('user-1');
+    expect(hasPwaInstallConfirmed('user-1')).toBe(false);
   });
 
   it('keeps deprecated dismiss helpers aligned with confirmed install', () => {
@@ -55,6 +57,14 @@ describe('pwa-install', () => {
     expect(shouldShowInstallBanner()).toBe(true);
     markPwaInstallConfirmed('user-1');
     expect(shouldShowInstallBanner()).toBe(false);
+  });
+
+  it('tracks session banner dismiss without clearing banner active flag', () => {
+    setInstallBannerActive(true);
+    expect(isInstallBannerDismissedForSession()).toBe(false);
+    dismissInstallBannerForSession();
+    expect(isInstallBannerDismissedForSession()).toBe(true);
+    expect(shouldShowInstallBanner()).toBe(true);
   });
 
   it('tracks onboarding completion per device', () => {

@@ -1,6 +1,7 @@
 const PROMPT_KEY_PREFIX = 'pwa_install_prompt_dismissed:';
 const ONBOARDING_KEY = 'pwa_onboarding_completed';
 const BANNER_KEY = 'pwa_install_banner_active';
+const BANNER_SESSION_DISMISS_KEY = 'pwa_install_banner_session_dismissed';
 const PENDING_PUSH_KEY = 'pwa_pending_push_subscribe';
 
 export function isStandalonePwa(): boolean {
@@ -34,15 +35,25 @@ export function shouldOfferPwaInstall(): boolean {
   return window.matchMedia('(max-width: 1024px)').matches;
 }
 
-export function hasPwaInstallConfirmed(
-  userId: string,
-  user?: { pwaInstalledAt?: string | null } | null
-): boolean {
-  if (user?.pwaInstalledAt) return true;
+export function hasPwaInstallConfirmed(userId: string): boolean {
   try {
     return localStorage.getItem(`${PROMPT_KEY_PREFIX}${userId}`) === '1';
   } catch {
     return true;
+  }
+}
+
+export function isPwaInstallDetectedOnServer(
+  user?: { pwaInstalledAt?: string | null } | null
+): boolean {
+  return Boolean(user?.pwaInstalledAt);
+}
+
+export function clearPwaInstallConfirmed(userId: string): void {
+  try {
+    localStorage.removeItem(`${PROMPT_KEY_PREFIX}${userId}`);
+  } catch {
+    // ignore storage failures
   }
 }
 
@@ -96,6 +107,22 @@ export function setInstallBannerActive(active: boolean): void {
     } else {
       localStorage.removeItem(BANNER_KEY);
     }
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function isInstallBannerDismissedForSession(): boolean {
+  try {
+    return sessionStorage.getItem(BANNER_SESSION_DISMISS_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function dismissInstallBannerForSession(): void {
+  try {
+    sessionStorage.setItem(BANNER_SESSION_DISMISS_KEY, '1');
   } catch {
     // ignore storage failures
   }
