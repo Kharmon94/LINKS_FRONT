@@ -101,7 +101,7 @@ export function AdminOverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-5">
           <h2 className="font-medium mb-4">Users by tier</h2>
-          <ChartContainer config={{ count: { label: 'Users', color: 'hsl(var(--primary))' } }} className="h-[220px] w-full">
+          <ChartContainer config={{ count: { label: 'Users', color: 'var(--primary)' } }} className="h-[220px] w-full">
             <BarChart data={tierData}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="tier" tickLine={false} axisLine={false} />
@@ -113,7 +113,7 @@ export function AdminOverviewPage() {
         </div>
         <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-5">
           <h2 className="font-medium mb-4">Users by role</h2>
-          <ChartContainer config={{ count: { label: 'Users', color: 'hsl(var(--chart-2))' } }} className="h-[220px] w-full">
+          <ChartContainer config={{ count: { label: 'Users', color: 'var(--chart-2)' } }} className="h-[220px] w-full">
             <BarChart data={roleData}>
               <CartesianGrid vertical={false} />
               <XAxis dataKey="role" tickLine={false} axisLine={false} />

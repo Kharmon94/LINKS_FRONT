@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router';
 import { ArrowLeft, MoreHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   getAdminMobileTabItems,
   getAdminOverflowItems,
 } from '@/app/config/admin-nav-items';
-import { NavMoreSheet } from './nav-more-sheet';
+import { useTheme } from '../../contexts/theme-context';
+import { themeModeIcon, themeModeLabel } from '@/lib/theme-mode-utils';
+import { NavMoreSheet, type NavMoreSheetItem } from './nav-more-sheet';
 import {
   getBottomNavMoreActive,
   getBottomNavTabActive,
@@ -18,12 +20,33 @@ import {
 
 export function AdminBottomNav() {
   const location = useLocation();
+  const { theme, cycleTheme } = useTheme();
   const [moreOpen, setMoreOpen] = useState(false);
   const tabItems = getAdminMobileTabItems();
   const overflowItems = getAdminOverflowItems();
 
   const overflowPaths = overflowItems.map((item) => item.path);
   const moreActive = getBottomNavMoreActive(location.pathname, overflowPaths, moreOpen);
+
+  const moreSheetItems = useMemo<NavMoreSheetItem[]>(
+    () => [
+      {
+        kind: 'link' as const,
+        path: '/links',
+        label: 'Back to app',
+        icon: ArrowLeft,
+      },
+      ...overflowItems.map((item) => ({ kind: 'link' as const, ...item })),
+      {
+        kind: 'action',
+        id: 'theme',
+        label: `Theme: ${themeModeLabel(theme)}`,
+        icon: themeModeIcon(theme),
+        onClick: cycleTheme,
+      },
+    ],
+    [cycleTheme, overflowItems, theme],
+  );
 
   return (
     <>
@@ -66,15 +89,7 @@ export function AdminBottomNav() {
       <NavMoreSheet
         open={moreOpen}
         onOpenChange={setMoreOpen}
-        items={[
-          {
-            kind: 'link' as const,
-            path: '/links',
-            label: 'Back to app',
-            icon: ArrowLeft,
-          },
-          ...overflowItems.map((item) => ({ kind: 'link' as const, ...item })),
-        ]}
+        items={moreSheetItems}
       />
     </>
   );
