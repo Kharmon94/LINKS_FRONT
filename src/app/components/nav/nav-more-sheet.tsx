@@ -61,7 +61,7 @@ export function NavMoreSheet({
       >
         <SheetTitle className="sr-only">{title}</SheetTitle>
         {header ? (
-          <div className="px-2 pb-3 mb-1 border-b border-border/30">{header}</div>
+          <div className="pl-2 pt-2 pr-10 pb-3 mb-1 border-b border-border/30">{header}</div>
         ) : null}
         <nav className="space-y-1 pt-2">
           {items.map((item) => {
