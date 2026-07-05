@@ -9,6 +9,7 @@ import {
   getMobileMoreNavItems,
   getMobileTabNavItems,
 } from '@/app/config/app-nav-items';
+import { WorkspaceSwitcher } from '../workspace-switcher';
 import { NavMoreSheet, type NavMoreSheetItem } from './nav-more-sheet';
 import {
   getBottomNavMoreActive,
@@ -100,7 +101,16 @@ export function AppBottomNav() {
         </div>
       </nav>
 
-      <NavMoreSheet open={moreOpen} onOpenChange={setMoreOpen} items={moreSheetItems} />
+      <NavMoreSheet
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        header={
+          <div className="px-2">
+            <WorkspaceSwitcher />
+          </div>
+        }
+        items={moreSheetItems}
+      />
     </>
   );
 }

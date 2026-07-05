@@ -38,6 +38,7 @@ type NavMoreSheetProps = {
   onOpenChange: (open: boolean) => void;
   title?: string;
   items: NavMoreSheetItem[];
+  header?: React.ReactNode;
   footer?: React.ReactNode;
 };
 
@@ -46,6 +47,7 @@ export function NavMoreSheet({
   onOpenChange,
   title = 'More',
   items,
+  header,
   footer,
 }: NavMoreSheetProps) {
   const location = useLocation();
@@ -58,6 +60,9 @@ export function NavMoreSheet({
         className={`rounded-t-2xl ${NAV_MORE_SHEET_Z_CLASS} pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]`}
       >
         <SheetTitle className="sr-only">{title}</SheetTitle>
+        {header ? (
+          <div className="px-2 pb-3 mb-1 border-b border-border/30">{header}</div>
+        ) : null}
         <nav className="space-y-1 pt-2">
           {items.map((item) => {
             const Icon = item.icon;

@@ -297,39 +297,51 @@ export function SettingsPage() {
 
   // Push notifications (PWA)
   const [pushSupported] = useState(() => isPushSupported());
-  const [pushPermission, setPushPermission] = useState<NotificationPermission>(
-    pushSupported ? Notification.permission : 'denied'
-  );
+  const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
 
-  const handleEnablePush = async () => {
+  useEffect(() => {
+    if (!pushSupported) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (!cancelled) {
+          setPushSubscribed(!!sub && Notification.permission === 'granted');
+        }
+      } catch {
+        if (!cancelled) setPushSubscribed(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pushSupported]);
+
+  const handlePushToggle = async (enabled: boolean) => {
     if (!pushSupported) return;
     setPushBusy(true);
     try {
-      const ok = await enablePushNotifications();
-      setPushPermission(Notification.permission);
-      if (ok) {
-        toast.success('Push notifications enabled');
-      } else if (Notification.permission !== 'granted') {
-        return;
+      if (enabled) {
+        const ok = await enablePushNotifications();
+        if (ok) {
+          setPushSubscribed(true);
+          toast.success('Push notifications enabled');
+        } else if (Notification.permission !== 'granted') {
+          return;
+        } else {
+          toast.error('Missing VAPID public key or could not subscribe');
+        }
       } else {
-        toast.error('Missing VAPID public key or could not subscribe');
+        await unsubscribeFromPush();
+        setPushSubscribed(false);
+        toast.success('Push notifications disabled');
       }
     } catch {
-      toast.error('Could not enable push notifications');
-    } finally {
-      setPushBusy(false);
-    }
-  };
-
-  const handleDisablePush = async () => {
-    if (!pushSupported) return;
-    setPushBusy(true);
-    try {
-      await unsubscribeFromPush();
-      toast.success('Push notifications disabled');
-    } catch {
-      toast.error('Could not disable push notifications');
+      toast.error(
+        enabled ? 'Could not enable push notifications' : 'Could not disable push notifications',
+      );
     } finally {
       setPushBusy(false);
     }
@@ -713,49 +725,33 @@ export function SettingsPage() {
                 ) : (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-semibold mb-1">Push Notifications</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Receive real-time alerts on this device (requires install + permission)
-                    </p>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={!isAuthenticated || !pushSupported || pushBusy || pushPermission !== 'granted'}
-                        onClick={handleDisablePush}
-                      >
-                        Disable
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={!isAuthenticated || !pushSupported || pushBusy}
-                        onClick={handleEnablePush}
-                      >
-                        Enable
-                      </Button>
-                    </div>
-                    <div className={pushPermission !== 'granted' ? 'opacity-50 pointer-events-none' : undefined}>
+                    <NotificationPreferenceRow
+                      title="Push Notifications"
+                      description="Receive real-time alerts on this device (requires install + permission)"
+                      checked={pushSubscribed}
+                      disabled={!isAuthenticated || !pushSupported || pushBusy}
+                      onCheckedChange={(enabled) => void handlePushToggle(enabled)}
+                    />
+                    <div className={!pushSubscribed ? 'opacity-50 pointer-events-none' : undefined}>
                       <NotificationPreferenceRow
                         title="Link Alerts"
                         description="Get notified when links reach click milestones"
                         checked={notifPrefs.push_link_alerts}
-                        disabled={notifSaving || pushPermission !== 'granted'}
+                        disabled={notifSaving || !pushSubscribed}
                         onCheckedChange={(value) => void handleNotifToggle('push_link_alerts', value)}
                       />
                       <NotificationPreferenceRow
                         title="Daily/Weekly Analytics"
                         description="Receive periodic analytics summaries on this device"
                         checked={notifPrefs.push_weekly_reports}
-                        disabled={notifSaving || pushPermission !== 'granted'}
+                        disabled={notifSaving || !pushSubscribed}
                         onCheckedChange={(value) => void handleNotifToggle('push_weekly_reports', value)}
                       />
                       <NotificationPreferenceRow
                         title="Marketing Notifications"
                         description="Product updates and tips via push"
                         checked={notifPrefs.push_marketing}
-                        disabled={notifSaving || pushPermission !== 'granted'}
+                        disabled={notifSaving || !pushSubscribed}
                         onCheckedChange={(value) => void handleNotifToggle('push_marketing', value)}
                       />
                     </div>
