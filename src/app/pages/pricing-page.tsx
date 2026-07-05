@@ -115,7 +115,8 @@ export function PricingPage() {
       <PublicTopNav />
       <PublicBottomNav />
 
-      <main className={`flex-1 px-4 py-24 sm:py-32 pt-20 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
+      <main className={`flex-1 pt-20 lg:pt-[73px] ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}>
+        <section className="px-4 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl mb-4">Simple, Transparent Pricing</h1>
@@ -194,6 +195,7 @@ export function PricingPage() {
             <Link to="/auth" className="text-foreground underline">Sign in</Link>
           </p>
         </div>
+        </section>
       </main>
 
       <Footer />

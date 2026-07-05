@@ -61,8 +61,8 @@ export function AppSidebar({ collapsed, onToggle, bannerVisible = false }: AppSi
       >
         <div className="flex flex-col h-full overflow-y-auto">
           <div
-            className={`flex shrink-0 items-center border-b border-border/30 ${
-              collapsed ? 'justify-center p-3' : 'px-4 py-4'
+            className={`flex shrink-0 items-center justify-center border-b border-border/30 ${
+              collapsed ? 'p-3' : 'px-4 py-4'
             }`}
           >
             {collapsed ? (
