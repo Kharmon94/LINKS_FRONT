@@ -21,6 +21,8 @@ export interface LinkPayload {
   utm_term?: string;
   utm_content?: string;
   custom_domain_id?: string | null;
+  push_alerts_enabled?: boolean;
+  email_alerts_enabled?: boolean;
   pool_entries_attributes?: PoolEntryInput[];
 }
 

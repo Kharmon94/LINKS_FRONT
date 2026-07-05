@@ -20,7 +20,10 @@ import {
   QrCode,
   Nfc,
 } from 'lucide-react';
-import { getLink, getLinkClicks, displayShortUrl } from '@/services/links-api';
+import { getLink, getLinkClicks, displayShortUrl, updateLink } from '@/services/links-api';
+import { fetchNotificationPreferences, type NotificationPreferences } from '@/services/account-api';
+import { isPushSupported } from '@/lib/push-notifications';
+import { NotificationPreferenceRow } from '../components/notification-preference-row';
 import { getLinkAnalytics, type EntityAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { ApiError } from '@/services/api';
@@ -44,6 +47,9 @@ export function LinkDetailPage() {
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
   const [qrOpen, setQrOpen] = useState(false);
   const [nfcOpen, setNfcOpen] = useState(false);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [alertsSaving, setAlertsSaving] = useState(false);
 
   usePublicIdRedirect('linkId', link, linkPath);
 
@@ -106,6 +112,57 @@ export function LinkDetailPage() {
     }
     prevLinkIdRef.current = linkId;
   }, [linkId, refreshNow]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchNotificationPreferences()
+      .then((data) => {
+        if (!cancelled) setNotifPrefs(data.notificationPreferences);
+      })
+      .catch(() => {
+        if (!cancelled) setNotifPrefs(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (!cancelled) {
+          setPushSubscribed(!!sub && Notification.permission === 'granted');
+        }
+      } catch {
+        if (!cancelled) setPushSubscribed(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAlertToggle = async (field: 'push_alerts_enabled' | 'email_alerts_enabled', value: boolean) => {
+    if (!link || !can.updateLinks) return;
+    const prevLink = link;
+    const camelField = field === 'push_alerts_enabled' ? 'pushAlertsEnabled' : 'emailAlertsEnabled';
+    setLink({ ...link, [camelField]: value });
+    setAlertsSaving(true);
+    try {
+      const updated = await updateLink(link.id, { [field]: value });
+      setLink(updated);
+      toast.success('Alert preferences updated');
+    } catch (err) {
+      setLink(prevLink);
+      toast.error(err instanceof ApiError ? err.message : 'Could not update alert preferences');
+    } finally {
+      setAlertsSaving(false);
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -206,6 +263,38 @@ export function LinkDetailPage() {
                   </Button>
                 )}
               </div>
+            </div>
+
+            <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-1">Alerts</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Milestone notifications for this link (uses your account notification settings).
+              </p>
+              {!notifPrefs ? (
+                <p className="text-sm text-muted-foreground">Loading preferences...</p>
+              ) : (
+                <div>
+                  <NotificationPreferenceRow
+                    title="Push alerts"
+                    description="Notify on this link's click milestones"
+                    checked={link.pushAlertsEnabled ?? true}
+                    disabled={
+                      !can.updateLinks ||
+                      alertsSaving ||
+                      !notifPrefs.push_link_alerts ||
+                      !pushSubscribed
+                    }
+                    onCheckedChange={(value) => void handleAlertToggle('push_alerts_enabled', value)}
+                  />
+                  <NotificationPreferenceRow
+                    title="Email alerts"
+                    description="Email on this link's milestones"
+                    checked={link.emailAlertsEnabled ?? true}
+                    disabled={!can.updateLinks || alertsSaving || !notifPrefs.email_link_alerts}
+                    onCheckedChange={(value) => void handleAlertToggle('email_alerts_enabled', value)}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">

@@ -135,6 +135,13 @@ export interface FeatureFlagJson {
   updatedAt: string;
 }
 
+export interface UserFeatureFlagJson {
+  key: string;
+  globalEnabled: boolean;
+  override: boolean | null;
+  effectiveEnabled: boolean;
+}
+
 export interface PaginationMeta {
   page: number;
   perPage: number;
@@ -307,6 +314,8 @@ export interface LinkJson {
     term?: string | null;
     content?: string | null;
   };
+  pushAlertsEnabled?: boolean;
+  emailAlertsEnabled?: boolean;
 }
 
 export interface ClickEventJson {

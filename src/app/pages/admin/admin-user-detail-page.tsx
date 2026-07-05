@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Link as LinkIcon, Shield, UsersRound } from 'lucide-react';
+import { ArrowLeft, Flag, Link as LinkIcon, Shield, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   cancelAdminSubscription,
   createAdminBillingPortalSession,
   fetchAdminUser,
+  fetchFeatureFlags,
+  fetchUserFeatureFlags,
   lookupAdminBillingUser,
   updateAdminUser,
+  updateUserFeatureFlag,
 } from '@/services/admin-api';
-import type { AdminBillingUserLookup, AdminUser, SubscriptionTier, UserRole } from '@/types';
+import type { AdminBillingUserLookup, AdminUser, FeatureFlagJson, SubscriptionTier, UserFeatureFlagJson, UserRole } from '@/types';
 import {
   adminLinkPath,
   adminLinksForUserPath,
@@ -53,6 +56,22 @@ import {
 
 const TIERS: SubscriptionTier[] = ['free', 'starter', 'growth', 'pro', 'enterprise'];
 
+type UserFlagRow = UserFeatureFlagJson & Pick<FeatureFlagJson, 'description' | 'category'>;
+
+type OverrideChoice = 'inherit' | 'on' | 'off';
+
+function overrideToChoice(override: UserFeatureFlagJson['override']): OverrideChoice {
+  if (override === true) return 'on';
+  if (override === false) return 'off';
+  return 'inherit';
+}
+
+function choiceToOverride(choice: OverrideChoice): boolean | null {
+  if (choice === 'on') return true;
+  if (choice === 'off') return false;
+  return null;
+}
+
 export function AdminUserDetailPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -72,6 +91,10 @@ export function AdminUserDetailPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [userFlags, setUserFlags] = useState<UserFlagRow[]>([]);
+  const [flagsLoading, setFlagsLoading] = useState(true);
+  const [flagsError, setFlagsError] = useState<string | null>(null);
+  const [flagSaving, setFlagSaving] = useState<string | null>(null);
 
   usePublicIdRedirect('userId', user, adminUserPath);
 
@@ -92,6 +115,34 @@ export function AdminUserDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadUserFlags = useCallback(async () => {
+    if (!userId) return;
+    setFlagsLoading(true);
+    setFlagsError(null);
+    try {
+      const [globalData, userData] = await Promise.all([
+        fetchFeatureFlags(),
+        fetchUserFeatureFlags(userId),
+      ]);
+      const globalByKey = Object.fromEntries(globalData.featureFlags.map((f) => [f.key, f]));
+      setUserFlags(
+        userData.userFeatureFlags.map((flag) => ({
+          ...flag,
+          description: globalByKey[flag.key]?.description ?? '',
+          category: globalByKey[flag.key]?.category ?? 'product',
+        }))
+      );
+    } catch (e) {
+      setFlagsError(e instanceof Error ? e.message : 'Failed to load feature flags');
+    } finally {
+      setFlagsLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    void loadUserFlags();
+  }, [loadUserFlags]);
 
   useEffect(() => {
     if (!user?.stripeCustomerId) {
@@ -211,6 +262,38 @@ export function AdminUserDetailPage() {
       setCancelLoading(false);
     }
   };
+
+  const applyUserFlagOverride = async (flag: UserFlagRow, choice: OverrideChoice) => {
+    if (!userId) return;
+    const enabled = choiceToOverride(choice);
+    const prev = userFlags;
+    setFlagSaving(flag.key);
+    setUserFlags((rows) =>
+      rows.map((row) =>
+        row.key === flag.key
+          ? {
+              ...row,
+              override: enabled,
+              effectiveEnabled: enabled ?? row.globalEnabled,
+            }
+          : row
+      )
+    );
+    try {
+      const data = await updateUserFeatureFlag(userId, flag.key, enabled);
+      setUserFlags((rows) =>
+        rows.map((row) => (row.key === flag.key ? { ...row, ...data.userFeatureFlag } : row))
+      );
+      toast.success(`${flag.key} override updated`);
+    } catch (e) {
+      setUserFlags(prev);
+      toast.error(e instanceof Error ? e.message : 'Update failed');
+    } finally {
+      setFlagSaving(null);
+    }
+  };
+
+  const flagCategories = [...new Set(userFlags.map((f) => f.category))];
 
   if (loading) return <AdminCardSkeleton />;
   if (error || !user) return <AdminErrorState message={error ?? 'User not found'} onRetry={load} />;
@@ -392,6 +475,74 @@ export function AdminUserDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+            )}
+          </div>
+
+          <div className="bg-card/50 backdrop-blur-md rounded-lg border border-border/30 p-6 space-y-4">
+            <div>
+              <h2 className="font-semibold flex items-center gap-2">
+                <Flag className="w-4 h-4" />
+                Feature Flags
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Applies on user&apos;s next session refresh.
+              </p>
+            </div>
+            {flagsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading feature flags…</p>
+            ) : flagsError ? (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive">{flagsError}</p>
+                <Button variant="outline" size="sm" onClick={() => void loadUserFlags()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              flagCategories.map((category) => (
+                <div key={category} className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{category}</p>
+                  {userFlags
+                    .filter((flag) => flag.category === category)
+                    .map((flag) => (
+                      <div
+                        key={flag.key}
+                        className="rounded-lg border border-border/30 p-4 space-y-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <code className="text-sm font-mono">{flag.key}</code>
+                          <Badge variant="secondary">
+                            Global {flag.globalEnabled ? 'on' : 'off'}
+                          </Badge>
+                          <Badge variant={flag.effectiveEnabled ? 'default' : 'outline'}>
+                            Effective {flag.effectiveEnabled ? 'on' : 'off'}
+                          </Badge>
+                        </div>
+                        {flag.description && (
+                          <p className="text-sm text-muted-foreground">{flag.description}</p>
+                        )}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+                          <Label htmlFor={`flag-${flag.key}`}>Override</Label>
+                          <Select
+                            value={overrideToChoice(flag.override)}
+                            disabled={flagSaving === flag.key}
+                            onValueChange={(value) =>
+                              void applyUserFlagOverride(flag, value as OverrideChoice)
+                            }
+                          >
+                            <SelectTrigger id={`flag-${flag.key}`} className="sm:w-48">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="inherit">Inherit global</SelectItem>
+                              <SelectItem value="on">Force on</SelectItem>
+                              <SelectItem value="off">Force off</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ))
             )}
           </div>
         </div>

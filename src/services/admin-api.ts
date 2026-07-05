@@ -12,6 +12,7 @@ import type {
   AdminUser,
   AdminWorkspaceRow,
   FeatureFlagJson,
+  UserFeatureFlagJson,
   LinkJson,
   PaginationMeta,
   SubscriptionTier,
@@ -65,6 +66,26 @@ export async function updateFeatureFlag(key: string, enabled: boolean) {
     method: 'PATCH',
     body: JSON.stringify({ enabled }),
   });
+}
+
+export async function fetchUserFeatureFlags(userId: string) {
+  return apiRequest<{ userFeatureFlags: UserFeatureFlagJson[] }>(
+    `/api/v1/admin/users/${userId}/feature_flags`
+  );
+}
+
+export async function updateUserFeatureFlag(
+  userId: string,
+  key: string,
+  enabled: boolean | null
+) {
+  return apiRequest<{ userFeatureFlag: UserFeatureFlagJson }>(
+    `/api/v1/admin/users/${userId}/feature_flags/${key}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    }
+  );
 }
 
 export async function fetchAdminTeams(params: URLSearchParams) {

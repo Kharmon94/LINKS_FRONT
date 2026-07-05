@@ -39,7 +39,7 @@ export function CampaignsPage() {
   return (
     <FeatureGate allowed={can.readCampaigns} featureName="Campaigns">
       <AppLayout>
-        <div className="min-h-screen bg-background relative mx-[0px] mt-[20px] mb-[0px]">
+        <div className="min-h-screen bg-background relative">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
           <div className="max-w-5xl mx-auto px-4 py-6 relative">
