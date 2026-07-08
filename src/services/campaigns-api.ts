@@ -1,5 +1,13 @@
 import { apiRequest } from './api';
 
+export interface CampaignAlertPayload {
+  push_alerts_enabled?: boolean;
+  email_alerts_enabled?: boolean;
+  alert_interval_kind?: 'time' | 'clicks';
+  alert_interval_value?: number;
+  alert_interval_unit?: 'days' | 'weeks' | 'months' | 'years';
+}
+
 export interface CampaignJson {
   id: string;
   publicId: string;
@@ -9,6 +17,11 @@ export interface CampaignJson {
   totalClicks: number;
   createdAt: string;
   links?: LinkInCampaign[];
+  pushAlertsEnabled?: boolean;
+  emailAlertsEnabled?: boolean;
+  alertIntervalKind?: 'time' | 'clicks';
+  alertIntervalValue?: number;
+  alertIntervalUnit?: 'days' | 'weeks' | 'months' | 'years';
 }
 
 export interface LinkInCampaign {
@@ -45,7 +58,7 @@ export async function createCampaign(payload: { name: string; description?: stri
 
 export async function updateCampaign(
   id: string,
-  payload: { name: string; description?: string }
+  payload: Partial<{ name: string; description?: string }> & CampaignAlertPayload
 ): Promise<CampaignJson> {
   const data = await apiRequest<{ campaign: CampaignJson }>(`/api/v1/campaigns/${id}`, {
     method: 'PATCH',

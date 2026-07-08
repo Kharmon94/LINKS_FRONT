@@ -6,8 +6,17 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { useLiveRefresh } from '@/hooks/use-live-refresh';
 import { ANALYTICS_DETAIL_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, Plus, Copy, ChevronDown, ChevronUp, Clock } from 'lucide-react';
-import { getCampaign, type CampaignJson, type LinkInCampaign } from '@/services/campaigns-api';
+import { EntityAlertsDrawer } from '../components/entity-alerts-drawer';
+import { ArrowLeft, Plus, Copy, ChevronDown, ChevronUp, Clock, Bell } from 'lucide-react';
+import {
+  getCampaign,
+  updateCampaign,
+  type CampaignAlertPayload,
+  type CampaignJson,
+  type LinkInCampaign,
+} from '@/services/campaigns-api';
+import { fetchNotificationPreferences, type NotificationPreferences } from '@/services/account-api';
+import { isPushSupported } from '@/lib/push-notifications';
 import { getCampaignAnalytics, type EntityAnalytics, type ClickEventJson } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { ApiError } from '@/services/api';
@@ -34,6 +43,9 @@ export function CampaignDetailPage() {
   const [isRecentClicksOpen, setIsRecentClicksOpen] = useState(true);
   const [isCampaignLinksOpen, setIsCampaignLinksOpen] = useState(true);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(true);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
 
   usePublicIdRedirect('campaignId', campaign, campaignPath);
 
@@ -93,6 +105,61 @@ export function CampaignDetailPage() {
     prevCampaignIdRef.current = campaignId;
   }, [campaignId, refreshNow]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void fetchNotificationPreferences()
+      .then((data) => {
+        if (!cancelled) setNotifPrefs(data.notificationPreferences);
+      })
+      .catch(() => {
+        if (!cancelled) setNotifPrefs(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (!cancelled) {
+          setPushSubscribed(!!sub && Notification.permission === 'granted');
+        }
+      } catch {
+        if (!cancelled) setPushSubscribed(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAlertsSave = async (payload: CampaignAlertPayload) => {
+    if (!campaign || !can.updateCampaigns) return;
+    const prevCampaign = campaign;
+    setCampaign({
+      ...campaign,
+      pushAlertsEnabled: payload.push_alerts_enabled ?? campaign.pushAlertsEnabled,
+      emailAlertsEnabled: payload.email_alerts_enabled ?? campaign.emailAlertsEnabled,
+      alertIntervalKind: payload.alert_interval_kind ?? campaign.alertIntervalKind,
+      alertIntervalValue: payload.alert_interval_value ?? campaign.alertIntervalValue,
+      alertIntervalUnit: payload.alert_interval_unit ?? campaign.alertIntervalUnit,
+    });
+    try {
+      const updated = await updateCampaign(campaign.id, payload);
+      setCampaign(updated);
+      toast.success('Alert preferences updated');
+    } catch (err) {
+      setCampaign(prevCampaign);
+      toast.error(err instanceof ApiError ? err.message : 'Could not update alert preferences');
+      throw err;
+    }
+  };
+
   const formatTimestamp = (timestamp: string) =>
     new Date(timestamp).toLocaleString('en-US', {
       month: 'short',
@@ -143,14 +210,20 @@ export function CampaignDetailPage() {
                 <h1 className="mb-2 text-center md:text-left text-[32px]">{campaign.name}</h1>
                 <p className="text-muted-foreground">{campaign.description}</p>
               </div>
-              {can.updateCampaigns && (
-                <Button
-                  onClick={() => campaign && navigate(campaignEditPath(campaign))}
-                  className="mx-auto md:ml-auto md:mr-0 md:shrink-0 rounded-full h-11 px-6"
-                >
-                  Edit Campaign
+              <div className="flex flex-wrap gap-2 mx-auto md:ml-auto md:mr-0 md:shrink-0">
+                <Button variant="outline" onClick={() => setAlertsOpen(true)}>
+                  <Bell className="w-4 h-4 mr-2" />
+                  Alerts
                 </Button>
-              )}
+                {can.updateCampaigns && (
+                  <Button
+                    onClick={() => campaign && navigate(campaignEditPath(campaign))}
+                    className="rounded-full h-11 px-6"
+                  >
+                    Edit Campaign
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -342,6 +415,17 @@ export function CampaignDetailPage() {
             </div>
           </div>
         </div>
+
+        <EntityAlertsDrawer
+          open={alertsOpen}
+          onOpenChange={setAlertsOpen}
+          entityType="campaign"
+          preferences={campaign}
+          notifPrefs={notifPrefs}
+          pushSubscribed={pushSubscribed}
+          canEdit={can.updateCampaigns}
+          onSave={handleAlertsSave}
+        />
       </AppLayout>
     </FeatureGate>
   );

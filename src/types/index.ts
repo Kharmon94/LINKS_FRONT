@@ -356,4 +356,9 @@ export interface CampaignJson {
   createdAt: string;
   links?: LinkJson[];
   workspaceId?: string | null;
+  pushAlertsEnabled?: boolean;
+  emailAlertsEnabled?: boolean;
+  alertIntervalKind?: 'time' | 'clicks';
+  alertIntervalValue?: number;
+  alertIntervalUnit?: 'days' | 'weeks' | 'months' | 'years';
 }
