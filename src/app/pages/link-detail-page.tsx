@@ -155,6 +155,7 @@ export function LinkDetailPage() {
       ...link,
       pushAlertsEnabled: payload.push_alerts_enabled ?? link.pushAlertsEnabled,
       emailAlertsEnabled: payload.email_alerts_enabled ?? link.emailAlertsEnabled,
+      alertIntervalKind: payload.alert_interval_kind ?? link.alertIntervalKind,
       alertIntervalValue: payload.alert_interval_value ?? link.alertIntervalValue,
       alertIntervalUnit: payload.alert_interval_unit ?? link.alertIntervalUnit,
     });
