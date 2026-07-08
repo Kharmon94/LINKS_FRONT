@@ -8,6 +8,7 @@ import { ANALYTICS_DETAIL_POLL_INTERVAL_MS } from '../config/analytics-refresh';
 import { Button } from '../components/ui/button';
 import { LinkQrCodeModal } from '../components/link-qr-code-modal';
 import { LinkNfcWriteModal } from '../components/link-nfc-write-modal';
+import { LinkAlertsModal } from '../components/link-alerts-modal';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -19,11 +20,12 @@ import {
   ChevronUp,
   QrCode,
   Nfc,
+  Bell,
 } from 'lucide-react';
 import { getLink, getLinkClicks, displayShortUrl, updateLink } from '@/services/links-api';
+import type { LinkPayload } from '@/services/links-api';
 import { fetchNotificationPreferences, type NotificationPreferences } from '@/services/account-api';
 import { isPushSupported } from '@/lib/push-notifications';
-import { NotificationPreferenceRow } from '../components/notification-preference-row';
 import { getLinkAnalytics, type EntityAnalytics } from '@/services/analytics-api';
 import { AnalyticsCharts } from '../components/analytics-charts';
 import { ApiError } from '@/services/api';
@@ -47,9 +49,9 @@ export function LinkDetailPage() {
   const [isQuickStatsOpen, setIsQuickStatsOpen] = useState(true);
   const [qrOpen, setQrOpen] = useState(false);
   const [nfcOpen, setNfcOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
   const [pushSubscribed, setPushSubscribed] = useState(false);
-  const [alertsSaving, setAlertsSaving] = useState(false);
 
   usePublicIdRedirect('linkId', link, linkPath);
 
@@ -146,21 +148,24 @@ export function LinkDetailPage() {
     };
   }, []);
 
-  const handleAlertToggle = async (field: 'push_alerts_enabled' | 'email_alerts_enabled', value: boolean) => {
+  const handleAlertsSave = async (payload: LinkPayload) => {
     if (!link || !can.updateLinks) return;
     const prevLink = link;
-    const camelField = field === 'push_alerts_enabled' ? 'pushAlertsEnabled' : 'emailAlertsEnabled';
-    setLink({ ...link, [camelField]: value });
-    setAlertsSaving(true);
+    setLink({
+      ...link,
+      pushAlertsEnabled: payload.push_alerts_enabled ?? link.pushAlertsEnabled,
+      emailAlertsEnabled: payload.email_alerts_enabled ?? link.emailAlertsEnabled,
+      alertIntervalValue: payload.alert_interval_value ?? link.alertIntervalValue,
+      alertIntervalUnit: payload.alert_interval_unit ?? link.alertIntervalUnit,
+    });
     try {
-      const updated = await updateLink(link.id, { [field]: value });
+      const updated = await updateLink(link.id, payload);
       setLink(updated);
       toast.success('Alert preferences updated');
     } catch (err) {
       setLink(prevLink);
       toast.error(err instanceof ApiError ? err.message : 'Could not update alert preferences');
-    } finally {
-      setAlertsSaving(false);
+      throw err;
     }
   };
 
@@ -256,6 +261,10 @@ export function LinkDetailPage() {
                   <Nfc className="w-4 h-4 mr-2" />
                   NFC
                 </Button>
+                <Button variant="outline" onClick={() => setAlertsOpen(true)}>
+                  <Bell className="w-4 h-4 mr-2" />
+                  Alerts
+                </Button>
                 {can.updateLinks && (
                   <Button onClick={() => navigate(linkEditPath(link))}>
                     <Edit className="w-4 h-4 mr-2" />
@@ -263,38 +272,6 @@ export function LinkDetailPage() {
                   </Button>
                 )}
               </div>
-            </div>
-
-            <div className="bg-card/50 backdrop-blur-md rounded-lg shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-semibold mb-1">Alerts</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Milestone notifications for this link (uses your account notification settings).
-              </p>
-              {!notifPrefs ? (
-                <p className="text-sm text-muted-foreground">Loading preferences...</p>
-              ) : (
-                <div>
-                  <NotificationPreferenceRow
-                    title="Push alerts"
-                    description="Notify on this link's click milestones"
-                    checked={link.pushAlertsEnabled ?? true}
-                    disabled={
-                      !can.updateLinks ||
-                      alertsSaving ||
-                      !notifPrefs.push_link_alerts ||
-                      !pushSubscribed
-                    }
-                    onCheckedChange={(value) => void handleAlertToggle('push_alerts_enabled', value)}
-                  />
-                  <NotificationPreferenceRow
-                    title="Email alerts"
-                    description="Email on this link's milestones"
-                    checked={link.emailAlertsEnabled ?? true}
-                    disabled={!can.updateLinks || alertsSaving || !notifPrefs.email_link_alerts}
-                    onCheckedChange={(value) => void handleAlertToggle('email_alerts_enabled', value)}
-                  />
-                </div>
-              )}
             </div>
 
             <div className="space-y-6">
@@ -425,6 +402,15 @@ export function LinkDetailPage() {
           filename={shortCode}
         />
         <LinkNfcWriteModal open={nfcOpen} onOpenChange={setNfcOpen} url={fullShortUrl} />
+        <LinkAlertsModal
+          open={alertsOpen}
+          onOpenChange={setAlertsOpen}
+          link={link}
+          notifPrefs={notifPrefs}
+          pushSubscribed={pushSubscribed}
+          canEdit={can.updateLinks}
+          onSave={handleAlertsSave}
+        />
       </AppLayout>
     </FeatureGate>
   );

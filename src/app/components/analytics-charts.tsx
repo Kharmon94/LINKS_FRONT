@@ -127,8 +127,8 @@ export function AnalyticsCharts({
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'hsl(var(--background))',
-                      border: '1px solid hsl(var(--border))',
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
                     }}
                   />
                   <Line type="monotone" dataKey="clicks" stroke="#4285F4" strokeWidth={2} />
@@ -155,7 +155,12 @@ export function AnalyticsCharts({
                       <Cell key={`cell-${entry.name}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--background)',
+                      border: '1px solid var(--border)',
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -207,8 +212,8 @@ export function AnalyticsCharts({
               <YAxis className="text-xs" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))',
+                  backgroundColor: 'var(--background)',
+                  border: '1px solid var(--border)',
                 }}
               />
               <Bar dataKey="clicks" fill="#FBBC05" />

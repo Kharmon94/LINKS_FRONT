@@ -23,6 +23,8 @@ export interface LinkPayload {
   custom_domain_id?: string | null;
   push_alerts_enabled?: boolean;
   email_alerts_enabled?: boolean;
+  alert_interval_value?: number;
+  alert_interval_unit?: 'days' | 'weeks' | 'months' | 'years';
   pool_entries_attributes?: PoolEntryInput[];
 }
 

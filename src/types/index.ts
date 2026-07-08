@@ -316,6 +316,8 @@ export interface LinkJson {
   };
   pushAlertsEnabled?: boolean;
   emailAlertsEnabled?: boolean;
+  alertIntervalValue?: number;
+  alertIntervalUnit?: 'days' | 'weeks' | 'months' | 'years';
 }
 
 export interface ClickEventJson {
