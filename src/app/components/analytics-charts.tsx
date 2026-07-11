@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import {
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -13,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/app/components/ui/chart';
 import type {
   AnalyticsPeriod,
   ChartPoint,
@@ -115,25 +114,23 @@ export function AnalyticsCharts({
                   ))}
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" className="text-xs" stroke="currentColor" />
+              <ChartContainer
+                config={{ clicks: { label: 'Clicks', color: 'var(--primary)' } }}
+                className="h-[300px] w-full"
+              >
+                <BarChart data={chartData}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} />
                   <YAxis
-                    stroke="currentColor"
-                    style={{ fontSize: '12px', fontWeight: 500 }}
-                    width={45}
+                    allowDecimals={false}
+                    tickLine={false}
+                    axisLine={false}
                     tickFormatter={(value) => (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value)}
                   />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                    }}
-                  />
-                  <Line type="monotone" dataKey="clicks" stroke="#4285F4" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="clicks" fill="var(--color-clicks)" radius={4} />
+                </BarChart>
+              </ChartContainer>
             </div>
           )}
 
