@@ -32,6 +32,21 @@ export const DESKTOP_SIDEBAR_WIDTH_COLLAPSED = '4rem';
 export const DESKTOP_SIDEBAR_EXPANDED_MARGIN_CLASS = 'lg:ml-64';
 export const DESKTOP_SIDEBAR_COLLAPSED_MARGIN_CLASS = 'lg:ml-16';
 
+/** Top safe-area for translucent iOS status bar (standalone PWA). Class strings must be static. */
+export const SAFE_AREA_TOP_PADDING_CLASS = 'pt-[env(safe-area-inset-top,0px)]';
+
+/** Main content when PWA install banner is visible (3rem banner + safe-area). */
+export const SAFE_AREA_TOP_WITH_BANNER_PADDING_CLASS =
+  'pt-[calc(3rem+env(safe-area-inset-top,0px))]';
+
+/** Mobile admin header height (4rem) + safe-area for fixed top bar. */
+export const ADMIN_MOBILE_MAIN_TOP_PADDING_CLASS =
+  'pt-[calc(4rem+env(safe-area-inset-top,0px))] lg:pt-0';
+
+/** Fixed mobile admin header — pad content below the status bar. */
+export const ADMIN_MOBILE_HEADER_SAFE_CLASS =
+  'pt-[env(safe-area-inset-top,0px)]';
+
 /** Auth / verify pages — keep actions above iOS home indicator and browser chrome. */
 export const AUTH_PAGE_MAIN_CLASS =
   'flex-1 w-full overflow-y-auto px-4 pt-20 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]';

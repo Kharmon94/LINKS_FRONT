@@ -5,6 +5,8 @@ import {
   DESKTOP_SIDEBAR_COLLAPSED_MARGIN_CLASS,
   DESKTOP_SIDEBAR_EXPANDED_MARGIN_CLASS,
   MOBILE_BOTTOM_NAV_CLEARANCE_CLASS,
+  SAFE_AREA_TOP_PADDING_CLASS,
+  SAFE_AREA_TOP_WITH_BANNER_PADDING_CLASS,
 } from './nav/nav-utils';
 import { Footer } from './footer';
 import { Toaster } from './ui/sonner';
@@ -26,7 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [sidebarCollapsed]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground w-full overflow-x-hidden">
+    <div className="min-h-screen min-h-[100dvh] bg-background text-foreground w-full overflow-x-hidden">
       <AppSidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}
@@ -34,7 +36,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       />
       <main
         className={`w-full min-w-0 transition-all duration-300 ${
-          bannerVisible ? 'pt-12' : 'pt-0'
+          bannerVisible ? SAFE_AREA_TOP_WITH_BANNER_PADDING_CLASS : SAFE_AREA_TOP_PADDING_CLASS
         } ${
           sidebarCollapsed ? DESKTOP_SIDEBAR_COLLAPSED_MARGIN_CLASS : DESKTOP_SIDEBAR_EXPANDED_MARGIN_CLASS
         } ${MOBILE_BOTTOM_NAV_CLEARANCE_CLASS}`}

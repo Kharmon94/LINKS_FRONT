@@ -22,7 +22,7 @@ export function PwaInstallBanner() {
   }
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-50 flex w-full items-center gap-3 border-b border-primary/20 bg-primary px-4 py-2.5 text-primary-foreground shadow-md">
+    <div className="fixed left-0 right-0 top-0 z-50 flex w-full items-center gap-3 border-b border-primary/20 bg-primary px-4 py-2.5 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] text-primary-foreground shadow-md">
       <button
         type="button"
         onClick={() => navigate('/settings?tab=help')}
