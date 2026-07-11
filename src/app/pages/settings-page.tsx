@@ -36,6 +36,8 @@ import {
   enablePushNotifications,
   ensurePushSubscriptionSynced,
   isPushSupported,
+  pushErrorMessage,
+  sendTestPush,
   unsubscribeFromPush,
 } from '@/lib/push-notifications';
 import { shouldOfferPwaInstall } from '@/lib/pwa-install';
@@ -101,7 +103,9 @@ export function SettingsPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+  const [webPushConfigured, setWebPushConfigured] = useState<boolean | null>(null);
   const [notifSaving, setNotifSaving] = useState(false);
+  const [testPushBusy, setTestPushBusy] = useState(false);
 
   useEffect(() => {
     if (user?.name) setName(user.name);
@@ -113,9 +117,15 @@ export function SettingsPage() {
     (async () => {
       try {
         const data = await fetchNotificationPreferences();
-        if (!cancelled) setNotifPrefs(data.notificationPreferences);
+        if (!cancelled) {
+          setNotifPrefs(data.notificationPreferences);
+          setWebPushConfigured(data.webPushConfigured ?? null);
+        }
       } catch {
-        if (!cancelled) setNotifPrefs(null);
+        if (!cancelled) {
+          setNotifPrefs(null);
+          setWebPushConfigured(null);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -296,7 +306,7 @@ export function SettingsPage() {
     toast.success('DNS record copied');
   };
 
-  // Push notifications (PWA)
+  // Push notifications (PWA) — API sync is the source of truth for "enabled"
   const [pushSupported] = useState(() => isPushSupported());
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
@@ -306,16 +316,22 @@ export function SettingsPage() {
     let cancelled = false;
     void (async () => {
       try {
-        // Heal desynced devices: browser sub may exist while API DB is empty.
-        const synced = await ensurePushSubscriptionSynced();
+        const result = await ensurePushSubscriptionSynced();
         if (cancelled) return;
-        if (synced) {
+        if (result.ok) {
           setPushSubscribed(true);
           return;
         }
-        const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.getSubscription();
-        setPushSubscribed(!!sub && Notification.permission === 'granted');
+        setPushSubscribed(false);
+        // Sync was attempted and failed (browser had a sub) — not merely "no sub".
+        if (
+          result.error === 'forbidden' ||
+          result.error === 'network' ||
+          result.error === 'missing_vapid' ||
+          result.error === 'unknown'
+        ) {
+          toast.error('Could not sync push to server — check feature flag / VAPID');
+        }
       } catch {
         if (!cancelled) setPushSubscribed(false);
       }
@@ -330,14 +346,15 @@ export function SettingsPage() {
     setPushBusy(true);
     try {
       if (enabled) {
-        const ok = await enablePushNotifications();
-        if (ok) {
+        const result = await enablePushNotifications();
+        if (result.ok) {
           setPushSubscribed(true);
           toast.success('Push notifications enabled');
-        } else if (Notification.permission !== 'granted') {
-          return;
+        } else if (result.error === 'permission_denied') {
+          setPushSubscribed(false);
         } else {
-          toast.error('Missing VAPID public key or could not subscribe');
+          setPushSubscribed(false);
+          toast.error(pushErrorMessage(result.error));
         }
       } else {
         await unsubscribeFromPush();
@@ -350,6 +367,23 @@ export function SettingsPage() {
       );
     } finally {
       setPushBusy(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setTestPushBusy(true);
+    try {
+      const result = await sendTestPush();
+      if (result.sent > 0) {
+        toast.success('Test notification sent');
+      } else {
+        const detail = result.errors?.filter(Boolean).join('; ');
+        toast.error(detail || 'No push subscriptions on the server to notify');
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not send test notification');
+    } finally {
+      setTestPushBusy(false);
     }
   };
 
@@ -730,6 +764,15 @@ export function SettingsPage() {
                   <p className="text-muted-foreground text-sm">Loading preferences...</p>
                 ) : (
                 <div className="space-y-6">
+                  {webPushConfigured === false && (
+                    <p className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <span>
+                        Server is missing VAPID keys — push cannot be delivered until{' '}
+                        <code className="text-xs">VAPID_PUBLIC_KEY</code> is configured on the API.
+                      </span>
+                    </p>
+                  )}
                   <div>
                     <NotificationPreferenceRow
                       title="Push Notifications"
@@ -738,6 +781,20 @@ export function SettingsPage() {
                       disabled={!isAuthenticated || !pushSupported || pushBusy}
                       onCheckedChange={(enabled) => void handlePushToggle(enabled)}
                     />
+                    {pushSubscribed && (
+                      <div className="mb-4 pl-0 sm:pl-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          disabled={testPushBusy || !isAuthenticated}
+                          onClick={() => void handleSendTestPush()}
+                        >
+                          {testPushBusy ? 'Sending…' : 'Send test notification'}
+                        </Button>
+                      </div>
+                    )}
                     <div className={!pushSubscribed ? 'opacity-50 pointer-events-none' : undefined}>
                       <NotificationPreferenceRow
                         title="Link Alerts"

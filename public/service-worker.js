@@ -1,6 +1,14 @@
 /* Basic PWA service worker (cache-first for app shell). */
-const CACHE_NAME = 'links-pwa-v2';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/maskable.svg'];
+const CACHE_NAME = 'links-pwa-v3';
+const APP_SHELL = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-512.png',
+  '/icons/apple-touch-icon.png',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -69,7 +77,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || '',
     data: { url: data.url || '/' },
-    icon: '/icons/icon.svg',
+    icon: '/icons/icon-192.png',
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });

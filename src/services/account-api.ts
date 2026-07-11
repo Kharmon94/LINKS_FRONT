@@ -29,9 +29,10 @@ export async function updatePassword(data: {
 }
 
 export async function fetchNotificationPreferences() {
-  return apiRequest<{ notificationPreferences: NotificationPreferences }>(
-    '/api/v1/account/notification_preferences'
-  );
+  return apiRequest<{
+    notificationPreferences: NotificationPreferences;
+    webPushConfigured?: boolean;
+  }>('/api/v1/account/notification_preferences');
 }
 
 export async function updateNotificationPreferences(prefs: Partial<NotificationPreferences>) {
