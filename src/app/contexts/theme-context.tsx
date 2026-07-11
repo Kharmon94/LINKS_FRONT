@@ -11,7 +11,11 @@ import {
   ThemeProvider as NextThemesProvider,
   useTheme as useNextTheme,
 } from 'next-themes';
-import { nextThemeInCycle, type ThemePreference } from '@/lib/theme-mode-utils';
+import {
+  applyThemeChrome,
+  nextThemeInCycle,
+  type ThemePreference,
+} from '@/lib/theme-mode-utils';
 
 interface ThemeContextType {
   theme: ThemePreference;
@@ -38,6 +42,13 @@ function ThemeContextBridge({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (resolvedTheme === 'light' || resolvedTheme === 'dark') {
+      applyThemeChrome(resolvedTheme);
+    }
+  }, [mounted, resolvedTheme]);
 
   const preference = toThemePreference(theme);
 

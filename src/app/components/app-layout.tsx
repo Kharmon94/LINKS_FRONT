@@ -29,6 +29,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background text-foreground w-full overflow-x-hidden">
+      {/* Opaque status-bar backdrop when iOS draws the webview under the notch */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-[env(safe-area-inset-top,0px)] bg-background"
+      />
       <AppSidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((value) => !value)}

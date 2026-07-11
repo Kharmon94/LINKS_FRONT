@@ -2,6 +2,7 @@
 
 :root {
   --font-size: 16px;
+  /* Hex (not oklch) so iOS can sample status-bar / PWA chrome tint reliably */
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -40,9 +41,9 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: #0a0a0a;
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
+  --card: #0a0a0a;
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
@@ -120,12 +121,24 @@
 @layer base {
   html {
     @apply bg-background;
+    height: 100%;
     font-size: var(--font-size);
+    /* Explicit hex fallbacks — iOS PWA status-bar sampling */
+    background-color: #ffffff;
+  }
+
+  html.dark {
+    background-color: #0a0a0a;
   }
 
   body {
-    @apply min-h-full bg-background text-foreground;
+    @apply min-h-full min-h-[100dvh] bg-background text-foreground;
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    background-color: #ffffff;
+  }
+
+  html.dark body {
+    background-color: #0a0a0a;
   }
 
   #root {

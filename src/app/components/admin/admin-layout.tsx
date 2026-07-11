@@ -23,6 +23,10 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background w-full overflow-x-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-[env(safe-area-inset-top,0px)] bg-background lg:hidden"
+      />
       <AdminTopNav />
       <AdminSidebar
         collapsed={sidebarCollapsed}

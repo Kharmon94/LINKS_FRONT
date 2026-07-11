@@ -3,7 +3,8 @@
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-      <meta name="theme-color" content="#0b0b0c" />
+      <!-- Default dark; boot script + React sync to light/dark. Hex required for iOS status-bar tint. -->
+      <meta name="theme-color" content="#0a0a0a" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="mobile-web-app-capable" content="yes" />
@@ -11,6 +12,11 @@
       <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
       <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
       <title>Links.BlackCollar.io</title>
+      <style>
+        /* Paint before CSS bundle loads — iOS samples html/body for PWA chrome */
+        html, body { background-color: #ffffff; }
+        html.dark, html.dark body { background-color: #0a0a0a; }
+      </style>
       <script>
         (function () {
           try {
@@ -25,6 +31,7 @@
             }
             var root = document.documentElement;
             root.classList.remove('light', 'dark');
+            var color = resolved === 'dark' ? '#0a0a0a' : '#ffffff';
             if (resolved === 'dark') {
               root.classList.add('dark');
               root.style.colorScheme = 'dark';
@@ -32,6 +39,9 @@
               root.classList.add('light');
               root.style.colorScheme = 'light';
             }
+            root.style.backgroundColor = color;
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', color);
           } catch (e) {}
         })();
       </script>
