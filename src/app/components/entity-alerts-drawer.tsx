@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
@@ -116,11 +116,13 @@ export function EntityAlertsDrawer({
   const copy = ENTITY_COPY[entityType];
   const [draft, setDraft] = useState<AlertDraft>(() => draftFromPreferences(preferences));
   const [saving, setSaving] = useState(false);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setDraft(draftFromPreferences(preferences));
     }
+    wasOpen.current = open;
   }, [open, preferences]);
 
   const handleCancel = () => {

@@ -1,5 +1,5 @@
 /* Basic PWA service worker (cache-first for app shell). */
-const CACHE_NAME = 'links-pwa-v1';
+const CACHE_NAME = 'links-pwa-v2';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/maskable.svg'];
 
 self.addEventListener('install', (event) => {
@@ -58,3 +58,31 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = data.title || 'Notification';
+  const options = {
+    body: data.body || '',
+    data: { url: data.url || '/' },
+    icon: '/icons/icon.svg',
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(url) && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
