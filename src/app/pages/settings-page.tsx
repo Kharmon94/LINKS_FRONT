@@ -34,6 +34,7 @@ import type { SubscriptionTier } from '@/types';
 import type { ThemePreference } from '@/lib/theme-mode-utils';
 import {
   enablePushNotifications,
+  ensurePushSubscriptionSynced,
   isPushSupported,
   unsubscribeFromPush,
 } from '@/lib/push-notifications';
@@ -305,11 +306,16 @@ export function SettingsPage() {
     let cancelled = false;
     void (async () => {
       try {
+        // Heal desynced devices: browser sub may exist while API DB is empty.
+        const synced = await ensurePushSubscriptionSynced();
+        if (cancelled) return;
+        if (synced) {
+          setPushSubscribed(true);
+          return;
+        }
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
-        if (!cancelled) {
-          setPushSubscribed(!!sub && Notification.permission === 'granted');
-        }
+        setPushSubscribed(!!sub && Notification.permission === 'granted');
       } catch {
         if (!cancelled) setPushSubscribed(false);
       }

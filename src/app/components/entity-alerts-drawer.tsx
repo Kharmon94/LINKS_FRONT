@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
@@ -140,7 +141,8 @@ export function EntityAlertsDrawer({
     setSaving(true);
     try {
       const payload: AlertPreferencesPayload = {
-        push_alerts_enabled: draft.pushAlertsEnabled,
+        // Don't persist push "on" when this device has no push subscription.
+        push_alerts_enabled: pushSubscribed ? draft.pushAlertsEnabled : false,
         email_alerts_enabled: draft.emailAlertsEnabled,
         alert_interval_kind: draft.alertIntervalKind,
         alert_interval_value: draft.alertIntervalValue,
@@ -177,10 +179,23 @@ export function EntityAlertsDrawer({
               <p className="text-sm text-muted-foreground">Loading preferences...</p>
             ) : (
               <div>
+                {!pushSubscribed && (
+                  <p className="mb-3 text-sm text-amber-700 dark:text-amber-400">
+                    Push won&apos;t fire until device notifications are enabled in{' '}
+                    <Link
+                      to="/settings?tab=notifications"
+                      className="underline underline-offset-2"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      Settings
+                    </Link>
+                    .
+                  </p>
+                )}
                 <NotificationPreferenceRow
                   title="Push alerts"
                   description={copy.pushDescription}
-                  checked={draft.pushAlertsEnabled}
+                  checked={pushSubscribed ? draft.pushAlertsEnabled : false}
                   disabled={pushDisabled}
                   onCheckedChange={(value) => setDraft((prev) => ({ ...prev, pushAlertsEnabled: value }))}
                 />

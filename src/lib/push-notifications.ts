@@ -10,6 +10,13 @@ async function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+async function postSubscriptionToApi(sub: PushSubscription): Promise<void> {
+  await apiRequest('/api/v1/push/subscribe', {
+    method: 'POST',
+    body: JSON.stringify({ subscription: sub.toJSON() }),
+  });
+}
+
 export function isPushSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator;
 }
@@ -19,26 +26,47 @@ export async function requestPushPermission(): Promise<NotificationPermission> {
   return Notification.requestPermission();
 }
 
+/**
+ * Ensures the browser PushSubscription (if any) is upserted to the API.
+ * Returns true when a subscription exists and was synced successfully.
+ */
+export async function ensurePushSubscriptionSynced(): Promise<boolean> {
+  if (!isPushSupported()) return false;
+  if (Notification.permission !== 'granted') return false;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (!existing) return false;
+    await postSubscriptionToApi(existing);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function subscribeToPush(): Promise<boolean> {
   if (!isPushSupported()) return false;
 
   const reg = await navigator.serviceWorker.ready;
-  const existing = await reg.pushManager.getSubscription();
-  if (existing) return true;
+  let sub = await reg.pushManager.getSubscription();
 
-  const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
-  if (!publicKey) return false;
+  if (!sub) {
+    const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+    if (!publicKey) return false;
 
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: await urlBase64ToUint8Array(publicKey),
-  });
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: await urlBase64ToUint8Array(publicKey),
+    });
+  }
 
-  await apiRequest('/api/v1/push/subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ subscription: sub.toJSON() }),
-  });
-  return true;
+  try {
+    await postSubscriptionToApi(sub);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function enablePushNotifications(): Promise<boolean> {

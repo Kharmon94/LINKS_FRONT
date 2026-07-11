@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { EntityAlertsDrawer } from './entity-alerts-drawer';
 import type { AlertPreferencesFields } from './entity-alerts-drawer';
 
@@ -24,6 +25,10 @@ const notifPrefs = {
   email_marketing: false,
 };
 
+function renderDrawer(ui: React.ReactNode) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
 describe('EntityAlertsDrawer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,7 +38,7 @@ describe('EntityAlertsDrawer', () => {
     const onOpenChange = vi.fn();
     const onSave = vi.fn().mockResolvedValue(undefined);
 
-    const { rerender } = render(
+    const { rerender } = renderDrawer(
       <EntityAlertsDrawer
         open
         onOpenChange={onOpenChange}
@@ -52,16 +57,18 @@ describe('EntityAlertsDrawer', () => {
 
     const polledPrefs: AlertPreferencesFields = { ...basePrefs };
     rerender(
-      <EntityAlertsDrawer
-        open
-        onOpenChange={onOpenChange}
-        entityType="link"
-        preferences={polledPrefs}
-        notifPrefs={notifPrefs}
-        pushSubscribed
-        canEdit
-        onSave={onSave}
-      />
+      <MemoryRouter>
+        <EntityAlertsDrawer
+          open
+          onOpenChange={onOpenChange}
+          entityType="link"
+          preferences={polledPrefs}
+          notifPrefs={notifPrefs}
+          pushSubscribed
+          canEdit
+          onSave={onSave}
+        />
+      </MemoryRouter>
     );
 
     expect(screen.getByRole('radio', { name: 'Click interval' })).toHaveAttribute('data-state', 'on');
@@ -72,7 +79,7 @@ describe('EntityAlertsDrawer', () => {
     const onOpenChange = vi.fn();
     const onSave = vi.fn().mockResolvedValue(undefined);
 
-    const { rerender } = render(
+    const { rerender } = renderDrawer(
       <EntityAlertsDrawer
         open={false}
         onOpenChange={onOpenChange}
@@ -93,19 +100,67 @@ describe('EntityAlertsDrawer', () => {
 
     act(() => {
       rerender(
-        <EntityAlertsDrawer
-          open
-          onOpenChange={onOpenChange}
-          entityType="link"
-          preferences={openPrefs}
-          notifPrefs={notifPrefs}
-          pushSubscribed
-          canEdit
-          onSave={onSave}
-        />
+        <MemoryRouter>
+          <EntityAlertsDrawer
+            open
+            onOpenChange={onOpenChange}
+            entityType="link"
+            preferences={openPrefs}
+            notifPrefs={notifPrefs}
+            pushSubscribed
+            canEdit
+            onSave={onSave}
+          />
+        </MemoryRouter>
       );
     });
 
     expect(screen.getByRole('radio', { name: 'Click interval' })).toHaveAttribute('data-state', 'on');
+  });
+
+  it('warns when device push is not subscribed', () => {
+    renderDrawer(
+      <EntityAlertsDrawer
+        open
+        onOpenChange={vi.fn()}
+        entityType="link"
+        preferences={basePrefs}
+        notifPrefs={notifPrefs}
+        pushSubscribed={false}
+        canEdit
+        onSave={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText(/Push won't fire until device notifications/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/settings?tab=notifications',
+    );
+  });
+
+  it('saves push_alerts_enabled false when not pushSubscribed', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    renderDrawer(
+      <EntityAlertsDrawer
+        open
+        onOpenChange={vi.fn()}
+        entityType="link"
+        preferences={{ ...basePrefs, pushAlertsEnabled: true }}
+        notifPrefs={notifPrefs}
+        pushSubscribed={false}
+        canEdit
+        onSave={onSave}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    });
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ push_alerts_enabled: false }),
+    );
   });
 });

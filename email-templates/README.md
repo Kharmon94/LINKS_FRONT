@@ -1,14 +1,29 @@
-# Blackcollar.io Email Templates
+# Links Email Templates
 
-Production-ready HTML email templates for the Blackcollar.io link shortener application.
+Production-ready HTML email templates for **Links** by **BlackCollar**.
+
+## Brand system
+
+| Token | Value |
+|-------|--------|
+| Product name | Links |
+| Parent / from domain | BlackCollar (`updates.blackcollar.io`) |
+| Font | Montserrat (Google Fonts + Arial/sans-serif fallbacks) |
+| Primary / CTA | `#000000` (keep black CTAs on white cards in dark-mode clients) |
+| Background | `#f5f5f5` outer, `#ffffff` card |
+| Muted text | `#666666` / `#999999` |
+| Success / danger accents | `#22c55e` / `#ef4444` (analytics deltas only) |
+| Corners | Sharp (0 radius) |
+| Logo | Absolute URL via `{{LOGO_URL}}` (Rails: `EMAIL_LOGO_URL`, fallback `FRONTEND_ORIGIN` + `/icons/icon.svg`) |
+
+Product-facing copy uses **Links**. Legal/footer copyright uses **© BlackCollar**.
 
 ## Overview
 
-These templates are designed to match the Blackcollar.io brand identity:
-- **Font:** Montserrat (300, 400, 600, 700 weights)
+- **Font:** Montserrat (300, 400, 500, 600, 700)
 - **Design:** No rounded borders, clean lines
 - **Color scheme:** Black & white primary with accent colors for alerts
-- **Mobile-responsive:** Optimized for all devices
+- **Mobile-responsive:** Table layout optimized for email clients
 
 ## Templates Included
 
@@ -20,12 +35,12 @@ Base structure that all other templates extend from. Contains:
 - Mobile-responsive CSS
 
 ### 2. **welcome-email.html**
-Sent when a user signs up for Blackcollar.io.
+Sent when a user signs up for Links.
 
 **Trigger:** User creates new account
 
 **Variables:**
-- `{{LOGO_URL}}` - URL to Blackcollar.io logo
+- `{{LOGO_URL}}` - URL to Links logo
 - `{{USER_NAME}}` - User's first name or full name
 - `{{DASHBOARD_URL}}` - Link to dashboard
 - `{{HELP_URL}}` - Link to help center
@@ -312,106 +327,25 @@ Sent when a campaign ends or upon request.
 - Campaign insights (location, referrer, devices)
 - CTA to view complete report
 
-## Implementation Guide
+## Live Rails mailers
 
-### For Rails Backend Developer
+These design templates map to live API mailers (HTML + text):
 
-#### 1. Email Service Setup
-Choose one of these email services:
-- **SendGrid** (Recommended - good deliverability, generous free tier)
-- **Postmark** (Excellent for transactional emails)
-- **AWS SES** (Cost-effective at scale)
+| Design inspiration | Mailer |
+|--------------------|--------|
+| `email-verification.html` (auth CTA pattern) | `UserMailer#magic_link` |
+| `link-milestone.html` (simplified) | `UserMailer#link_created` |
+| `link-milestone.html` | `UserMailer#link_milestone` |
+| `campaign-summary.html` / milestone variant | `UserMailer#campaign_milestone` |
+| `team-invitation.html` | `TeamMailer#invitation` |
+| Branded shell (light) | `ContactMailer#inbound` |
 
-#### 2. Rails Mailer Setup
-
-```ruby
-# app/mailers/user_mailer.rb
-class UserMailer < ApplicationMailer
-  default from: 'Blackcollar.io <noreply@blackcollar.io>'
-  
-  def welcome_email(user)
-    @user = user
-    @dashboard_url = dashboard_url
-    @help_url = help_center_url
-    @privacy_url = privacy_policy_url
-    @unsubscribe_url = unsubscribe_url(user.unsubscribe_token)
-    
-    mail(
-      to: user.email,
-      subject: 'Welcome to Blackcollar.io'
-    )
-  end
-  
-  def weekly_analytics(user, analytics_data)
-    @user = user
-    @analytics = analytics_data
-    # Map all analytics variables
-    
-    mail(
-      to: user.email,
-      subject: "Your Weekly Analytics - #{@analytics[:date_range]}"
-    )
-  end
-  
-  # Add methods for other templates...
-end
-```
-
-#### 3. Email Views
-
-Create Rails views using these templates:
-```
-app/views/user_mailer/
-  ├── welcome_email.html.erb
-  ├── weekly_analytics.html.erb
-  ├── password_reset.html.erb
-  ├── team_invitation.html.erb
-  ├── domain_verification.html.erb
-  └── link_limit_warning.html.erb
-```
-
-Convert `{{VARIABLE}}` to ERB syntax:
-- `{{USER_NAME}}` → `<%= @user.name %>`
-- `{{DASHBOARD_URL}}` → `<%= @dashboard_url %>`
-
-#### 4. Scheduled Jobs
-
-Use Sidekiq or similar for scheduled emails:
-
-```ruby
-# app/jobs/weekly_analytics_job.rb
-class WeeklyAnalyticsJob < ApplicationJob
-  queue_as :default
-  
-  def perform
-    User.where(weekly_digest: true).find_each do |user|
-      analytics_data = AnalyticsService.generate_weekly_report(user)
-      UserMailer.weekly_analytics(user, analytics_data).deliver_later
-    end
-  end
-end
-
-# config/schedule.rb (using whenever gem)
-every :monday, at: '9am' do
-  runner "WeeklyAnalyticsJob.perform_later"
-end
-```
-
-#### 5. Email Preferences
-
-Add user email preferences:
-```ruby
-# migration
-add_column :users, :weekly_digest, :boolean, default: true
-add_column :users, :marketing_emails, :boolean, default: true
-add_column :users, :unsubscribe_token, :string
-add_index :users, :unsubscribe_token, unique: true
-```
+Welcome, weekly, monthly, domain, upgrade, and reengagement templates remain **design assets only** until their send pipelines exist.
 
 ## Variable Reference
 
 ### Common Variables (used in all templates)
-- `{{LOGO_URL}}` - Blackcollar.io logo image URL
+- `{{LOGO_URL}}` - Links logo image URL (absolute; set via `EMAIL_LOGO_URL` in Rails)
 - `{{DASHBOARD_URL}}` - Link to main dashboard
 - `{{HELP_URL}}` - Link to help/support center
 - `{{PRIVACY_URL}}` - Link to privacy policy
@@ -458,17 +392,18 @@ Create test data to ensure all variables render correctly:
 
 ## Image Assets Needed
 
-Replace `{{LOGO_URL}}` with actual logo URL. Upload to CDN:
-- **blackcollar-logo.png** - Main logo (360x80px @2x for retina)
-- Host on reliable CDN (AWS S3 + CloudFront, Cloudinary, etc.)
+Replace `{{LOGO_URL}}` with an absolute logo URL. Options:
+- Set `EMAIL_LOGO_URL` in the API environment
+- Fallback: `FRONTEND_ORIGIN` + `/icons/icon.svg`
+- Or host a PNG on a CDN (e.g. 360×80px @2x for retina)
 
 ## Support
 
 For questions or issues with these templates:
-- Email: support@blackcollar.io
-- Documentation: https://docs.blackcollar.io/email-templates
+- Email: support via BlackCollar / Links ops inbox
+- Product: Links by BlackCollar
 
 ---
 
-**Last Updated:** March 10, 2026
-**Version:** 1.0.0
+**Last Updated:** July 10, 2026
+**Version:** 2.0.0
