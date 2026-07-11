@@ -1,5 +1,5 @@
 /* Basic PWA service worker (cache-first for app shell). */
-const CACHE_NAME = 'links-pwa-v4';
+const CACHE_NAME = 'links-pwa-v5';
 const APP_SHELL = [
   '/',
   '/index.html',

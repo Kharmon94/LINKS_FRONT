@@ -22,22 +22,29 @@ describe('themeBackgroundHex', () => {
 describe('applyThemeChrome', () => {
   beforeEach(() => {
     document.documentElement.style.backgroundColor = '';
+    document.documentElement.style.removeProperty('--chrome-background');
     document.body.style.backgroundColor = '';
     document.querySelector('meta[name="theme-color"]')?.remove();
   });
 
-  it('sets root, body, and theme-color meta to the dark hex', () => {
+  it('sets root, body, chrome var, and theme-color meta to the dark hex', () => {
     applyThemeChrome('dark');
     expect(document.documentElement.style.backgroundColor).toBe('rgb(10, 10, 10)');
+    expect(document.documentElement.style.getPropertyValue('--chrome-background')).toBe(
+      THEME_BACKGROUND_DARK,
+    );
     expect(document.body.style.backgroundColor).toBe('rgb(10, 10, 10)');
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe(
       THEME_BACKGROUND_DARK,
     );
   });
 
-  it('sets root, body, and theme-color meta to the light hex', () => {
+  it('sets root, body, chrome var, and theme-color meta to the light hex', () => {
     applyThemeChrome('light');
     expect(document.documentElement.style.backgroundColor).toBe('rgb(255, 255, 255)');
+    expect(document.documentElement.style.getPropertyValue('--chrome-background')).toBe(
+      THEME_BACKGROUND_LIGHT,
+    );
     expect(document.body.style.backgroundColor).toBe('rgb(255, 255, 255)');
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe(
       THEME_BACKGROUND_LIGHT,

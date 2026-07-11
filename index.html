@@ -3,8 +3,8 @@
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-      <!-- Default dark; boot script + React sync to light/dark. Hex required for iOS status-bar tint. -->
-      <meta name="theme-color" content="#0a0a0a" />
+      <!-- Default light; boot script + React sync to light/dark. Hex required for iOS status-bar tint. -->
+      <meta name="theme-color" content="#ffffff" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="mobile-web-app-capable" content="yes" />
@@ -14,7 +14,9 @@
       <title>Links.BlackCollar.io</title>
       <style>
         /* Paint before CSS bundle loads — iOS samples html/body for PWA chrome */
+        :root { --chrome-background: #ffffff; }
         html, body { background-color: #ffffff; }
+        html.dark { --chrome-background: #0a0a0a; }
         html.dark, html.dark body { background-color: #0a0a0a; }
       </style>
       <script>
@@ -40,6 +42,7 @@
               root.style.colorScheme = 'light';
             }
             root.style.backgroundColor = color;
+            root.style.setProperty('--chrome-background', color);
             var meta = document.querySelector('meta[name="theme-color"]');
             if (meta) meta.setAttribute('content', color);
           } catch (e) {}

@@ -4,6 +4,7 @@
   --font-size: 16px;
   /* Hex (not oklch) so iOS can sample status-bar / PWA chrome tint reliably */
   --background: #ffffff;
+  --chrome-background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
@@ -42,6 +43,7 @@
 
 .dark {
   --background: #0a0a0a;
+  --chrome-background: #0a0a0a;
   --foreground: oklch(0.985 0 0);
   --card: #0a0a0a;
   --card-foreground: oklch(0.985 0 0);

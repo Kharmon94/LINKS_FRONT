@@ -29,10 +29,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background text-foreground w-full overflow-x-hidden">
-      {/* Opaque status-bar backdrop when iOS draws the webview under the notch */}
+      {/* Status-bar fill under notch — z below sheets/nav so overlays dim it uniformly */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-[env(safe-area-inset-top,0px)] bg-background"
+        className="pointer-events-none fixed inset-x-0 top-0 z-10 h-[env(safe-area-inset-top,0px)]"
+        style={{ backgroundColor: 'var(--chrome-background, #ffffff)' }}
       />
       <AppSidebar
         collapsed={sidebarCollapsed}

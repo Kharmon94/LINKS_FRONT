@@ -15,12 +15,14 @@ export function themeBackgroundHex(resolved: 'light' | 'dark'): string {
  * Sync theme-color meta + root/body background to a resolved hex.
  * iOS Safari 26+ tints the PWA status bar from body background (and ignores
  * oklch/CSS variables when sampling), so this must be a concrete hex.
+ * Also sets --chrome-background for the safe-area status fill (must match page).
  */
 export function applyThemeChrome(resolved: 'light' | 'dark'): void {
   if (typeof document === 'undefined') return;
   const color = themeBackgroundHex(resolved);
   const root = document.documentElement;
   root.style.backgroundColor = color;
+  root.style.setProperty('--chrome-background', color);
   if (document.body) {
     document.body.style.backgroundColor = color;
   }

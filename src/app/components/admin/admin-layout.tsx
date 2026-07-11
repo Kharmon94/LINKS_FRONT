@@ -25,7 +25,8 @@ export function AdminLayout() {
     <div className="min-h-screen min-h-[100dvh] bg-background w-full overflow-x-hidden">
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-[env(safe-area-inset-top,0px)] bg-background lg:hidden"
+        className="pointer-events-none fixed inset-x-0 top-0 z-10 h-[env(safe-area-inset-top,0px)] lg:hidden"
+        style={{ backgroundColor: 'var(--chrome-background, #ffffff)' }}
       />
       <AdminTopNav />
       <AdminSidebar
