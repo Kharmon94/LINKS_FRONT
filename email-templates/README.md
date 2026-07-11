@@ -14,7 +14,7 @@ Production-ready HTML email templates for **Links** by **BlackCollar**.
 | Muted text | `#666666` / `#999999` |
 | Success / danger accents | `#22c55e` / `#ef4444` (analytics deltas only) |
 | Corners | Sharp (0 radius) |
-| Logo | Absolute URL via `{{LOGO_URL}}` (Rails: `EMAIL_LOGO_URL`, fallback `FRONTEND_ORIGIN` + `/icons/icon.svg`) |
+| Logo | B mark (square); absolute URL via `{{LOGO_URL}}` (Rails: `EMAIL_LOGO_URL`, fallback `FRONTEND_ORIGIN` + `/icons/icon-512.png`) |
 
 Product-facing copy uses **Links**. Legal/footer copyright uses **© BlackCollar**.
 
@@ -392,10 +392,10 @@ Create test data to ensure all variables render correctly:
 
 ## Image Assets Needed
 
-Replace `{{LOGO_URL}}` with an absolute logo URL. Options:
-- Set `EMAIL_LOGO_URL` in the API environment
-- Fallback: `FRONTEND_ORIGIN` + `/icons/icon.svg`
-- Or host a PNG on a CDN (e.g. 360×80px @2x for retina)
+Replace `{{LOGO_URL}}` with an absolute URL to the square B mark. Options:
+- Set `EMAIL_LOGO_URL` in the API environment (e.g. `https://links.blackcollar.io/icons/icon-512.png`)
+- Fallback: `FRONTEND_ORIGIN` + `/icons/icon-512.png`
+- Header img size in templates: 48×48 (do not use wide wordmark dimensions)
 
 ## Support
 
